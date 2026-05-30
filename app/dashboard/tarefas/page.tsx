@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
 import { AGENTES } from '@/lib/hub-agentes'
 
@@ -42,7 +43,9 @@ export default function TarefasPage() {
 
   useEffect(() => {
     if (!empresaId) return
-    const ch = supabase.channel('tarefas-page').on('postgres_changes', { event: '*', schema: 'public', table: 'hub_tarefas', filter: `empresa_id=eq.${empresaId}` }, () => { void carregar() }).subscribe()
+    const ch = supabase.channel('tarefas-page')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'hub_tarefas', filter: `empresa_id=eq.${empresaId}` }, () => { void carregar() })
+      .subscribe()
     return () => { void supabase.removeChannel(ch) }
   }, [empresaId, carregar])
 
@@ -51,96 +54,178 @@ export default function TarefasPage() {
     (!filtroStatus || t.status === filtroStatus)
   )
 
-  const totais = { concluida: tarefas.filter(t => t.status === 'concluida').length, executando: tarefas.filter(t => t.status === 'executando').length, custo: tarefas.reduce((s, t) => s + Number(t.custo_usd ?? 0), 0) }
+  const totais = {
+    concluida: tarefas.filter(t => t.status === 'concluida').length,
+    executando: tarefas.filter(t => t.status === 'executando').length,
+    custo: tarefas.reduce((s, t) => s + Number(t.custo_usd ?? 0), 0),
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
       {/* KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+      <motion.div
+        initial="hidden"
+        animate="show"
+        variants={{ show: { transition: { staggerChildren: 0.08 } } }}
+        style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}
+      >
         {[
           { label: 'Concluidas', value: totais.concluida, color: 'var(--green)' },
           { label: 'Em execucao', value: totais.executando, color: 'var(--gold)' },
           { label: 'Custo total (USD)', value: `$${totais.custo.toFixed(4)}`, color: 'var(--text)', mono: true },
         ].map(k => (
-          <div key={k.label} className="card" style={{ padding: '14px 16px' }}>
-            <div className="kpi-val" style={{ color: k.color, fontFamily: k.mono ? "'DM Mono',monospace" : undefined }}>{k.value}</div>
-            <div className="kpi-label">{k.label}</div>
-          </div>
+          <motion.div
+            key={k.label}
+            variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="card" style={{ padding: '14px 16px' }}>
+              <div className="kpi-val" style={{ color: k.color, fontFamily: k.mono ? "'DM Mono',monospace" : undefined }}>{k.value}</div>
+              <div className="kpi-label">{k.label}</div>
+            </div>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
 
       {/* Filters */}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15, duration: 0.3 }}
+        style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}
+      >
         <select className="form-input form-select" value={filtroAgente} onChange={e => setFiltroAgente(e.target.value)} style={{ width: 'auto', minWidth: 180 }}>
           <option value="">Todos os agentes</option>
           {AGENTES.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
         </select>
         {['', 'concluida', 'executando', 'erro'].map(s => (
-          <button key={s} onClick={() => setFiltroStatus(s)} className={`btn btn-sm ${filtroStatus === s ? 'btn-primary' : 'btn-ghost'}`}>
+          <motion.button
+            key={s}
+            onClick={() => setFiltroStatus(s)}
+            className={`btn btn-sm ${filtroStatus === s ? 'btn-primary' : 'btn-ghost'}`}
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.96 }}
+          >
             {s || 'Todos'}
-          </button>
+          </motion.button>
         ))}
-        <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>{filtradas.length} resultado{filtradas.length !== 1 ? 's' : ''}</span>
-      </div>
+        <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-muted)' }}>
+          {filtradas.length} resultado{filtradas.length !== 1 ? 's' : ''}
+        </span>
+      </motion.div>
 
       {/* Task list */}
-      <div className="card" style={{ overflow: 'hidden' }}>
+      <motion.div
+        className="card"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2, duration: 0.3 }}
+        style={{ overflow: 'hidden' }}
+      >
         {loading ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>Carregando...</div>
-        ) : filtradas.length === 0 ? (
-          <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>
-            Nenhuma tarefa encontrada.
+          <div style={{ padding: '50px', display: 'flex', justifyContent: 'center' }}>
+            <motion.div
+              style={{ width: 22, height: 22, borderRadius: '50%', border: '2px solid var(--border-light)', borderTopColor: 'var(--teal)' }}
+              animate={{ rotate: 360 }}
+              transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }}
+            />
           </div>
-        ) : filtradas.map(t => {
-          const agente = AGENTES.find(a => a.id === t.agente_id)
-          const open = aberta === t.id
-          return (
-            <div key={t.id} style={{ borderTop: '1px solid var(--border)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', cursor: 'pointer', transition: 'background .1s' }} onClick={() => setAberta(open ? null : t.id)}>
-                <div className="agent-av" style={{ background: agente?.cor ?? '#334155', width: 30, height: 30, borderRadius: 7, fontSize: 10 }}>
-                  {agente?.inicial ?? '?'}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.titulo}</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3 }}>
-                    <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{agente?.nome ?? t.agente_id}</span>
-                    {t.modelo && <span style={{ fontSize: 10.5, color: 'var(--text-dim)', fontFamily: "'DM Mono',monospace" }}>{t.modelo}</span>}
-                  </div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                  <span className="task-status-pill" style={{ background: statusBg[t.status], color: statusColor[t.status] }}>{t.status}</span>
-                  <span style={{ fontSize: 10.5, color: 'var(--text-muted)', fontFamily: "'DM Mono',monospace', minWidth: 40, textAlign: 'right" }}>{timeAgo(t.created_at)}</span>
-                  <i className={`fa-solid ${open ? 'fa-chevron-up' : 'fa-chevron-down'}`} style={{ fontSize: 10, color: 'var(--text-dim)' }} />
-                </div>
-              </div>
+        ) : filtradas.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}
+          >
+            Nenhuma tarefa encontrada.
+          </motion.div>
+        ) : (
+          <AnimatePresence initial={false}>
+            {filtradas.map((t, i) => {
+              const agente = AGENTES.find(a => a.id === t.agente_id)
+              const open = aberta === t.id
+              return (
+                <motion.div
+                  key={t.id}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: Math.min(i * 0.03, 0.3), duration: 0.25 }}
+                  style={{ borderTop: '1px solid var(--border)' }}
+                >
+                  <motion.div
+                    style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', cursor: 'pointer' }}
+                    onClick={() => setAberta(open ? null : t.id)}
+                    whileHover={{ backgroundColor: 'var(--surface-2)' }}
+                    transition={{ duration: 0.1 }}
+                  >
+                    <div className="agent-av" style={{ background: agente?.cor ?? '#334155', width: 30, height: 30, borderRadius: 7, fontSize: 10 }}>
+                      {agente?.inicial ?? '?'}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.titulo}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3 }}>
+                        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{agente?.nome ?? t.agente_id}</span>
+                        {t.modelo && <span style={{ fontSize: 10.5, color: 'var(--text-dim)', fontFamily: "'DM Mono',monospace" }}>{t.modelo}</span>}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                      <motion.span
+                        className="task-status-pill"
+                        style={{ background: statusBg[t.status], color: statusColor[t.status] }}
+                        animate={t.status === 'executando' ? { opacity: [1, 0.45, 1] } : {}}
+                        transition={{ repeat: Infinity, duration: 1.3 }}
+                      >
+                        {t.status}
+                      </motion.span>
+                      <span style={{ fontSize: 10.5, color: 'var(--text-muted)', fontFamily: "'DM Mono',monospace", minWidth: 40, textAlign: 'right' }}>{timeAgo(t.created_at)}</span>
+                      <motion.i
+                        className="fa-solid fa-chevron-down"
+                        animate={{ rotate: open ? 180 : 0 }}
+                        transition={{ duration: 0.2 }}
+                        style={{ fontSize: 10, color: 'var(--text-dim)' }}
+                      />
+                    </div>
+                  </motion.div>
 
-              {open && (
-                <div style={{ padding: '0 16px 16px' }}>
-                  {t.descricao && (
-                    <div style={{ padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 7, marginBottom: 10, fontSize: 12, color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
-                      <span style={{ fontWeight: 600, color: 'var(--text-muted)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em' }}>Contexto</span>
-                      <div style={{ marginTop: 6 }}>{t.descricao}</div>
-                    </div>
-                  )}
-                  {t.resultado ? (
-                    <div style={{ padding: '14px 16px', background: 'var(--surface-2)', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13, color: 'var(--text)', lineHeight: 1.75, whiteSpace: 'pre-wrap' }}>
-                      {t.resultado}
-                    </div>
-                  ) : (
-                    <div style={{ padding: '14px 16px', background: 'var(--surface-2)', borderRadius: 8, color: 'var(--text-muted)', fontSize: 12 }}>Aguardando resultado...</div>
-                  )}
-                  <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>
-                    <span style={{ fontSize: 10.5, color: 'var(--text-muted)', fontFamily: "'DM Mono',monospace" }}>{t.prompt_tokens + t.completion_tokens} tokens</span>
-                    <span style={{ fontSize: 10.5, color: 'var(--text-muted)', fontFamily: "'DM Mono',monospace" }}>${Number(t.custo_usd).toFixed(6)}</span>
-                    {t.completed_at && <span style={{ fontSize: 10.5, color: 'var(--text-dim)' }}>Concluido em {new Date(t.completed_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>}
-                  </div>
-                </div>
-              )}
-            </div>
-          )
-        })}
-      </div>
+                  <AnimatePresence>
+                    {open && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.28, ease: 'easeOut' }}
+                        style={{ overflow: 'hidden' }}
+                      >
+                        <div style={{ padding: '0 16px 16px' }}>
+                          {t.descricao && (
+                            <div style={{ padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 7, marginBottom: 10, fontSize: 12, color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
+                              <span style={{ fontWeight: 600, color: 'var(--text-muted)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em' }}>Contexto</span>
+                              <div style={{ marginTop: 6 }}>{t.descricao}</div>
+                            </div>
+                          )}
+                          <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.1 }}
+                            style={{ padding: '14px 16px', background: 'var(--surface-2)', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13, color: 'var(--text)', lineHeight: 1.75, whiteSpace: 'pre-wrap' }}
+                          >
+                            {t.resultado ?? 'Aguardando resultado...'}
+                          </motion.div>
+                          <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>
+                            <span style={{ fontSize: 10.5, color: 'var(--text-muted)', fontFamily: "'DM Mono',monospace" }}>{t.prompt_tokens + t.completion_tokens} tokens</span>
+                            <span style={{ fontSize: 10.5, color: 'var(--text-muted)', fontFamily: "'DM Mono',monospace" }}>${Number(t.custo_usd).toFixed(6)}</span>
+                            {t.completed_at && <span style={{ fontSize: 10.5, color: 'var(--text-dim)' }}>{new Date(t.completed_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>}
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              )
+            })}
+          </AnimatePresence>
+        )}
+      </motion.div>
     </div>
   )
 }
