@@ -32,26 +32,26 @@ export default function AuthPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--navy)', padding: 20 }}>
+    <div className="auth-wrap">
       <div style={{ width: '100%', maxWidth: 380 }}>
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#fff', letterSpacing: -.5 }}>
+        <div style={{ textAlign: 'center', marginBottom: 28 }}>
+          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', letterSpacing: -.3 }}>
             Factor<span style={{ color: 'var(--teal)' }}>Hub</span>
           </div>
-          <div style={{ fontSize: 13, color: 'rgba(255,255,255,.4)', marginTop: 6 }}>Hub de Operações & Agentes IA</div>
+          <div style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 6 }}>Agentes de IA + Operacao</div>
         </div>
 
-        <div style={{ background: '#fff', borderRadius: 16, padding: 28 }}>
-          <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--gray-100)', marginBottom: 22 }}>
-            {(['login', 'cadastro'] as const).map((m) => (
-              <button key={m} onClick={() => { setModo(m); setErro(''); setMsg('') }} style={{ flex: 1, padding: '8px 0', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', border: 'none', background: modo === m ? 'var(--teal)' : '#fff', color: modo === m ? '#fff' : 'var(--gray-400)', transition: 'all .15s' }}>
+        <div className="auth-card">
+          <div style={{ display: 'flex', borderRadius: 7, overflow: 'hidden', border: '1px solid var(--border-light)', marginBottom: 22 }}>
+            {(['login', 'cadastro'] as const).map(m => (
+              <button key={m} onClick={() => { setModo(m); setErro(''); setMsg('') }} style={{ flex: 1, padding: '8px 0', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', border: 'none', background: modo === m ? 'var(--teal)' : 'transparent', color: modo === m ? '#fff' : 'var(--text-muted)', transition: 'all .15s', fontFamily: 'inherit' }}>
                 {m === 'login' ? 'Entrar' : 'Criar conta'}
               </button>
             ))}
           </div>
 
-          <form onSubmit={void submit as unknown as React.FormEventHandler} onSubmitCapture={(e) => { e.preventDefault(); void submit(e) }}>
-            <div style={{ marginBottom: 14 }}>
+          <form onSubmit={(e) => { void submit(e) }}>
+            <div style={{ marginBottom: 12 }}>
               <label className="form-label">E-mail</label>
               <input className="form-input" type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="voce@empresa.com.br" />
             </div>
@@ -59,10 +59,10 @@ export default function AuthPage() {
               <label className="form-label">Senha</label>
               <input className="form-input" type="password" required value={senha} onChange={e => setSenha(e.target.value)} placeholder="••••••••" minLength={6} />
             </div>
-            {erro && <div style={{ background: '#FEF2F2', color: '#EF4444', fontSize: 12, padding: '8px 12px', borderRadius: 8, marginBottom: 14, border: '1px solid #FECACA' }}>{erro}</div>}
-            {msg && <div style={{ background: '#F0FDF4', color: '#16A34A', fontSize: 12, padding: '8px 12px', borderRadius: 8, marginBottom: 14, border: '1px solid #BBF7D0' }}>{msg}</div>}
-            <button className="btn-action" type="submit" disabled={loading} style={{ width: '100%', opacity: loading ? .7 : 1 }}>
-              {loading ? 'Aguarde…' : modo === 'login' ? 'Entrar' : 'Criar conta'}
+            {erro && <div style={{ background: 'rgba(239,68,68,.1)', color: 'var(--red)', fontSize: 12, padding: '9px 12px', borderRadius: 7, marginBottom: 14, border: '1px solid rgba(239,68,68,.2)' }}>{erro}</div>}
+            {msg && <div style={{ background: 'rgba(34,197,94,.1)', color: 'var(--green)', fontSize: 12, padding: '9px 12px', borderRadius: 7, marginBottom: 14, border: '1px solid rgba(34,197,94,.2)' }}>{msg}</div>}
+            <button className="btn btn-primary" type="submit" disabled={loading} style={{ width: '100%', justifyContent: 'center' }}>
+              {loading ? 'Aguarde...' : modo === 'login' ? 'Entrar' : 'Criar conta'}
             </button>
           </form>
         </div>
