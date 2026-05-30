@@ -1,11 +1,13 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
 
 type Cliente = { id: string; nome: string; email: string | null; telefone: string | null; segmento: string | null; status: string; created_at: string }
 
-const STATUS_COLORS: Record<string, string> = { lead: '#F59E0B', ativo: '#059669', socio: '#7C3AED', inativo: '#94A3B8' }
+const ST: Record<string, string> = { lead: '#F59E0B', ativo: '#22C55E', socio: '#7C3AED', inativo: '#64748B' }
+const fadeUp = { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { duration: 0.25 } } }
 
 export default function ClientesPage() {
   const [itens, setItens] = useState<Cliente[]>([])
@@ -37,8 +39,8 @@ export default function ClientesPage() {
   async function salvar(e: React.FormEvent) {
     e.preventDefault(); setSaving(true)
     const payload = { nome: form.nome, email: form.email || null, telefone: form.telefone || null, segmento: form.segmento || null, status: form.status, empresa_id: empresaId }
-    if (editando) { await supabase.from('hub_clientes').update(payload).eq('id', editando.id) }
-    else { await supabase.from('hub_clientes').insert(payload) }
+    if (editando) await supabase.from('hub_clientes').update(payload).eq('id', editando.id)
+    else await supabase.from('hub_clientes').insert(payload)
     setSaving(false); setShowForm(false); void carregar()
   }
 
@@ -53,67 +55,81 @@ export default function ClientesPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-        <input className="form-input" placeholder="Buscar cliente…" value={busca} onChange={e => setBusca(e.target.value)} style={{ maxWidth: 280 }} />
-        <button className="btn-action" onClick={abrirNovo}><i className="fa-solid fa-plus" style={{ marginRight: 6 }} />Novo Cliente</button>
+        <div style={{ position: 'relative', flex: 1, maxWidth: 280 }}>
+          <input className="form-input" placeholder="Buscar cliente..." value={busca} onChange={e => setBusca(e.target.value)} style={{ paddingLeft: 34 }} />
+          <i className="fa-solid fa-magnifying-glass" style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: 'var(--text-dim)' }} />
+        </div>
+        <motion.button className="btn btn-primary" onClick={abrirNovo} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
+          <i className="fa-solid fa-plus" style={{ fontSize: 11 }} />Novo Cliente
+        </motion.button>
       </div>
 
-      {showForm && (
-        <div style={{ background: '#fff', border: '1px solid var(--gray-100)', borderRadius: 12, padding: 20 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)', marginBottom: 16 }}>{editando ? 'Editar Cliente' : 'Novo Cliente'}</div>
-          <form onSubmit={(e) => { void salvar(e) }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-              <div><label className="form-label">Nome *</label><input className="form-input" required value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} /></div>
-              <div><label className="form-label">E-mail</label><input className="form-input" type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></div>
-              <div><label className="form-label">Telefone</label><input className="form-input" value={form.telefone} onChange={e => setForm(f => ({ ...f, telefone: e.target.value }))} /></div>
-              <div><label className="form-label">Segmento</label><input className="form-input" value={form.segmento} onChange={e => setForm(f => ({ ...f, segmento: e.target.value }))} /></div>
+      <AnimatePresence>
+        {showForm && (
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.28, ease: 'easeOut' }} style={{ overflow: 'hidden' }}>
+            <div className="card" style={{ padding: 20 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 18 }}>{editando ? 'Editar Cliente' : 'Novo Cliente'}</div>
+              <form onSubmit={(e) => { void salvar(e) }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                  <div><label className="form-label">Nome *</label><input className="form-input" required value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} /></div>
+                  <div><label className="form-label">E-mail</label><input className="form-input" type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></div>
+                  <div><label className="form-label">Telefone</label><input className="form-input" value={form.telefone} onChange={e => setForm(f => ({ ...f, telefone: e.target.value }))} /></div>
+                  <div><label className="form-label">Segmento</label><input className="form-input" value={form.segmento} onChange={e => setForm(f => ({ ...f, segmento: e.target.value }))} /></div>
+                </div>
+                <div style={{ marginBottom: 20 }}><label className="form-label">Status</label>
+                  <select className="form-input form-select" value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
+                    {['lead', 'ativo', 'socio', 'inativo'].map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <motion.button className="btn btn-primary" type="submit" disabled={saving} whileHover={!saving ? { scale: 1.02 } : {}} whileTap={!saving ? { scale: 0.97 } : {}}>{saving ? 'Salvando...' : 'Salvar'}</motion.button>
+                  <motion.button className="btn btn-ghost" type="button" onClick={() => setShowForm(false)} whileHover={{ scale: 1.02 }}>Cancelar</motion.button>
+                </div>
+              </form>
             </div>
-            <div style={{ marginBottom: 16 }}><label className="form-label">Status</label>
-              <select className="form-input form-select" value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
-                {['lead', 'ativo', 'socio', 'inativo'].map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn-action" type="submit" disabled={saving}>{saving ? 'Salvando…' : 'Salvar'}</button>
-              <button className="btn-outline" type="button" onClick={() => setShowForm(false)}>Cancelar</button>
-            </div>
-          </form>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      <div style={{ background: '#fff', border: '1px solid var(--gray-100)', borderRadius: 12, overflow: 'hidden' }}>
+      <motion.div className="card" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} style={{ overflow: 'hidden' }}>
         {loading ? (
-          <div style={{ padding: '30px 16px', textAlign: 'center', color: 'var(--gray-400)', fontSize: 12 }}>Carregando…</div>
-        ) : filtrados.length === 0 ? (
-          <div style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--gray-400)', fontSize: 12 }}>
-            <i className="fa-solid fa-users" style={{ fontSize: 28, marginBottom: 10, display: 'block', opacity: .3 }} />
-            {busca ? 'Nenhum resultado.' : 'Nenhum cliente ainda.'}
+          <div style={{ padding: '50px', display: 'flex', justifyContent: 'center' }}>
+            <motion.div style={{ width: 22, height: 22, borderRadius: '50%', border: '2px solid var(--border-light)', borderTopColor: 'var(--teal)' }} animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }} />
           </div>
+        ) : filtrados.length === 0 ? (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+            <i className="fa-solid fa-users" style={{ fontSize: 28, marginBottom: 12, display: 'block', opacity: 0.3 }} />
+            <div style={{ fontSize: 13 }}>{busca ? 'Nenhum resultado.' : 'Nenhum cliente ainda.'}</div>
+            {!busca && <button className="btn btn-primary btn-sm" style={{ marginTop: 14 }} onClick={abrirNovo}>Adicionar primeiro cliente</button>}
+          </motion.div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
             <table className="crud-table">
-              <thead><tr><th>Nome</th><th>E-mail</th><th>Telefone</th><th>Segmento</th><th>Status</th><th>Criado</th><th></th></tr></thead>
+              <thead><tr><th>Nome</th><th>E-mail</th><th>Telefone</th><th>Segmento</th><th>Status</th><th>Criado</th><th style={{ width: 100 }}></th></tr></thead>
               <tbody>
-                {filtrados.map((c) => (
-                  <tr key={c.id}>
-                    <td style={{ fontWeight: 600, color: 'var(--navy)' }}>{c.nome}</td>
-                    <td style={{ color: 'var(--gray-500)', fontSize: 12 }}>{c.email || '—'}</td>
-                    <td style={{ color: 'var(--gray-500)', fontSize: 12 }}>{c.telefone || '—'}</td>
-                    <td style={{ color: 'var(--gray-500)', fontSize: 12 }}>{c.segmento || '—'}</td>
-                    <td><span className="status-pill" style={{ background: `${STATUS_COLORS[c.status] ?? '#94A3B8'}15`, color: STATUS_COLORS[c.status] ?? '#94A3B8' }}>{c.status}</span></td>
-                    <td style={{ color: 'var(--gray-400)', fontSize: 11, fontFamily: "'DM Mono',monospace" }}>{new Date(c.created_at).toLocaleDateString('pt-BR')}</td>
-                    <td>
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        <button className="btn-outline" style={{ padding: '4px 10px', fontSize: 11 }} onClick={() => abrirEditar(c)}>Editar</button>
-                        <button className="btn-outline btn-danger" style={{ padding: '4px 10px', fontSize: 11 }} onClick={() => void excluir(c.id)}>Excluir</button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                <AnimatePresence initial={false}>
+                  {filtrados.map((c, i) => (
+                    <motion.tr key={c.id} variants={fadeUp} initial="hidden" animate="show" transition={{ delay: i * 0.03 }}>
+                      <td style={{ fontWeight: 600, color: 'var(--text)', fontSize: 13 }}>{c.nome}</td>
+                      <td style={{ color: 'var(--text-muted)', fontSize: 12 }}>{c.email || '—'}</td>
+                      <td style={{ color: 'var(--text-muted)', fontSize: 12 }}>{c.telefone || '—'}</td>
+                      <td style={{ color: 'var(--text-muted)', fontSize: 12 }}>{c.segmento || '—'}</td>
+                      <td><span className="status-pill" style={{ background: `${ST[c.status] ?? '#64748B'}18`, color: ST[c.status] ?? '#64748B' }}>{c.status}</span></td>
+                      <td style={{ color: 'var(--text-muted)', fontSize: 11, fontFamily: "'DM Mono',monospace" }}>{new Date(c.created_at).toLocaleDateString('pt-BR')}</td>
+                      <td>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button className="btn btn-ghost btn-sm" onClick={() => abrirEditar(c)}>Editar</button>
+                          <button className="btn btn-danger btn-sm" onClick={() => void excluir(c.id)}>Del</button>
+                        </div>
+                      </td>
+                    </motion.tr>
+                  ))}
+                </AnimatePresence>
               </tbody>
             </table>
           </div>
         )}
-      </div>
+      </motion.div>
     </div>
   )
 }
