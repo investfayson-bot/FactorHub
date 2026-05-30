@@ -17,7 +17,7 @@ export const HeroSection = () => {
   const [menuState, setMenuState] = React.useState(false)
 
   return (
-    <div className="min-h-screen" style={{ background: '#0A0F1E', color: '#F1F5F9' }}>
+    <div className="min-h-screen" style={{ background: '#181D2A', color: '#E8EEF5' }}>
       <header>
         <nav
           data-state={menuState && 'active'}
@@ -198,7 +198,7 @@ function DashboardPreview() {
   ]
 
   return (
-    <div style={{ background: '#0A0F1E', minHeight: 320, padding: '0', fontFamily: 'system-ui' }}>
+    <div style={{ background: '#181D2A', minHeight: 320, padding: '0', fontFamily: 'system-ui' }}>
       {/* Topbar */}
       <div
         style={{
