@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AGENTES, type Agente } from '@/lib/hub-agentes'
 import { supabase } from '@/lib/supabase'
+import { AgentPlan, type PlanStep } from '@/components/ui/agent-plan'
 
 type Tarefa = { id: string; titulo: string; descricao: string | null; status: string; resultado: string | null; custo_usd: number; created_at: string }
 
@@ -20,6 +21,11 @@ function timeAgo(dateStr: string) {
 const statusColor: Record<string, string> = { concluida: 'var(--green)', executando: 'var(--gold)', erro: 'var(--red)' }
 const statusBg: Record<string, string> = { concluida: 'rgba(34,197,94,.12)', executando: 'rgba(245,158,11,.12)', erro: 'rgba(239,68,68,.12)' }
 
+async function getToken() {
+  const { data: sess } = await supabase.auth.getSession()
+  return sess.session?.access_token
+}
+
 export default function AgentesPage() {
   const [ativo, setAtivo] = useState<Agente>(AGENTES[0])
   const [tarefas, setTarefas] = useState<Tarefa[]>([])
@@ -28,11 +34,12 @@ export default function AgentesPage() {
   const [loading, setLoading] = useState(false)
   const [loadingTarefas, setLoadingTarefas] = useState(false)
   const [tarefaAberta, setTarefaAberta] = useState<Tarefa | null>(null)
+  const [plano, setPlano] = useState<PlanStep[] | null>(null)
+  const [fase, setFase] = useState<'idle' | 'planejando' | 'executando' | 'concluido'>('idle')
 
   const carregarTarefas = useCallback(async (agentId: string) => {
     setLoadingTarefas(true)
-    const { data: sess } = await supabase.auth.getSession()
-    const token = sess.session?.access_token
+    const token = await getToken()
     const res = await fetch(`/api/hub/tarefa?agentId=${agentId}&limit=30`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
@@ -46,24 +53,60 @@ export default function AgentesPage() {
     setTarefaAberta(null)
     setTitulo('')
     setDescricao('')
+    setPlano(null)
+    setFase('idle')
   }, [ativo.id, carregarTarefas])
 
   async function executar() {
     if (!titulo.trim() || loading) return
     setLoading(true)
-    const { data: sess } = await supabase.auth.getSession()
-    const token = sess.session?.access_token
-    const res = await fetch('/api/hub/tarefa', {
+    setPlano(null)
+    setTarefaAberta(null)
+
+    const token = await getToken()
+    const headers = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }
+
+    // Phase 1: generate plan
+    setFase('planejando')
+    const planRes = await fetch('/api/hub/plano', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      headers,
       body: JSON.stringify({ agentId: ativo.id, titulo: titulo.trim(), descricao: descricao.trim() || undefined }),
     })
-    const payload = await res.json().catch(() => ({}))
+    const planData = await planRes.json().catch(() => ({ etapas: [] }))
+    const etapas: PlanStep[] = (planData.etapas ?? []).map((e: PlanStep) => ({ ...e, status: 'pendente' as const }))
+    setPlano(etapas)
+
+    // Animate steps one by one while waiting for execution
+    setFase('executando')
+    const stepDelay = 600
+
+    // Mark steps executing sequentially (simulated progress)
+    for (let i = 0; i < etapas.length; i++) {
+      await new Promise(r => setTimeout(r, stepDelay))
+      setPlano(prev => prev
+        ? prev.map((e, idx) => idx === i ? { ...e, status: 'executando' } : e)
+        : prev
+      )
+    }
+
+    // Phase 2: run actual task
+    const taskRes = await fetch('/api/hub/tarefa', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ agentId: ativo.id, titulo: titulo.trim(), descricao: descricao.trim() || undefined }),
+    })
+    const taskData = await taskRes.json().catch(() => ({}))
+
+    // Mark all steps done
+    setPlano(prev => prev ? prev.map(e => ({ ...e, status: 'concluida' as const })) : prev)
+    setFase('concluido')
     setLoading(false)
     setTitulo('')
     setDescricao('')
-    if (payload.tarefa) {
-      setTarefaAberta(payload.tarefa as Tarefa)
+
+    if (taskData.tarefa) {
+      setTarefaAberta(taskData.tarefa as Tarefa)
       void carregarTarefas(ativo.id)
     }
   }
@@ -134,7 +177,27 @@ export default function AgentesPage() {
                 <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>{ativo.nome}</div>
                 <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>{ativo.especialidade}</div>
               </div>
-              <div style={{ marginLeft: 'auto', fontSize: 9.5, fontWeight: 700, padding: '3px 8px', borderRadius: 5, background: `${ativo.cor}15`, color: ativo.cor, letterSpacing: '.04em' }}>IA</div>
+              <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+                {fase === 'planejando' && (
+                  <motion.span
+                    animate={{ opacity: [1, 0.4, 1] }}
+                    transition={{ repeat: Infinity, duration: 1 }}
+                    style={{ fontSize: 10, color: 'var(--teal)', fontWeight: 600 }}
+                  >
+                    gerando plano...
+                  </motion.span>
+                )}
+                {fase === 'executando' && (
+                  <motion.span
+                    animate={{ opacity: [1, 0.4, 1] }}
+                    transition={{ repeat: Infinity, duration: 1 }}
+                    style={{ fontSize: 10, color: 'var(--gold)', fontWeight: 600 }}
+                  >
+                    executando...
+                  </motion.span>
+                )}
+                <div style={{ fontSize: 9.5, fontWeight: 700, padding: '3px 8px', borderRadius: 5, background: `${ativo.cor}15`, color: ativo.cor, letterSpacing: '.04em' }}>IA</div>
+              </div>
             </div>
 
             <div style={{ padding: '16px 18px' }}>
@@ -146,11 +209,12 @@ export default function AgentesPage() {
                   value={titulo}
                   onChange={e => setTitulo(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void executar() } }}
+                  disabled={loading}
                 />
               </div>
               <div style={{ marginBottom: 14 }}>
                 <label className="form-label">Contexto adicional (opcional)</label>
-                <textarea className="form-input" rows={2} placeholder="Detalhe a tarefa se precisar..." value={descricao} onChange={e => setDescricao(e.target.value)} style={{ resize: 'vertical' }} />
+                <textarea className="form-input" rows={2} placeholder="Detalhe a tarefa se precisar..." value={descricao} onChange={e => setDescricao(e.target.value)} style={{ resize: 'vertical' }} disabled={loading} />
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -169,28 +233,47 @@ export default function AgentesPage() {
                         transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }}
                         style={{ fontSize: 12 }}
                       />
-                      Executando...
+                      {fase === 'planejando' ? 'Planejando...' : 'Executando...'}
                     </>
                   ) : (
                     <><i className="fa-solid fa-play" style={{ fontSize: 11 }} />Executar</>
                   )}
                 </motion.button>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {ativo.sugestoes.map(s => (
-                    <motion.button
-                      key={s}
-                      onClick={() => setTitulo(s)}
-                      className="btn btn-ghost btn-sm"
-                      style={{ fontSize: 11 }}
-                      whileHover={{ scale: 1.03 }}
-                      whileTap={{ scale: 0.96 }}
-                    >
-                      {s}
-                    </motion.button>
-                  ))}
-                </div>
+                {!loading && (
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {ativo.sugestoes.map(s => (
+                      <motion.button
+                        key={s}
+                        onClick={() => setTitulo(s)}
+                        className="btn btn-ghost btn-sm"
+                        style={{ fontSize: 11 }}
+                        whileHover={{ scale: 1.03 }}
+                        whileTap={{ scale: 0.96 }}
+                      >
+                        {s}
+                      </motion.button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
+
+            {/* Agent Plan */}
+            <AnimatePresence>
+              {plano && plano.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3, ease: 'easeOut' }}
+                  style={{ overflow: 'hidden' }}
+                >
+                  <div style={{ margin: '0 18px 18px' }}>
+                    <AgentPlan etapas={plano} agenteCor={ativo.cor} agenteNome={ativo.nome} />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Result */}
             <AnimatePresence>
@@ -204,6 +287,7 @@ export default function AgentesPage() {
                 >
                   <div style={{ margin: '0 18px 18px', padding: 16, background: 'var(--surface-2)', borderRadius: 8, border: '1px solid var(--border-light)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                      <i className="fa-solid fa-check-circle" style={{ fontSize: 13, color: 'var(--green)' }} />
                       <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text)', flex: 1 }}>{tarefaAberta.titulo}</span>
                       <span className="task-status-pill" style={{ background: statusBg[tarefaAberta.status], color: statusColor[tarefaAberta.status] }}>{tarefaAberta.status}</span>
                       <span style={{ fontSize: 10.5, color: 'var(--text-muted)', fontFamily: "'DM Mono',monospace" }}>${Number(tarefaAberta.custo_usd).toFixed(6)}</span>
@@ -216,7 +300,13 @@ export default function AgentesPage() {
                     >
                       {tarefaAberta.resultado ?? ''}
                     </motion.div>
-                    <button className="btn btn-ghost btn-sm" style={{ marginTop: 14 }} onClick={() => setTarefaAberta(null)}>Fechar</button>
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      style={{ marginTop: 14 }}
+                      onClick={() => { setTarefaAberta(null); setPlano(null); setFase('idle') }}
+                    >
+                      Fechar
+                    </button>
                   </div>
                 </motion.div>
               )}
