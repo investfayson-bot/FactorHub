@@ -54,6 +54,10 @@ const NAV: { label: string; items: NavItem[] }[] = [
   },
 ]
 
+const NAV_EXTERNAL: { href: string; icon: string; label: string; badge?: string; badgeColor?: string }[] = [
+  { href: '/live-monitor.html', icon: 'fa-display', label: 'Live Monitor', badge: 'NOVO', badgeColor: '#22c55e' },
+]
+
 const TITLES: Record<string, string> = {
   '/dashboard': 'Dashboard',
   '/dashboard/missoes': 'Missões',
@@ -185,6 +189,27 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
             </div>
           ))}
         </nav>
+
+        {/* External links */}
+        {NAV_EXTERNAL.map(item => (
+          <a
+            key={item.href}
+            href={item.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="nav-item"
+            style={{ margin: '0 10px 2px', borderRadius: 8, textDecoration: 'none' }}
+          >
+            <i className={`fa-solid ${item.icon}`} />
+            <span style={{ flex: 1 }}>{item.label}</span>
+            {item.badge && (
+              <span style={{ fontSize: 8, fontWeight: 700, padding: '2px 5px', borderRadius: 4, background: item.badgeColor ?? '#333', color: '#fff' }}>
+                {item.badge}
+              </span>
+            )}
+            <i className="fa-solid fa-arrow-up-right-from-square" style={{ fontSize: 8, color: 'var(--text-dim)', marginLeft: 2 }} />
+          </a>
+        ))}
 
         {/* Terminal shortcut */}
         <button
