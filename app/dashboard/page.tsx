@@ -7,7 +7,7 @@ import { AGENTES } from '@/lib/hub-agentes'
 import Link from 'next/link'
 
 type Tarefa = { id: string; titulo: string; agente_id: string; status: string; resultado: string | null; custo_usd: number; created_at: string }
-type Counts = { projetos: number; ideias: number; clientes: number; tarefas: number }
+type Counts = { projetos: number; ideias: number; clientes: number; tarefas: number; missoes: number }
 
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime()
@@ -104,14 +104,15 @@ export default function DashboardPage() {
     const eid = u?.empresa_id ?? user.id
     setEmpresaId(eid)
 
-    const [p, id, cl, tf, uso] = await Promise.all([
+    const [p, id, cl, tf, uso, ms] = await Promise.all([
       supabase.from('hub_projetos').select('id', { count: 'exact', head: true }).eq('empresa_id', eid),
       supabase.from('hub_ideias').select('id', { count: 'exact', head: true }).eq('empresa_id', eid),
       supabase.from('hub_clientes').select('id', { count: 'exact', head: true }).eq('empresa_id', eid),
       supabase.from('hub_tarefas').select('id', { count: 'exact', head: true }).eq('empresa_id', eid),
       supabase.from('hub_uso_agentes').select('custo_usd').eq('empresa_id', eid),
+      supabase.from('missions').select('id', { count: 'exact', head: true }).eq('empresa_id', eid),
     ])
-    setCounts({ projetos: p.count ?? 0, ideias: id.count ?? 0, clientes: cl.count ?? 0, tarefas: tf.count ?? 0 })
+    setCounts({ projetos: p.count ?? 0, ideias: id.count ?? 0, clientes: cl.count ?? 0, tarefas: tf.count ?? 0, missoes: ms.count ?? 0 })
     setTotalCusto((uso.data ?? []).reduce((s, r) => s + Number(r.custo_usd ?? 0), 0))
 
     const { data: tfList } = await supabase.from('hub_tarefas')
@@ -187,7 +188,7 @@ export default function DashboardPage() {
         style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12 }}
       >
         {[
-          { label: 'Tarefas hoje',  value: hoje.length,                      sub: 'Criadas nas últimas 24h',    icon: 'fa-bolt',          color: '#e8622a' },
+          { label: 'Missões',        value: counts?.missoes ?? '—',           sub: 'Análises executadas',        icon: 'fa-rocket',        color: '#e8622a' },
           { label: 'Tarefas ativas', value: ativas.length,                   sub: 'Em execução agora',          icon: 'fa-circle-notch',  color: '#F59E0B' },
           { label: 'Total tarefas', value: counts?.tarefas ?? '—',           sub: 'Desde o início',             icon: 'fa-list-check',    color: '#7C3AED' },
           { label: 'Custo IA (USD)',value: `$${totalCusto.toFixed(4)}`,      sub: 'Acumulado total',            icon: 'fa-microchip',     color: '#059669', mono: true },

@@ -3,6 +3,8 @@
 import { useEffect, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
+import { calcCerebroCompletion } from '@/lib/cerebro'
+import type { CerebroRow } from '@/lib/cerebro'
 
 type CerebroData = {
   // IDENTIDADE
@@ -26,6 +28,12 @@ type CerebroData = {
   prioridades: string
   restricoes: string
   orcamento_mensal: string
+  // DNA DO FUNDADOR (novo)
+  dna_fundador: string
+  // KNOWLEDGE VAULT (novo)
+  knowledge_vault: string
+  // PLAYBOOKS (novo)
+  playbooks: string
 }
 
 const EMPTY: CerebroData = {
@@ -33,6 +41,9 @@ const EMPTY: CerebroData = {
   produto_principal: '', diferenciais: '', modelo_negocio: '', preco_medio: '',
   publico_alvo: '', dores_principais: '', objecoes: '', canais: '',
   metas: '', prioridades: '', restricoes: '', orcamento_mensal: '',
+  dna_fundador: '',
+  knowledge_vault: '',
+  playbooks: '',
 }
 
 const LAYERS = [
@@ -89,11 +100,55 @@ const LAYERS = [
       { key: 'orcamento_mensal', label: 'Orçamento mensal para IA/ferramentas', placeholder: 'Ex: R$2.000/mês', type: 'input' },
     ],
   },
+  {
+    id: 'dna',
+    label: 'DNA',
+    icon: 'fa-dna',
+    color: '#dc2626',
+    desc: 'Como você decide',
+    fields: [
+      {
+        key: 'dna_fundador',
+        label: 'DNA do Fundador — como você decide',
+        placeholder: 'Valorizo velocidade com qualidade. Não aceito respostas genéricas. Busco oportunidades escondidas. Pergunta que sempre faço: se o dinheiro fosse meu, eu faria isso?',
+        type: 'textarea-lg',
+      },
+    ],
+  },
+  {
+    id: 'knowledge',
+    label: 'Knowledge Vault',
+    icon: 'fa-vault',
+    color: '#f59e0b',
+    desc: 'Base de conhecimento',
+    fields: [
+      {
+        key: 'knowledge_vault',
+        label: 'Base de Conhecimento da Empresa',
+        placeholder: 'Cole aqui: dados de mercado, relatórios, benchmarks, decisões históricas, lições aprendidas, análises aprovadas. Tudo que os agentes precisam saber sobre seu mercado e operação.',
+        type: 'textarea-lg',
+      },
+    ],
+  },
+  {
+    id: 'playbooks',
+    label: 'Playbooks',
+    icon: 'fa-book-open',
+    color: '#10b981',
+    desc: 'Processos aprovados',
+    fields: [
+      {
+        key: 'playbooks',
+        label: 'Playbooks e Processos Aprovados',
+        placeholder: 'Descreva os processos que funcionam: como você vende, como contrata, como lança produto, como toma decisões de investimento. Estes processos serão seguidos pelos agentes.',
+        type: 'textarea-lg',
+      },
+    ],
+  },
 ]
 
 function pct(data: CerebroData): number {
-  const vals = Object.values(data).filter(Boolean)
-  return Math.round((vals.length / Object.keys(EMPTY).length) * 100)
+  return calcCerebroCompletion(data as unknown as CerebroRow)
 }
 
 export default function CerebroPage() {
@@ -239,21 +294,21 @@ export default function CerebroPage() {
               {layer.fields.map((field) => (
                 <div key={field.key}>
                   <label className="form-label">{field.label}</label>
-                  {field.type === 'textarea' ? (
-                    <textarea
-                      className="form-input"
-                      rows={3}
-                      placeholder={field.placeholder}
-                      value={data[field.key as keyof CerebroData]}
-                      onChange={e => setData(d => ({ ...d, [field.key]: e.target.value }))}
-                      style={{ resize: 'vertical' }}
-                    />
-                  ) : (
+                  {field.type === 'input' ? (
                     <input
                       className="form-input"
                       placeholder={field.placeholder}
                       value={data[field.key as keyof CerebroData]}
                       onChange={e => setData(d => ({ ...d, [field.key]: e.target.value }))}
+                    />
+                  ) : (
+                    <textarea
+                      className="form-input"
+                      rows={field.type === 'textarea-lg' ? 12 : 3}
+                      placeholder={field.placeholder}
+                      value={data[field.key as keyof CerebroData]}
+                      onChange={e => setData(d => ({ ...d, [field.key]: e.target.value }))}
+                      style={{ resize: 'vertical', fontFamily: field.type === 'textarea-lg' ? 'inherit' : undefined }}
                     />
                   )}
                 </div>
@@ -308,10 +363,24 @@ export default function CerebroPage() {
             Preview — O que os agentes recebem
           </div>
           <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.8, background: 'var(--surface-2)', borderRadius: 8, padding: 14, border: '0.5px solid var(--border)', whiteSpace: 'pre-wrap' }}>
-{`=== CONTEXTO DA EMPRESA (Cerebro) ===${data.nome_empresa ? `\nEmpresa: ${data.nome_empresa}` : ''}${data.slogan ? `\nSlogan: ${data.slogan}` : ''}${data.missao ? `\nMissão: ${data.missao}` : ''}${data.produto_principal ? `\nProduto principal: ${data.produto_principal}` : ''}${data.publico_alvo ? `\nPúblico-alvo: ${data.publico_alvo}` : ''}${data.diferenciais ? `\nDiferenciais: ${data.diferenciais}` : ''}${data.metas ? `\nMetas atuais: ${data.metas}` : ''}${data.restricoes ? `\nRestrições: ${data.restricoes}` : ''}
-=== FIM DO CONTEXTO ===
-
-[system prompt do agente selecionado...]`}
+{[
+  '[CÉREBRO CORPORATIVO]',
+  data.nome_empresa ? `Empresa: ${data.nome_empresa}` : '',
+  data.slogan ? `Slogan: ${data.slogan}` : '',
+  data.missao ? `Missão: ${data.missao.slice(0, 80)}${data.missao.length > 80 ? '...' : ''}` : '',
+  data.produto_principal ? `Produto: ${data.produto_principal}` : '',
+  data.publico_alvo ? `ICP: ${data.publico_alvo.slice(0, 60)}...` : '',
+  data.metas ? `Metas: ${data.metas.slice(0, 60)}...` : '',
+  data.dna_fundador ? `DNA: ${data.dna_fundador.slice(0, 80)}...` : '',
+  data.knowledge_vault ? `[BASE DE CONHECIMENTO — ${data.knowledge_vault.length} chars]` : '',
+  data.playbooks ? `[PLAYBOOKS — ${data.playbooks.length} chars]` : '',
+  '',
+  '[REGRAS FUNDAMENTAIS]',
+  'Evidence First · Zero Genérico · Think Beyond · Mentalidade de Dono · Execução Obrigatória',
+  '',
+  '[PERFIL DO AGENTE]',
+  '[system prompt específico do agente...]',
+].filter(Boolean).join('\n')}
           </div>
         </motion.div>
       )}

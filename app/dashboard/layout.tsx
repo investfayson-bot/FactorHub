@@ -3,51 +3,68 @@ import { useEffect, useState, useCallback } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
+import { calcCerebroCompletion } from '@/lib/cerebro'
+import type { CerebroRow } from '@/lib/cerebro'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 
 const TerminalModal = dynamic(() => import('@/components/layout/TerminalModal'), { ssr: false })
 
-type NavItem = { href: string; icon: string; label: string; badge?: string; badgeColor?: string; match?: (p: string) => boolean }
+type NavItem = {
+  href: string
+  icon: string
+  label: string
+  badge?: string
+  badgeColor?: string
+  match?: (p: string) => boolean
+}
 
 const NAV: { label: string; items: NavItem[] }[] = [
   {
-    label: 'Central',
+    label: 'Principal',
     items: [
       { href: '/dashboard', icon: 'fa-grid-2', label: 'Dashboard', match: (p) => p === '/dashboard' || p === '/dashboard/' },
-      { href: '/dashboard/agentes', icon: 'fa-robot', label: 'Agentes', badge: 'IA', badgeColor: '#e8622a' },
+      { href: '/dashboard/missoes', icon: 'fa-rocket', label: 'Missões', badge: 'NOVO', badgeColor: '#e8622a' },
+      { href: '/dashboard/cerebro', icon: 'fa-brain', label: 'Cérebro' },
+    ],
+  },
+  {
+    label: 'Squad',
+    items: [
+      { href: '/dashboard/agentes', icon: 'fa-robot', label: 'Conselho · C1', badge: '7', badgeColor: '#e8622a' },
+      { href: '/dashboard/mapa', icon: 'fa-map', label: 'Pesquisa · C2', badge: '6', badgeColor: '#0d9488' },
       { href: '/dashboard/chat', icon: 'fa-comment-dots', label: 'Chat' },
-      { href: '/dashboard/mapa', icon: 'fa-map', label: 'Mapa' },
-      { href: '/dashboard/cerebro', icon: 'fa-brain', label: 'Cerebro' },
-      { href: '/dashboard/tarefas', icon: 'fa-list-check', label: 'Tarefas' },
-      { href: '/dashboard/uso', icon: 'fa-chart-bar', label: 'Consumo' },
     ],
   },
   {
     label: 'Operação',
     items: [
+      { href: '/dashboard/tarefas', icon: 'fa-list-check', label: 'Tarefas' },
       { href: '/dashboard/projetos', icon: 'fa-diagram-project', label: 'Projetos' },
       { href: '/dashboard/ideias', icon: 'fa-lightbulb', label: 'Ideias' },
-      { href: '/dashboard/clientes', icon: 'fa-users', label: 'Clientes' },
-      { href: '/dashboard/eventos', icon: 'fa-calendar', label: 'Eventos' },
-      { href: '/dashboard/conteudo', icon: 'fa-pen-nib', label: 'Conteudo' },
+      { href: '/dashboard/uso', icon: 'fa-chart-bar', label: 'Consumo' },
+    ],
+  },
+  {
+    label: 'Sistema',
+    items: [
+      { href: '/dashboard/configuracoes', icon: 'fa-gear', label: 'Configurações' },
     ],
   },
 ]
 
 const TITLES: Record<string, string> = {
   '/dashboard': 'Dashboard',
-  '/dashboard/agentes': 'Agentes IA',
+  '/dashboard/missoes': 'Missões',
+  '/dashboard/agentes': 'Conselho · C1',
   '/dashboard/tarefas': 'Tarefas',
-  '/dashboard/cerebro': 'Cerebro — Identidade da Empresa',
-  '/dashboard/chat': 'Chat com Agentes',
+  '/dashboard/cerebro': 'Cérebro',
+  '/dashboard/chat': 'Chat',
   '/dashboard/mapa': 'Mapa da Equipe',
-  '/dashboard/uso': 'Consumo',
+  '/dashboard/uso': 'Consumo de IA',
   '/dashboard/projetos': 'Projetos',
   '/dashboard/ideias': 'Ideias',
-  '/dashboard/clientes': 'Clientes',
-  '/dashboard/eventos': 'Eventos',
-  '/dashboard/conteudo': 'Conteudo',
+  '/dashboard/configuracoes': 'Configurações',
 }
 
 function isActive(pathname: string, item: NavItem) {
@@ -61,11 +78,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [user, setUser] = useState<User | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [terminalOpen, setTerminalOpen] = useState(false)
+  const [cerebroPct, setCerebroPct] = useState(0)
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user: u } }) => {
+    supabase.auth.getUser().then(async ({ data: { user: u } }) => {
       if (!u) { router.push('/auth'); return }
       setUser(u)
+
+      const { data: usrRow } = await supabase.from('usuarios').select('empresa_id').eq('id', u.id).maybeSingle()
+      const empresaId = usrRow?.empresa_id ?? u.id
+      const { data: cerebro } = await supabase.from('hub_cerebro').select('*').eq('empresa_id', empresaId).maybeSingle()
+      if (cerebro) setCerebroPct(calcCerebroCompletion(cerebro as CerebroRow))
     })
   }, [router])
 
@@ -86,20 +109,53 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     router.push('/auth')
   }
 
-  const pageTitle = TITLES[pathname] ?? 'FactorHub'
+  const pageTitle = TITLES[pathname] ?? 'FactorHub OS'
   const initials = user?.email?.slice(0, 2).toUpperCase() ?? 'FH'
+  const username = user?.email?.split('@')[0] ?? 'Conta'
+
+  const pctColor = cerebroPct < 30 ? '#ef4444' : cerebroPct < 60 ? '#f59e0b' : '#10b981'
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       {sidebarOpen && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 998, background: 'rgba(0,0,0,.6)', backdropFilter: 'blur(2px)' }} onClick={() => setSidebarOpen(false)} />
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 998, background: 'rgba(0,0,0,.6)', backdropFilter: 'blur(2px)' }}
+          onClick={() => setSidebarOpen(false)}
+        />
       )}
 
       <aside className="sidebar" style={{ transform: sidebarOpen ? 'translateX(0)' : undefined } as React.CSSProperties}>
+        {/* Logo */}
         <div className="sb-logo">
           <div className="sb-logo-txt">Factor<span>Hub</span></div>
-          <div className="sb-logo-sub">Agentes de IA + Operacao</div>
+          <div className="sb-logo-sub">OS · v2.0</div>
         </div>
+
+        {/* Cérebro health indicator */}
+        <Link
+          href="/dashboard/cerebro"
+          style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            margin: '0 10px 12px',
+            padding: '8px 10px',
+            borderRadius: 8,
+            background: cerebroPct < 50 ? 'rgba(239,68,68,.08)' : 'var(--surface-2)',
+            border: `0.5px solid ${cerebroPct < 50 ? 'rgba(239,68,68,.3)' : 'var(--border)'}`,
+            textDecoration: 'none',
+            transition: 'all .15s',
+          }}
+        >
+          <i className="fa-solid fa-brain" style={{ fontSize: 11, color: pctColor }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+              <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '.05em', textTransform: 'uppercase' }}>Cérebro</span>
+              <span style={{ fontSize: 9, fontWeight: 700, color: pctColor }}>{cerebroPct}%</span>
+            </div>
+            <div style={{ height: 3, borderRadius: 2, background: 'var(--surface-3)', overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${cerebroPct}%`, background: pctColor, borderRadius: 2, transition: 'width .5s' }} />
+            </div>
+          </div>
+        </Link>
 
         <nav className="sb-nav">
           {NAV.map((group) => (
@@ -115,7 +171,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <i className={`fa-solid ${item.icon}`} />
                   <span style={{ flex: 1 }}>{item.label}</span>
                   {item.badge && (
-                    <span style={{ fontSize: 8, fontWeight: 700, padding: '2px 5px', borderRadius: 4, background: item.badgeColor, color: '#fff' }}>
+                    <span style={{
+                      fontSize: 8, fontWeight: 700, padding: '2px 5px', borderRadius: 4,
+                      background: item.badgeColor ?? '#333', color: '#fff',
+                    }}>
                       {item.badge}
                     </span>
                   )}
@@ -125,7 +184,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           ))}
         </nav>
 
-        {/* Terminal shortcut button */}
+        {/* Terminal shortcut */}
         <button
           onClick={() => setTerminalOpen(v => !v)}
           style={{
@@ -143,14 +202,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 5px', borderRadius: 4, background: 'var(--surface-3)', color: 'var(--text-dim)', letterSpacing: '0.05em' }}>⌘K</span>
         </button>
 
+        {/* Footer */}
         <div className="sb-footer">
           <div className="sb-co" onClick={sair} title="Sair">
             <div className="sb-co-av">{initials}</div>
-            <div>
-              <div className="sb-co-name">{user?.email?.split('@')[0] || 'Conta'}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="sb-co-name">{username}</div>
               <div className="sb-co-plan">FactorHub OS</div>
             </div>
-            <i className="fa-solid fa-arrow-right-from-bracket" style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 'auto' }} />
+            <i className="fa-solid fa-arrow-right-from-bracket" style={{ fontSize: 11, color: 'var(--text-muted)' }} />
           </div>
         </div>
       </aside>
@@ -162,6 +222,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </button>
           <div className="topbar-title">{pageTitle}</div>
           <div style={{ flex: 1 }} />
+
+          {/* Nova Missão button */}
+          <Link
+            href="/dashboard/missoes"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '5px 12px', borderRadius: 6,
+              background: 'var(--accent)', color: '#fff',
+              textDecoration: 'none', fontSize: 11, fontWeight: 700,
+              letterSpacing: '0.03em',
+            }}
+          >
+            <i className="fa-solid fa-rocket" style={{ fontSize: 9 }} />
+            Nova Missão
+          </Link>
+
           <button
             onClick={() => setTerminalOpen(v => !v)}
             style={{
@@ -175,9 +251,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)' }}>Terminal</span>
             <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 4px', borderRadius: 3, background: 'var(--surface-3)', color: 'var(--text-dim)' }}>⌘K</span>
           </button>
+
           <div className="live-badge"><div className="live-dot" />LIVE</div>
           <div className="topbar-av" onClick={sair} title="Sair">{initials}</div>
         </div>
+
+        {/* Cerebro alert banner */}
+        {cerebroPct < 50 && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            padding: '8px 20px',
+            background: 'rgba(245,158,11,.08)',
+            borderBottom: '1px solid rgba(245,158,11,.2)',
+          }}>
+            <i className="fa-solid fa-triangle-exclamation" style={{ fontSize: 11, color: '#f59e0b' }} />
+            <span style={{ fontSize: 12, color: '#f59e0b', flex: 1 }}>
+              Cérebro {cerebroPct}% preenchido — agentes operam sem contexto completo.
+            </span>
+            <Link href="/dashboard/cerebro" style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b', textDecoration: 'none' }}>
+              Preencher agora →
+            </Link>
+          </div>
+        )}
+
         <div className="fo-content">{children}</div>
       </div>
 
