@@ -6,8 +6,7 @@
   <title>FactorHub OS — Live Monitor</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #0d0b16; overflow: hidden; font-family: 'Courier New', monospace; width: 100vw; height: 100vh; }
-
+    body { background: #060408; overflow: hidden; font-family: 'Courier New', monospace; width: 100vw; height: 100vh; }
     #phaser-container { position: fixed; inset: 0; }
 
     /* TOPBAR */
@@ -19,7 +18,7 @@
     .logo-text { font-size: 14px; font-weight: 800; letter-spacing: 0.12em; color: #f0f0f0; }
     .logo-accent { color: #e8622a; }
     .live-pip { width: 8px; height: 8px; border-radius: 50%; background: #4ade80; animation: pip-glow 1.5s ease-in-out infinite; }
-    @keyframes pip-glow { 0%,100%{box-shadow:0 0 4px #4ade80} 50%{box-shadow:0 0 12px #4ade80, 0 0 20px #4ade8066} }
+    @keyframes pip-glow { 0%,100%{box-shadow:0 0 4px #4ade80} 50%{box-shadow:0 0 12px #4ade80,0 0 20px #4ade8066} }
     .online-badge { background: rgba(74,222,128,0.1); border: 1px solid rgba(74,222,128,0.3); color: #4ade80; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 4px; letter-spacing: 0.06em; }
     .hud-center { flex: 1; display: flex; justify-content: center; align-items: center; gap: 12px; }
     .missions-counter { background: rgba(232,98,42,0.1); border: 1px solid rgba(232,98,42,0.3); color: #e8622a; font-size: 11px; font-weight: 700; padding: 4px 12px; border-radius: 6px; }
@@ -193,30 +192,41 @@
 
 <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
 <script>
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 // FACTORHUB LIVE MONITOR — Phaser 3 Isometric Office
-// TODO: Replace simulated data with Supabase Realtime:
+// TODO (Supabase): Replace simulated data with Supabase Realtime:
 // const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 // const { data: agentsData } = await supabase.from('agents').select('*')
-// supabase.channel('live').on('postgres_changes', {event:'*',schema:'public',table:'missions'}, updateMission).subscribe()
-// supabase.channel('live').on('postgres_changes', {event:'*',schema:'public',table:'agents'}, updateAgent).subscribe()
-// ═══════════════════════════════════════════════════════════
+// supabase.channel('live')
+//   .on('postgres_changes',{event:'*',schema:'public',table:'missions'}, updateMission)
+//   .on('postgres_changes',{event:'*',schema:'public',table:'agents'}, updateAgent)
+//   .subscribe()
+// ═══════════════════════════════════════════════════════════════════
 
-// ── AGENT DATA ──────────────────────────────────────────────
+// ── ISOMETRIC CONFIG ────────────────────────────────────────────
+var ISO = { tileW: 96, tileH: 48 };
+function isoToScreen(ix, iy) {
+  return {
+    x: (ix - iy) * (ISO.tileW / 2),
+    y: (ix + iy) * (ISO.tileH / 2)
+  };
+}
+
+// ── AGENT DATA ──────────────────────────────────────────────────
 var AGENTS = [
-  {id:'CEO', name:'CEO Estratégico', role:'Líder Estratégico', clothColor:0x3d2a60, hairColor:0x111111, skinColor:0xc8956c, hairStyle:'straight', status:'working', task:'Validando missão Vigano', progress:72, room:'strategy', deskIndex:0, history:['Revisão Q2 concluída','Plano crescimento aprovado','Sprint 12 validado']},
-  {id:'CFO', name:'CFO',             role:'Financeiro',        clothColor:0x1a3a6a, hairColor:0x5a3a1a, skinColor:0xf0d0a8, hairStyle:'wavy',    status:'online',  task:'Aguardando análise',     progress:0,  room:'strategy', deskIndex:1, history:['Relatório financeiro','CAC validado','Margem 68%']},
-  {id:'COO', name:'COO',             role:'Operações',         clothColor:0x2a2a3a, hairColor:0x1a0a0a, skinColor:0x6b3a2a, hairStyle:'bald',     status:'online',  task:'Alinhando processos',    progress:20, room:'strategy', deskIndex:2, history:['Sprint atualizado','Times coordenados','Dependências mapeadas']},
-  {id:'CMO', name:'CMO',             role:'Marketing',         clothColor:0x1a4a1a, hairColor:0x0a0a0a, skinColor:0xc8956c, hairStyle:'afro',     status:'working', task:'Nova campanha Q3',        progress:80, room:'growth',   deskIndex:0, history:['ROAS 3.2x alcançado','Meta leads: 50','Campanha IG aprovada']},
-  {id:'CTO', name:'CTO',             role:'Tecnologia',        clothColor:0x0a0a12, hairColor:0x151515, skinColor:0xf0d0a8, hairStyle:'messy',    status:'working', task:'Deploy FactorOS v0.2',    progress:85, room:'tech',     deskIndex:0, history:['Build v0.2 concluído','Zero bugs críticos','CI/CD configurado']},
-  {id:'CW',  name:'Copywriter',      role:'Copy & Content',    clothColor:0xd4608a, hairColor:0xf9a8d4, skinColor:0xf5ddb8, hairStyle:'long',     status:'working', task:'Copy IG Nova Lima',       progress:45, room:'growth',   deskIndex:1, history:['Headlines testadas','Script Reels pronto','Copy entregue']},
-  {id:'CA',  name:'Chief of Staff',  role:'Chief of Staff',    clothColor:0xe8622a, hairColor:0x0a0a0a, skinColor:0x5a2a1a, hairStyle:'afro-short',status:'online', task:'Coordenando agenda',      progress:30, room:'reception',deskIndex:0, history:['Briefing enviado','Agenda atualizada','Missão coordenada']},
+  { id:'CEO', name:'CEO Estratégico', role:'Líder Estratégico',  clothColor:0x3d2a60, hairColor:0x111111, skinColor:0xc8956c, hairStyle:'straight',  status:'working', task:'Validando missão Vigano',   progress:72, room:'strategy',  deskIndex:0, history:['Revisão Q2 concluída','Plano crescimento aprovado','Sprint 12 validado'] },
+  { id:'CFO', name:'CFO',             role:'Financeiro',          clothColor:0x1a3a6a, hairColor:0x5a3a1a, skinColor:0xf0d0a8, hairStyle:'wavy',       status:'online',  task:'Aguardando análise',        progress:0,  room:'strategy',  deskIndex:1, history:['Relatório financeiro','CAC validado','Margem 68%'] },
+  { id:'COO', name:'COO',             role:'Operações',           clothColor:0x2a2a3a, hairColor:0x1a0a0a, skinColor:0x6b3a2a, hairStyle:'bald',        status:'online',  task:'Alinhando processos',       progress:20, room:'strategy',  deskIndex:2, history:['Sprint atualizado','Times coordenados','Dependências mapeadas'] },
+  { id:'CMO', name:'CMO',             role:'Marketing',           clothColor:0x1a4a1a, hairColor:0x0a0a0a, skinColor:0xc8956c, hairStyle:'afro',        status:'working', task:'Nova campanha Q3',          progress:80, room:'growth',    deskIndex:0, history:['ROAS 3.2x alcançado','Meta leads: 50','Campanha IG aprovada'] },
+  { id:'CTO', name:'CTO',             role:'Tecnologia',          clothColor:0x0a0a12, hairColor:0x151515, skinColor:0xf0d0a8, hairStyle:'messy',       status:'working', task:'Deploy FactorOS v0.2',      progress:85, room:'tech',      deskIndex:0, history:['Build v0.2 concluído','Zero bugs críticos','CI/CD configurado'] },
+  { id:'CW',  name:'Copywriter',      role:'Copy & Content',      clothColor:0xd4608a, hairColor:0xf9a8d4, skinColor:0xf5ddb8, hairStyle:'long',        status:'working', task:'Copy IG Nova Lima',         progress:45, room:'growth',    deskIndex:1, history:['Headlines testadas','Script Reels pronto','Copy entregue'] },
+  { id:'CA',  name:'Chief of Staff',  role:'Chief of Staff',      clothColor:0xe8622a, hairColor:0x0a0a0a, skinColor:0x5a2a1a, hairStyle:'afro-short',  status:'online',  task:'Coordenando agenda',        progress:30, room:'reception', deskIndex:0, history:['Briefing enviado','Agenda atualizada','Missão coordenada'] },
 ];
 
 var MISSIONS = [
-  {name:'Análise de Mercado', level:'N2', color:'#e8622a', progress:72},
-  {name:'Processo Financeiro', level:'N3', color:'#5b9bd5', progress:35},
-  {name:'Campanha Q3 Ativa', level:'N1', color:'#4ade80', progress:80},
+  { name:'Análise de Mercado',    level:'N2', color:'#e8622a', progress:72 },
+  { name:'Processo Financeiro',   level:'N3', color:'#5b9bd5', progress:35 },
+  { name:'Campanha Q3 Ativa',     level:'N1', color:'#4ade80', progress:80 },
 ];
 
 var SPEECH = {
@@ -239,20 +249,27 @@ var TASKS = {
   CA:['Coordenando agenda','Briefing de missão','Alinhamento squad','Report semanal'],
 };
 
-// ── CLOCK ───────────────────────────────────────────────────
+// ── DESK POSITIONS (isometric grid coords) ──────────────────────
+var DESK_POSITIONS = {
+  strategy:  [ {ix:2.5, iy:2},   {ix:1.5, iy:3.5}, {ix:4,   iy:1.5} ],
+  tech:      [ {ix:9,   iy:1.5} ],
+  growth:    [ {ix:2,   iy:7},   {ix:4,   iy:8}    ],
+  reception: [ {ix:-1,  iy:6}   ],
+};
+
+// ── CLOCK ────────────────────────────────────────────────────────
 function updateClock() {
   var now = new Date();
-  document.getElementById('hud-clock').textContent = now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  document.getElementById('hud-clock').textContent =
+    now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
 }
 setInterval(updateClock, 1000);
 updateClock();
 
-// ── MODAL ───────────────────────────────────────────────────
-var selectedAgent = null;
+// ── MODAL ────────────────────────────────────────────────────────
 function openModal(agentId) {
   var a = AGENTS.find(function(x){ return x.id === agentId; });
   if (!a) return;
-  selectedAgent = a;
   var modal = document.getElementById('agent-modal');
   document.getElementById('modal-avatar').textContent = a.id;
   document.getElementById('modal-avatar').style.background = '#' + a.clothColor.toString(16).padStart(6,'0');
@@ -263,273 +280,99 @@ function openModal(agentId) {
   document.getElementById('modal-progress-fill').style.width = a.progress + '%';
   document.getElementById('modal-progress-fill').style.background = a.status === 'working' ? '#e8622a' : '#4ade80';
   var histEl = document.getElementById('modal-history-list');
-  histEl.innerHTML = (a.history || []).map(function(h){
-    return '<div class="modal-history-item"><div class="modal-history-dot"></div><span class="modal-history-text">' + h + '</span></div>';
+  histEl.innerHTML = (a.history||[]).map(function(h){
+    return '<div class="modal-history-item"><div class="modal-history-dot"></div><span class="modal-history-text">'+h+'</span></div>';
   }).join('');
   modal.classList.add('open');
 }
 function closeModal() { document.getElementById('agent-modal').classList.remove('open'); }
-document.getElementById('agent-modal').addEventListener('click', function(e){ if (e.target === e.currentTarget) closeModal(); });
+document.getElementById('agent-modal').addEventListener('click', function(e){ if(e.target===e.currentTarget) closeModal(); });
 
-// ── AGENT LIST (right panel) ─────────────────────────────────
+// ── AGENT LIST ───────────────────────────────────────────────────
 function renderAgentList() {
   var el = document.getElementById('agent-list');
   el.innerHTML = AGENTS.map(function(a){
-    var dotClass = a.status === 'working' ? 'dot-working' : (a.status === 'online' ? 'dot-online' : 'dot-idle');
-    var color = '#' + a.clothColor.toString(16).padStart(6,'0');
-    var pct = a.progress;
-    var pColor = a.status === 'working' ? '#e8622a' : '#4ade80';
-    return '<div class="agent-row" onclick="openModal(\'' + a.id + '\')">' +
-      '<div class="agent-avatar" style="background:' + color + '18;border:1px solid ' + color + '50;color:' + color + '"><span style="font-size:8px;font-weight:800">' + a.id + '</span></div>' +
+    var dotClass = a.status==='working'?'dot-working':(a.status==='online'?'dot-online':'dot-idle');
+    var color = '#'+a.clothColor.toString(16).padStart(6,'0');
+    var pColor = a.status==='working'?'#e8622a':'#4ade80';
+    return '<div class="agent-row" onclick="openModal(\''+a.id+'\')">' +
+      '<div class="agent-avatar" style="background:'+color+'18;border:1px solid '+color+'50;color:'+color+'"><span style="font-size:8px;font-weight:800">'+a.id+'</span></div>' +
       '<div class="agent-info">' +
-        '<div class="agent-name">' + a.id + '</div>' +
-        '<div class="agent-role">' + a.role + '</div>' +
-        '<div class="agent-task">' + (a.task || 'Idle') + '</div>' +
-        '<div class="mini-progress"><div class="mini-progress-fill" style="width:' + pct + '%;background:' + pColor + '"></div></div>' +
+        '<div class="agent-name">'+a.id+'</div>' +
+        '<div class="agent-role">'+a.role+'</div>' +
+        '<div class="agent-task">'+(a.task||'Idle')+'</div>' +
+        '<div class="mini-progress"><div class="mini-progress-fill" style="width:'+a.progress+'%;background:'+pColor+'"></div></div>' +
       '</div>' +
-      '<div class="status-dot ' + dotClass + '"></div>' +
+      '<div class="status-dot '+dotClass+'"></div>' +
     '</div>';
   }).join('');
 }
 renderAgentList();
 
-// ── MISSIONS (right panel) ───────────────────────────────────
+// ── MISSIONS ─────────────────────────────────────────────────────
 function renderMissions() {
   var el = document.getElementById('mission-list');
   el.innerHTML = MISSIONS.map(function(m){
     return '<div class="mission-card">' +
-      '<div class="mission-name"><span class="mission-badge" style="background:' + m.color + '22;color:' + m.color + '">' + m.level + '</span>' + m.name + '</div>' +
-      '<div class="mission-progress-track"><div class="mission-progress-fill" style="width:' + m.progress + '%;background:' + m.color + '"></div></div>' +
+      '<div class="mission-name"><span class="mission-badge" style="background:'+m.color+'22;color:'+m.color+'">'+m.level+'</span>'+m.name+'</div>' +
+      '<div class="mission-progress-track"><div class="mission-progress-fill" style="width:'+m.progress+'%;background:'+m.color+'"></div></div>' +
     '</div>';
   }).join('');
 }
 renderMissions();
 
-// ── TICKER ───────────────────────────────────────────────────
+// ── TICKER ────────────────────────────────────────────────────────
 var tickerEvents = [
-  {color:'#4ade80', text:'Nova missão criada por CEO', time:'2m atrás'},
-  {color:'#5b9bd5', text:'Relatório financeiro gerado', time:'5m atrás'},
-  {color:'#e8622a', text:'Campanha Q3 atualizada 80%', time:'8m atrás'},
-  {color:'#a78bfa', text:'Deploy realizado com sucesso', time:'12m atrás'},
-  {color:'#4ade80', text:'CEO aprovou plano estratégico', time:'15m atrás'},
-  {color:'#f9a8d4', text:'Copy entregue para revisão', time:'18m atrás'},
-  {color:'#e8622a', text:'Análise de mercado concluída', time:'22m atrás'},
-  {color:'#5b9bd5', text:'CAC validado pelo CFO', time:'25m atrás'},
+  {color:'#4ade80',text:'Nova missão criada por CEO',time:'2m atrás'},
+  {color:'#5b9bd5',text:'Relatório financeiro gerado',time:'5m atrás'},
+  {color:'#e8622a',text:'Campanha Q3 atualizada 80%',time:'8m atrás'},
+  {color:'#a78bfa',text:'Deploy realizado com sucesso',time:'12m atrás'},
+  {color:'#4ade80',text:'CEO aprovou plano estratégico',time:'15m atrás'},
+  {color:'#f9a8d4',text:'Copy entregue para revisão',time:'18m atrás'},
+  {color:'#e8622a',text:'Análise de mercado concluída',time:'22m atrás'},
+  {color:'#5b9bd5',text:'CAC validado pelo CFO',time:'25m atrás'},
 ];
-function renderTicker() {
+(function(){
   var inner = document.getElementById('ticker-inner');
   var doubled = tickerEvents.concat(tickerEvents);
   inner.innerHTML = doubled.map(function(e){
-    return '<span class="ticker-event"><span class="ticker-dot" style="background:' + e.color + '"></span>' + e.text + '<span class="ticker-time">' + e.time + '</span></span>';
+    return '<span class="ticker-event"><span class="ticker-dot" style="background:'+e.color+'"></span>'+e.text+'<span class="ticker-time">'+e.time+'</span></span>';
   }).join('');
-}
-renderTicker();
+})();
 
-// ── MINI CHART ───────────────────────────────────────────────
-var chartPoints = [20,35,28,42,38,55,48,60,52,70,65,72,68,80,75];
-function drawMiniChart() {
+// ── MINI CHART ────────────────────────────────────────────────────
+(function(){
   var canvas = document.getElementById('mini-chart');
   var ctx = canvas.getContext('2d');
   var w = canvas.width, h = canvas.height;
-  ctx.clearRect(0,0,w,h);
-  ctx.fillStyle = '#0f0d1c';
-  ctx.fillRect(0,0,w,h);
-  var points = chartPoints;
-  var max = Math.max.apply(null, points);
-  var min = Math.min.apply(null, points);
-  var normalize = function(v){ return h - 4 - ((v - min) / (max - min)) * (h - 8); };
-  var step = w / (points.length - 1);
-  ctx.beginPath();
-  ctx.moveTo(0, normalize(points[0]));
-  for (var i = 1; i < points.length; i++) ctx.lineTo(i * step, normalize(points[i]));
-  ctx.strokeStyle = '#e8622a';
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-  ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath();
-  ctx.fillStyle = 'rgba(232,98,42,0.08)';
-  ctx.fill();
-}
-drawMiniChart();
+  var points = [20,35,28,42,38,55,48,60,52,70,65,72,68,80,75];
+  ctx.fillStyle = '#0f0d1c'; ctx.fillRect(0,0,w,h);
+  var max = Math.max.apply(null,points), min = Math.min.apply(null,points);
+  var norm = function(v){ return h-4-((v-min)/(max-min))*(h-8); };
+  var step = w/(points.length-1);
+  ctx.beginPath(); ctx.moveTo(0,norm(points[0]));
+  for(var i=1;i<points.length;i++) ctx.lineTo(i*step,norm(points[i]));
+  ctx.strokeStyle='#e8622a'; ctx.lineWidth=1.5; ctx.stroke();
+  ctx.lineTo(w,h); ctx.lineTo(0,h); ctx.closePath();
+  ctx.fillStyle='rgba(232,98,42,0.08)'; ctx.fill();
+})();
 
-// ── ISO PROJECTION ───────────────────────────────────────────
-var ISO = { tileW: 64, tileH: 32 };
-function isoToScreen(ix, iy) {
-  return {
-    x: (ix - iy) * (ISO.tileW / 2),
-    y: (ix + iy) * (ISO.tileH / 2)
-  };
-}
-
-// ── DESK POSITIONS ────────────────────────────────────────────
-var DESK_POSITIONS = {
-  strategy: [
-    {ix: 1, iy: 2},
-    {ix: 3, iy: 1},
-    {ix: 2, iy: 3}
-  ],
-  tech: [{ix: 8, iy: 1}],
-  growth: [{ix: 1, iy: 6}, {ix: 3, iy: 7}],
-  reception: [{ix: -1, iy: 5}],
-};
-
-// ── GAME STATE ────────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════
+// PHASER GAME
+// ════════════════════════════════════════════════════════════════
 var phaserScene = null;
 var agentSprites = {};
 var agentStates = {};
 var bubbleList = [];
-var tickerLog = [];
 
-// ── DRAW CHARACTER FRAME ──────────────────────────────────────
-function drawCharacterFrame(g, agentDef, frameType, frameIndex) {
-  var S = 2.4;
-  var W = Math.round(9 * S);
-  var H = Math.round(22 * S);
-
-  var sk = agentDef.skinColor;
-  var cl = agentDef.clothColor;
-  var ha = agentDef.hairColor;
-
-  // Walking leg offsets
-  var leftLegOY  = 0;
-  var rightLegOY = 0;
-  if (frameType === 'walk') {
-    leftLegOY  = (frameIndex % 2 === 0) ? -3 : 3;
-    rightLegOY = (frameIndex % 2 === 0) ? 3  : -3;
-  }
-  var bodyBob = 0;
-  if (frameType === 'idle') {
-    bodyBob = (frameIndex % 2 === 0) ? 0 : 1;
-  }
-  var armFwd = (frameType === 'type') ? 3 : 0;
-
-  g.clear();
-
-  // Shadow
-  g.fillStyle(0x000000, 0.22);
-  g.fillEllipse(W/2, H + 3, W*1.3, 4);
-
-  // Shoes
-  g.fillStyle(0x0a0a0a, 1);
-  g.fillRoundedRect(W/2 - 3.5*S, H - 1.5*S + bodyBob + leftLegOY,  3.5*S, 2*S, 1);
-  g.fillRoundedRect(W/2 + 0.2*S, H - 1.5*S + bodyBob + rightLegOY, 3.5*S, 2*S, 1);
-
-  // Legs
-  g.fillStyle(0x111111, 1);
-  g.fillRect(W/2 - 3*S,   H - 5.5*S + bodyBob, 2.5*S, 4.5*S + leftLegOY);
-  g.fillRect(W/2 + 0.5*S, H - 5.5*S + bodyBob, 2.5*S, 4.5*S + rightLegOY);
-
-  // Body (jacket/suit)
-  g.fillStyle(cl, 1);
-  g.fillRoundedRect(W/2 - 3.5*S, H - 13.5*S + bodyBob, 7*S, 8*S, 1);
-
-  // Shirt / collar accent
-  var lighterCl = Phaser.Display.Color.IntegerToColor(cl).lighten(25).color;
-  g.fillStyle(lighterCl, 1);
-  g.fillRect(W/2 - 1*S, H - 13.5*S + bodyBob, 2*S, 5.5*S);
-
-  // Left arm
-  g.fillStyle(cl, 1);
-  g.fillRoundedRect(W/2 - 5.8*S, H - 12.8*S + bodyBob, 2.5*S, 6*S + armFwd, 1);
-  // Right arm
-  g.fillRoundedRect(W/2 + 3.2*S, H - 12.8*S + bodyBob, 2.5*S, 6*S + armFwd, 1);
-
-  // Skin on hands
-  g.fillStyle(sk, 1);
-  g.fillRect(W/2 - 5.5*S, H - 6.5*S + bodyBob + armFwd, 2*S, 1.5*S);
-  g.fillRect(W/2 + 3.5*S, H - 6.5*S + bodyBob + armFwd, 2*S, 1.5*S);
-
-  // Neck
-  g.fillStyle(sk, 1);
-  g.fillRect(W/2 - 1.2*S, H - 14.5*S + bodyBob, 2.4*S, 2*S);
-
-  // Head
-  g.fillStyle(sk, 1);
-  g.fillRoundedRect(W/2 - 3.5*S, H - 22.5*S + bodyBob, 7*S, 8*S, 2);
-
-  // Eyes — whites
-  g.fillStyle(0xffffff, 1);
-  g.fillRect(W/2 - 2.5*S, H - 19*S + bodyBob, 2*S, 1.5*S);
-  g.fillRect(W/2 + 0.5*S, H - 19*S + bodyBob, 2*S, 1.5*S);
-  // Pupils
-  g.fillStyle(0x111111, 1);
-  g.fillRect(W/2 - 1.8*S, H - 19*S + bodyBob, 1*S, 1.5*S);
-  g.fillRect(W/2 + 1.0*S, H - 19*S + bodyBob, 1*S, 1.5*S);
-
-  // Mouth (tiny)
-  g.fillStyle(0x6a3a1a, 0.6);
-  g.fillRect(W/2 - 1*S, H - 16.5*S + bodyBob, 2*S, 0.8*S);
-
-  // Hair
-  g.fillStyle(ha, 1);
-  var hs = agentDef.hairStyle;
-  if (hs === 'straight' || hs === 'wavy') {
-    // Medium straight/wavy hair with side parts
-    g.fillRoundedRect(W/2 - 3.5*S, H - 24*S + bodyBob, 7*S, 4*S, 2);
-    g.fillRect(W/2 - 3.5*S, H - 21.5*S + bodyBob, 1.5*S, 2.5*S);
-    g.fillRect(W/2 + 2.0*S, H - 21.5*S + bodyBob, 1.5*S, 2.5*S);
-    if (hs === 'wavy') {
-      // Extra wave bumps on top
-      g.fillCircle(W/2 - 1.5*S, H - 24.5*S + bodyBob, 1.5*S);
-      g.fillCircle(W/2 + 1.5*S, H - 24.5*S + bodyBob, 1.5*S);
-    }
-  } else if (hs === 'afro') {
-    // Big round afro
-    g.fillCircle(W/2, H - 22.5*S + bodyBob, 4.8*S);
-    g.fillCircle(W/2 - 3.8*S, H - 21.5*S + bodyBob, 3*S);
-    g.fillCircle(W/2 + 3.8*S, H - 21.5*S + bodyBob, 3*S);
-    g.fillCircle(W/2, H - 26*S + bodyBob, 3*S);
-  } else if (hs === 'afro-short') {
-    // Short tight afro — wider cap
-    g.fillRoundedRect(W/2 - 3.8*S, H - 24.5*S + bodyBob, 7.6*S, 5*S, 3);
-    g.fillCircle(W/2 - 2.8*S, H - 23*S + bodyBob, 2.2*S);
-    g.fillCircle(W/2 + 2.8*S, H - 23*S + bodyBob, 2.2*S);
-    g.fillCircle(W/2, H - 25.5*S + bodyBob, 2.5*S);
-  } else if (hs === 'messy') {
-    // Spiky messy — dark, unkempt spikes
-    g.fillRect(W/2 - 3.5*S, H - 23.5*S + bodyBob, 7*S, 3.5*S);
-    // Spikes
-    g.fillTriangle(
-      W/2 - 3.0*S, H - 23.5*S + bodyBob,
-      W/2 - 1.5*S, H - 26.5*S + bodyBob,
-      W/2 - 0.5*S, H - 23.5*S + bodyBob
-    );
-    g.fillTriangle(
-      W/2 - 0.5*S, H - 23.5*S + bodyBob,
-      W/2 + 0.5*S, H - 27*S + bodyBob,
-      W/2 + 1.5*S, H - 23.5*S + bodyBob
-    );
-    g.fillTriangle(
-      W/2 + 1.0*S, H - 23.5*S + bodyBob,
-      W/2 + 2.5*S, H - 26*S + bodyBob,
-      W/2 + 3.5*S, H - 23.5*S + bodyBob
-    );
-    // Extra messy side tuft
-    g.fillCircle(W/2 - 3.2*S, H - 22.5*S + bodyBob, 1.5*S);
-  } else if (hs === 'long') {
-    // Long flowing hair — CW (pink)
-    g.fillRoundedRect(W/2 - 3.5*S, H - 24.5*S + bodyBob, 7*S, 4.5*S, 2);
-    // Long flowing sides
-    g.fillRoundedRect(W/2 - 5*S, H - 23.5*S + bodyBob, 2*S, 11*S, 1);
-    g.fillRoundedRect(W/2 + 3*S,  H - 23.5*S + bodyBob, 2*S, 11*S, 1);
-    // Wave at bottom of long hair
-    g.fillCircle(W/2 - 4*S, H - 13*S + bodyBob, 1.8*S);
-    g.fillCircle(W/2 + 4*S, H - 13*S + bodyBob, 1.8*S);
-  } else if (hs === 'bald') {
-    // Just a razor-thin stubble strip
-    g.fillStyle(ha, 0.5);
-    g.fillRoundedRect(W/2 - 3*S, H - 24*S + bodyBob, 6*S, 1.8*S, 1);
-  }
-}
-
-// ── PHASER GAME ──────────────────────────────────────────────
 var config = {
   type: Phaser.AUTO,
   width: window.innerWidth - 200,
   height: window.innerHeight - 44 - 36,
   parent: 'phaser-container',
-  backgroundColor: '#0d0b16',
-  antialias: false,
-  pixelArt: true,
+  backgroundColor: '#060408',
+  antialias: true,
+  pixelArt: false,
   scale: {
     mode: Phaser.Scale.RESIZE,
     autoCenter: Phaser.Scale.CENTER_BOTH,
@@ -538,1226 +381,1399 @@ var config = {
 };
 
 var game = new Phaser.Game(config);
-
 window.addEventListener('resize', function(){
   game.scale.resize(window.innerWidth - 200, window.innerHeight - 80);
 });
 
-// ── SCENE FUNCTIONS ───────────────────────────────────────────
-function preloadScene() {
-  phaserScene = this;
-}
+function preloadScene() { phaserScene = this; }
 
 function createScene() {
   phaserScene = this;
+  var W = this.scale.width, H = this.scale.height;
+  var cx = W / 2 - 20, cy = H / 2 - 60;
 
-  var W = this.scale.width;
-  var H = this.scale.height;
-  var cx = W / 2;
-  var cy = H / 2 - 10;
-
-  drawOffice.call(this, cx, cy);
+  drawFloor.call(this, cx, cy);
+  drawRooms.call(this, cx, cy);
+  drawAllFurniture.call(this, cx, cy);
+  drawAllWallDecor.call(this, cx, cy);
+  drawAllPlants.call(this, cx, cy);
+  drawAllLamps.call(this, cx, cy);
   createAgentSprites.call(this, cx, cy);
   setupBehaviors.call(this);
   startSimulation.call(this);
 }
 
 function updateScene() {
-  // Y-sort agent sprites so closer ones render on top
-  var allSprites = Object.keys(agentSprites).map(function(k){ return agentSprites[k]; });
-  allSprites.sort(function(a, b){ return a.y - b.y; });
-  allSprites.forEach(function(s, i){ s.setDepth(100 + i); });
-
-  // Keep speech bubbles attached to their agents
+  var allSprites = Object.values(agentSprites);
+  allSprites.sort(function(a,b){ return a.y - b.y; });
+  allSprites.forEach(function(s,i){ s.setDepth(200+i); });
   bubbleList.forEach(function(b){
     if (b.sprite && b.bubble && b.bubble.active) {
-      b.bubble.setPosition(b.sprite.x, b.sprite.y - 58);
+      b.bubble.setPosition(b.sprite.x, b.sprite.y - 70);
     }
   });
 }
 
-// ── DRAW OFFICE ───────────────────────────────────────────────
-function drawOffice(cx, cy) {
+// ─── FLOOR ──────────────────────────────────────────────────────
+function drawFloor(cx, cy) {
   var g = this.add.graphics();
   g.setDepth(0);
+  var hw = ISO.tileW/2, hh = ISO.tileH/2;
 
-  var hw = ISO.tileW / 2;
-  var hh = ISO.tileH / 2;
-
-  // ── FLOOR TILES ──────────────────────────────────────────
-  for (var ix = -3; ix <= 20; ix++) {
-    for (var iy = -2; iy <= 16; iy++) {
+  // Large floor footprint covering all rooms
+  for (var ix = -3; ix <= 22; ix++) {
+    for (var iy = -1; iy <= 17; iy++) {
       var p = isoToScreen(ix, iy);
-      var tx = cx + p.x;
-      var ty = cy + p.y;
+      var tx = cx + p.x, ty = cy + p.y;
 
-      var floorColor = ((ix + iy) % 2 === 0) ? 0x110d1e : 0x130f22;
-      g.fillStyle(floorColor, 1);
+      // Dark wood base - alternating planks
+      var baseColor = ((ix + iy) % 2 === 0) ? 0x1a1208 : 0x160f06;
+      g.fillStyle(baseColor, 1);
       g.fillPoints([
-        {x: tx,      y: ty - hh},
-        {x: tx + hw, y: ty},
-        {x: tx,      y: ty + hh},
-        {x: tx - hw, y: ty}
+        {x:tx,     y:ty-hh},
+        {x:tx+hw,  y:ty},
+        {x:tx,     y:ty+hh},
+        {x:tx-hw,  y:ty}
       ], true);
 
-      // Grid lines
-      g.lineStyle(0.5, 0x1a1535, 0.35);
+      // Wood grain plank lines
+      g.lineStyle(0.6, 0x0d0b06, 0.7);
+      g.lineBetween(tx-hw*0.6, ty-hh*0.3, tx+hw*0.6, ty+hh*0.3);
+      g.lineStyle(0.4, 0x201508, 0.4);
+      g.lineBetween(tx-hw*0.3, ty-hh*0.7, tx+hw*0.3, ty+hh*0.1);
+
+      // Subtle tile border
+      g.lineStyle(0.5, 0x0a0806, 0.5);
       g.strokePoints([
-        {x: tx,      y: ty - hh},
-        {x: tx + hw, y: ty},
-        {x: tx,      y: ty + hh},
-        {x: tx - hw, y: ty}
+        {x:tx,     y:ty-hh},
+        {x:tx+hw,  y:ty},
+        {x:tx,     y:ty+hh},
+        {x:tx-hw,  y:ty}
       ], true);
     }
   }
-
-  // ── ROOM ZONES ────────────────────────────────────────────
-  drawRoom.call(this, g, 0,   0,  6, 5, 'STRATEGY ROOM', 0x3d2060, cx, cy);
-  drawRoom.call(this, g, 7,   0,  6, 5, 'TECH ROOM',     0x0a2a0a, cx, cy);
-  drawRoom.call(this, g, 0,   5,  6, 5, 'GROWTH ROOM',   0x0a2a1a, cx, cy);
-  drawRoom.call(this, g, 7,   5,  6, 5, 'MEETING ROOM',  0x1a1020, cx, cy);
-  drawRoom.call(this, g, 14,  2,  5, 6, 'KITCHEN',       0x0a1520, cx, cy);
-  drawRoom.call(this, g, 0,  10,  7, 5, 'LOUNGE',        0x1a100a, cx, cy);
-  drawRoom.call(this, g, -2,  3,  3, 6, 'RECEPCAO',      0x1a0a20, cx, cy);
-
-  // ── FURNITURE ─────────────────────────────────────────────
-  drawDesk.call(this,           1, 2, 0x7c3aed, cx, cy);
-  drawDesk.call(this,           3, 1, 0x1d4ed8, cx, cy);
-  drawDesk.call(this,           2, 3, 0x374151, cx, cy);
-  drawDualDesk.call(this,       8, 1, 0x22c55e, cx, cy);
-  drawDesk.call(this,           1, 6, 0x065f46, cx, cy);
-  drawDesk.call(this,           3, 7, 0xd4608a, cx, cy);
-  drawReceptionDesk.call(this, -1, 5, cx, cy);
-  drawMeetingTable.call(this,   9.5, 6.5, cx, cy);
-  drawKitchen.call(this,        15, 3, cx, cy);
-  drawLounge.call(this,         1, 11, cx, cy);
-  drawKanban.call(this,         10, 0.5, cx, cy);
-  drawWorldMap.call(this,       2, 0.5, cx, cy);
-  drawMoodboard.call(this,      2, 5.5, cx, cy);
-
-  // ── PLANTS ────────────────────────────────────────────────
-  drawPlant(g, 0,  0,  cx, cy);
-  drawPlant(g, 6,  0,  cx, cy);
-  drawPlant(g, 13, 2,  cx, cy);
-  drawPlant(g, 0,  10, cx, cy);
-  drawPlant(g, 6,  14, cx, cy);
-  drawPlant(g, 19, 2,  cx, cy);
-
-  // ── OVERHEAD LIGHTS ───────────────────────────────────────
-  var lampDefs = [
-    {ix:1, iy:2}, {ix:3, iy:1}, {ix:2, iy:3},
-    {ix:8, iy:1},
-    {ix:1, iy:6}, {ix:3, iy:7},
-    {ix:9.5, iy:6.5},
-  ];
-  var self = this;
-  lampDefs.forEach(function(lamp){
-    var lp = isoToScreen(lamp.ix, lamp.iy);
-    var lx = cx + lp.x;
-    var ly = cy + lp.y - 35;
-    var pl = self.add.pointlight(lx, ly, 0xc8882a, 90, 0.38, 0.05);
-    pl.setDepth(50);
-  });
 }
 
-// ── DRAW ROOM ─────────────────────────────────────────────────
-function drawRoom(g, ix, iy, w, h, label, accentColor, cx, cy) {
-  var hw = ISO.tileW / 2;
-  var hh = ISO.tileH / 2;
-  var wallH = 52;
+// ─── ROOMS ──────────────────────────────────────────────────────
+// Layout:
+//  STRATEGY ROOM  (ix:0..6,  iy:0..5)   top-left
+//  TECH ROOM      (ix:7..13, iy:0..5)   top-right
+//  RECEPTION      (ix:-3..-1,iy:4..9)   far left
+//  GROWTH ROOM    (ix:0..6,  iy:5..10)  center-left
+//  MEETING ROOM   (ix:7..13, iy:5..10)  center-right
+//  KITCHEN        (ix:14..19,iy:2..9)   far right
+//  LOUNGE         (ix:0..10, iy:10..16) bottom
 
-  // Slightly different floor color inside room
-  for (var i = ix; i < ix + w; i++) {
-    for (var j = iy; j < iy + h; j++) {
+function drawRooms(cx, cy) {
+  var rooms = [
+    { ix:0,   iy:0,  w:7,  h:5,  label:'STRATEGY ROOM', wallColor:0x0c0a14, accentLine:0x3d2060 },
+    { ix:7,   iy:0,  w:7,  h:5,  label:'TECH ROOM',      wallColor:0x080c10, accentLine:0x0a2a1a },
+    { ix:-3,  iy:4,  w:3,  h:6,  label:'RECEPTION',      wallColor:0x0a0810, accentLine:0x2a1040 },
+    { ix:0,   iy:5,  w:7,  h:5,  label:'GROWTH ROOM',    wallColor:0x080c0a, accentLine:0x0a2a18 },
+    { ix:7,   iy:5,  w:7,  h:5,  label:'MEETING ROOM',   wallColor:0x0a0a12, accentLine:0x1a1040 },
+    { ix:14,  iy:2,  w:6,  h:7,  label:'KITCHEN',        wallColor:0x080a0c, accentLine:0x0a1828 },
+    { ix:0,   iy:10, w:11, h:6,  label:'LOUNGE',         wallColor:0x0c0a08, accentLine:0x1a1008 },
+  ];
+  rooms.forEach(function(r){ drawRoom.call(this, r, cx, cy); }, this);
+}
+
+function drawRoom(r, cx, cy) {
+  var g = this.add.graphics();
+  g.setDepth(1);
+  var hw = ISO.tileW/2, hh = ISO.tileH/2;
+  var wallH = 64;
+
+  // Room floor overlay (slightly lighter than plain floor)
+  for (var i = r.ix; i < r.ix + r.w; i++) {
+    for (var j = r.iy; j < r.iy + r.h; j++) {
       var p = isoToScreen(i, j);
       var tx = cx + p.x, ty = cy + p.y;
-      var c = ((i + j) % 2 === 0) ? 0x160f28 : 0x130c24;
+      var c = ((i+j)%2===0) ? 0x1d1510 : 0x19120d;
       g.fillStyle(c, 1);
       g.fillPoints([{x:tx,y:ty-hh},{x:tx+hw,y:ty},{x:tx,y:ty+hh},{x:tx-hw,y:ty}], true);
+      // grain
+      g.lineStyle(0.5, 0x0e0b07, 0.6);
+      g.lineBetween(tx-hw*0.6, ty-hh*0.3, tx+hw*0.6, ty+hh*0.3);
+      g.lineStyle(0.4, 0x221709, 0.35);
+      g.lineBetween(tx-hw*0.3, ty-hh*0.6, tx+hw*0.3, ty+hh*0.1);
     }
   }
 
-  // Top wall (iy edge, right face visible)
-  for (var ti = ix; ti < ix + w; ti++) {
-    var tp = isoToScreen(ti, iy);
+  // Back walls: draw wall for top row (iy edge) and left col (ix edge)
+  // Top wall face (right-facing face on the top-most row)
+  for (var ti = r.ix; ti < r.ix + r.w; ti++) {
+    var tp = isoToScreen(ti, r.iy);
     var tx2 = cx + tp.x, ty2 = cy + tp.y;
-    var wallFaceColor = Phaser.Display.Color.IntegerToColor(accentColor).darken(35).color;
-    g.fillStyle(wallFaceColor, 0.55);
+    // Right face of wall block
+    g.fillStyle(r.wallColor, 1);
     g.fillPoints([
-      {x:tx2,      y:ty2 + hh},
-      {x:tx2 + hw, y:ty2},
-      {x:tx2 + hw, y:ty2 - wallH},
-      {x:tx2,      y:ty2 + hh - wallH}
+      {x:tx2,     y:ty2+hh},
+      {x:tx2+hw,  y:ty2},
+      {x:tx2+hw,  y:ty2-wallH},
+      {x:tx2,     y:ty2+hh-wallH}
     ], true);
     // Top cap
-    g.fillStyle(Phaser.Display.Color.IntegerToColor(accentColor).darken(20).color, 0.4);
+    g.fillStyle(0x0e0c18, 1);
     g.fillPoints([
-      {x:tx2,      y:ty2 - hh},
-      {x:tx2 + hw, y:ty2},
-      {x:tx2 + hw, y:ty2 - wallH},
-      {x:tx2,      y:ty2 - hh - wallH}
+      {x:tx2,     y:ty2-hh},
+      {x:tx2+hw,  y:ty2},
+      {x:tx2+hw,  y:ty2-wallH},
+      {x:tx2,     y:ty2-hh-wallH}
     ], true);
   }
 
-  // Left wall (ix edge, left face visible)
-  for (var li = iy; li < iy + h; li++) {
-    var lp2 = isoToScreen(ix, li);
+  // Left wall face (left-facing face on the left-most col)
+  for (var li2 = r.iy; li2 < r.iy + r.h; li2++) {
+    var lp2 = isoToScreen(r.ix, li2);
     var lx2 = cx + lp2.x, ly2 = cy + lp2.y;
-    var leftWallColor = Phaser.Display.Color.IntegerToColor(accentColor).darken(45).color;
-    g.fillStyle(leftWallColor, 0.55);
+    g.fillStyle(0x08060e, 1);
     g.fillPoints([
-      {x:lx2 - hw, y:ly2},
-      {x:lx2,      y:ly2 + hh},
-      {x:lx2,      y:ly2 + hh - wallH},
-      {x:lx2 - hw, y:ly2 - wallH}
+      {x:lx2-hw,  y:ly2},
+      {x:lx2,     y:ly2+hh},
+      {x:lx2,     y:ly2+hh-wallH},
+      {x:lx2-hw,  y:ly2-wallH}
     ], true);
   }
 
-  // Accent light strip along top of top wall
-  g.lineStyle(1.5, accentColor, 0.25);
-  var wallStart = isoToScreen(ix, iy);
-  var wallEnd   = isoToScreen(ix + w, iy);
-  g.lineBetween(
-    cx + wallStart.x, cy + wallStart.y - wallH,
-    cx + wallEnd.x,   cy + wallEnd.y - wallH
-  );
+  // Accent light strip at wall top
+  g.lineStyle(1.5, r.accentLine, 0.5);
+  var ws = isoToScreen(r.ix, r.iy), we = isoToScreen(r.ix+r.w, r.iy);
+  g.lineBetween(cx+ws.x, cy+ws.y-wallH, cx+we.x, cy+we.y-wallH);
 
-  // Room label
-  var labelPos = isoToScreen(ix + w * 0.5, iy);
-  var lx3 = cx + labelPos.x;
-  var ly3 = cy + labelPos.y - wallH - 4;
-  this.add.text(lx3, ly3, label, {
-    fontSize: '8px',
-    fontFamily: 'Courier New',
-    color: '#' + accentColor.toString(16).padStart(6,'0') + 'cc',
-    stroke: '#000000',
-    strokeThickness: 2,
-    align: 'center',
-    letterSpacing: 2,
-  }).setOrigin(0.5, 1).setDepth(200);
+  // Room label at ceiling
+  var lp = isoToScreen(r.ix + r.w*0.5, r.iy);
+  this.add.text(cx+lp.x, cy+lp.y-wallH-6, r.label, {
+    fontSize: '8px', fontFamily: 'Courier New', fontStyle: 'bold',
+    color: '#ffffff', stroke: '#000000', strokeThickness: 3,
+    align: 'center', letterSpacing: 2,
+  }).setOrigin(0.5, 1).setDepth(300);
 }
 
-// ── DRAW DESK ─────────────────────────────────────────────────
+// ─── ALL FURNITURE ───────────────────────────────────────────────
+function drawAllFurniture(cx, cy) {
+  // STRATEGY ROOM desks (3)
+  drawDesk.call(this, 2.5, 2,   0x7c3aed, cx, cy);
+  drawDesk.call(this, 1.5, 3.5, 0x3b82f6, cx, cy);
+  drawDesk.call(this, 4,   1.5, 0x6b7280, cx, cy);
+
+  // TECH ROOM dual-monitor desk
+  drawDualDesk.call(this, 9, 1.5, 0x22c55e, cx, cy);
+
+  // GROWTH ROOM desks (2)
+  drawDesk.call(this, 2,   7,   0x1a4a1a, cx, cy);
+  drawDesk.call(this, 4,   8,   0xd4608a, cx, cy);
+
+  // RECEPTION counter
+  drawReceptionDesk.call(this, -1, 6, cx, cy);
+
+  // MEETING ROOM oval table
+  drawMeetingTable.call(this, 10.5, 7, cx, cy);
+
+  // KITCHEN L-counter
+  drawKitchen.call(this, 15, 3, cx, cy);
+
+  // LOUNGE sofa + coffee table
+  drawLounge.call(this, 2, 11, cx, cy);
+
+  // PING PONG TABLE
+  drawPingPong.call(this, 7, 13, cx, cy);
+}
+
+// ─── SINGLE DESK ─────────────────────────────────────────────────
 function drawDesk(ix, iy, monitorColor, cx, cy) {
   var g = this.add.graphics();
   var p = isoToScreen(ix, iy);
-  var x = cx + p.x, y = cy + p.y;
-  var hw = ISO.tileW / 2, hh = ISO.tileH / 2;
-  var deskH = 20;
+  var x = cx+p.x, y = cy+p.y;
+  var hw = ISO.tileW/2, hh = ISO.tileH/2;
+  var dH = 22;
 
-  // Desk surface
-  g.fillStyle(0x3a2810, 1);
+  // Desk surface (dark wood)
+  g.fillStyle(0x2a1f0e, 1);
   g.fillPoints([
-    {x:x,      y:y - hh*0.78},
-    {x:x+hw*0.78, y:y},
-    {x:x,      y:y + hh*0.78},
-    {x:x-hw*0.78, y:y}
+    {x:x,       y:y-hh*0.82},
+    {x:x+hw*0.82, y:y},
+    {x:x,       y:y+hh*0.82},
+    {x:x-hw*0.82, y:y}
   ], true);
+  // Surface highlight
+  g.lineStyle(0.5, 0x3a2e18, 0.6);
+  g.strokePoints([{x:x,y:y-hh*0.82},{x:x+hw*0.82,y:y},{x:x,y:y+hh*0.82},{x:x-hw*0.82,y:y}], true);
 
-  // Desk front-left face
-  g.fillStyle(0x261a08, 1);
+  // Front-left face
+  g.fillStyle(0x1a1408, 1);
   g.fillPoints([
-    {x:x-hw*0.78, y:y},
-    {x:x,      y:y + hh*0.78},
-    {x:x,      y:y + hh*0.78 + deskH},
-    {x:x-hw*0.78, y:y + deskH}
+    {x:x-hw*0.82, y:y},
+    {x:x,         y:y+hh*0.82},
+    {x:x,         y:y+hh*0.82+dH},
+    {x:x-hw*0.82, y:y+dH}
   ], true);
-
-  // Desk front-right face
-  g.fillStyle(0x2e2010, 1);
+  // Front-right face
+  g.fillStyle(0x221a0c, 1);
   g.fillPoints([
-    {x:x,      y:y + hh*0.78},
-    {x:x+hw*0.78, y:y},
-    {x:x+hw*0.78, y:y + deskH},
-    {x:x,      y:y + hh*0.78 + deskH}
+    {x:x,         y:y+hh*0.82},
+    {x:x+hw*0.82, y:y},
+    {x:x+hw*0.82, y:y+dH},
+    {x:x,         y:y+hh*0.82+dH}
   ], true);
 
   // Monitor stand
   g.fillStyle(0x181818, 1);
-  g.fillRect(x - 3, y - hh*0.78 - 22, 6, 20);
-  g.fillRect(x - 8, y - hh*0.78 - 3, 16, 4);
-
+  g.fillRect(x-3, y-hh*0.82-26, 6, 24);
+  g.fillRect(x-10, y-hh*0.82-3, 20, 4);
   // Monitor frame
-  g.fillStyle(0x111111, 1);
-  g.fillRoundedRect(x - 16, y - hh*0.78 - 38, 32, 20, 2);
-
-  // Monitor screen glow
-  g.fillStyle(monitorColor, 0.15);
-  g.fillRoundedRect(x - 18, y - hh*0.78 - 42, 36, 28, 3);
-
-  // Monitor screen content
+  g.fillStyle(0x101010, 1);
+  g.fillRoundedRect(x-20, y-hh*0.82-46, 40, 26, 2);
+  // Screen
   g.fillStyle(0x06050e, 1);
-  g.fillRect(x - 14, y - hh*0.78 - 36, 28, 16);
-
-  // Code/content lines on screen
-  g.fillStyle(monitorColor, 0.7);
-  g.fillRect(x - 12, y - hh*0.78 - 33, 14, 2);
-  g.fillRect(x - 12, y - hh*0.78 - 28, 20, 2);
-  g.fillRect(x - 12, y - hh*0.78 - 23, 10, 2);
-  g.fillStyle(monitorColor, 0.35);
-  g.fillRect(x - 4,  y - hh*0.78 - 33, 10, 2);
+  g.fillRect(x-17, y-hh*0.82-43, 34, 20);
+  // Screen glow
+  g.fillStyle(monitorColor, 0.08);
+  g.fillRect(x-17, y-hh*0.82-43, 34, 20);
+  // Code lines
+  g.fillStyle(monitorColor, 0.75);
+  g.fillRect(x-14, y-hh*0.82-40, 18, 2);
+  g.fillRect(x-14, y-hh*0.82-35, 26, 2);
+  g.fillRect(x-14, y-hh*0.82-30, 12, 2);
+  g.fillStyle(monitorColor, 0.4);
+  g.fillRect(x-6,  y-hh*0.82-40, 14, 2);
 
   // Keyboard
   g.fillStyle(0x1e1e22, 1);
-  g.fillRoundedRect(x - 14, y - hh*0.78 + 2, 28, 9, 1);
-  g.fillStyle(0x2e2e38, 1);
-  for (var ki = 0; ki < 5; ki++) {
-    g.fillRect(x - 12 + ki*5.4, y - hh*0.78 + 3.5, 4, 2);
-    g.fillRect(x - 12 + ki*5.4, y - hh*0.78 + 6.5, 4, 2);
+  g.fillRoundedRect(x-16, y-hh*0.82+2, 32, 10, 1);
+  g.fillStyle(0x2a2a34, 1);
+  for (var ki=0; ki<6; ki++) {
+    g.fillRect(x-14+ki*5, y-hh*0.82+4, 4, 2);
+    g.fillRect(x-14+ki*5, y-hh*0.82+7, 4, 2);
   }
 
   // Desk lamp
   g.fillStyle(0x2a1a00, 1);
-  g.fillRect(x + 10, y - hh*0.78 - 26, 3, 22);
-  g.fillStyle(0xc8882a, 0.9);
-  g.fillEllipse(x + 11.5, y - hh*0.78 - 28, 12, 6);
+  g.fillRect(x+14, y-hh*0.82-28, 3, 26);
+  g.fillStyle(0xc8882a, 1);
+  g.fillEllipse(x+15.5, y-hh*0.82-30, 14, 6);
+  g.fillStyle(0xffd06a, 0.6);
+  g.fillEllipse(x+15.5, y-hh*0.82-30, 6, 3);
 
   // Coffee mug
   g.fillStyle(0x1a1a22, 1);
-  g.fillRect(x - 18, y - hh*0.78, 8, 7);
-  g.fillStyle(monitorColor, 0.4);
-  g.fillRect(x - 17, y - hh*0.78 + 1, 6, 5);
+  g.fillRoundedRect(x-24, y-hh*0.82-2, 9, 8, 1);
+  g.fillStyle(monitorColor, 0.35);
+  g.fillRect(x-23, y-hh*0.82-1, 7, 6);
 
   g.setDepth(50);
 
-  // Subtle monitor glow pulse tween
-  var self = this;
-  var glowG = self.add.graphics();
+  // Monitor glow pulse
+  var glowG = this.add.graphics();
   glowG.setDepth(49);
-  self.tweens.add({
-    targets: {v: 0},
-    v: 1,
-    duration: 2200 + Math.random() * 1000,
-    yoyo: true,
-    repeat: -1,
-    ease: 'Sine.easeInOut',
-    onUpdate: function(tween, target){
+  this.tweens.add({
+    targets:{v:0}, v:1,
+    duration: 2200 + Math.random()*1000,
+    yoyo:true, repeat:-1, ease:'Sine.easeInOut',
+    onUpdate: function(tw,tgt){
       glowG.clear();
-      glowG.fillStyle(monitorColor, 0.03 + target.v * 0.07);
-      glowG.fillRoundedRect(x - 22, y - hh*0.78 - 46, 44, 34, 4);
+      glowG.fillStyle(monitorColor, 0.03+tgt.v*0.06);
+      glowG.fillRoundedRect(x-24, y-hh*0.82-50, 48, 36, 4);
     }
   });
 }
 
-// ── DRAW DUAL DESK ────────────────────────────────────────────
+// ─── DUAL MONITOR DESK (TECH ROOM) ───────────────────────────────
 function drawDualDesk(ix, iy, monitorColor, cx, cy) {
   var g = this.add.graphics();
   var p = isoToScreen(ix, iy);
-  var x = cx + p.x, y = cy + p.y;
-  var hw = ISO.tileW / 2, hh = ISO.tileH / 2;
-  var deskH = 20;
+  var x = cx+p.x, y = cy+p.y;
+  var hw = ISO.tileW/2, hh = ISO.tileH/2;
+  var dH = 22;
 
   // Wide desk surface
-  g.fillStyle(0x3a2810, 1);
+  g.fillStyle(0x2a1f0e, 1);
   g.fillPoints([
-    {x:x-hw*0.5,  y:y - hh*0.8},
-    {x:x+hw*1.3,  y:y - hh*0.2},
-    {x:x+hw*0.6,  y:y + hh*0.8},
-    {x:x-hw*1.2,  y:y + hh*0.2}
+    {x:x-hw*0.6, y:y-hh*0.9},
+    {x:x+hw*1.4, y:y-hh*0.1},
+    {x:x+hw*0.6, y:y+hh*0.9},
+    {x:x-hw*1.4, y:y+hh*0.1}
+  ], true);
+  g.fillStyle(0x1a1408, 1);
+  g.fillPoints([
+    {x:x-hw*1.4, y:y+hh*0.1},
+    {x:x+hw*0.6, y:y+hh*0.9},
+    {x:x+hw*0.6, y:y+hh*0.9+dH},
+    {x:x-hw*1.4, y:y+hh*0.1+dH}
   ], true);
 
-  g.fillStyle(0x261a08, 1);
-  g.fillPoints([
-    {x:x-hw*1.2, y:y + hh*0.2},
-    {x:x+hw*0.6, y:y + hh*0.8},
-    {x:x+hw*0.6, y:y + hh*0.8 + deskH},
-    {x:x-hw*1.2, y:y + hh*0.2 + deskH}
-  ], true);
-
-  // Dual monitors
-  for (var mi = 0; mi < 2; mi++) {
-    var mx = x - 20 + mi * 32;
-    // Stand
+  // Two monitors
+  for (var mi=0; mi<2; mi++) {
+    var mx = x - 28 + mi*38;
     g.fillStyle(0x181818, 1);
-    g.fillRect(mx + 10, y - hh*0.8 - 22, 5, 18);
-    g.fillRect(mx + 6,  y - hh*0.8 - 5,  14, 4);
-    // Frame
-    g.fillStyle(0x111111, 1);
-    g.fillRoundedRect(mx, y - hh*0.8 - 38, 28, 18, 2);
-    // Screen
+    g.fillRect(mx+12, y-hh*0.9-26, 5, 22);
+    g.fillRect(mx+7,  y-hh*0.9-5,  15, 4);
+    g.fillStyle(0x101010, 1);
+    g.fillRoundedRect(mx, y-hh*0.9-44, 34, 24, 2);
     g.fillStyle(0x06050e, 1);
-    g.fillRect(mx + 2, y - hh*0.8 - 36, 24, 14);
-    // Code lines
-    g.fillStyle(monitorColor, 0.7);
-    g.fillRect(mx + 4, y - hh*0.8 - 33, 10, 1.5);
-    g.fillRect(mx + 4, y - hh*0.8 - 29, 16, 1.5);
-    g.fillRect(mx + 4, y - hh*0.8 - 25, 8,  1.5);
-    // Glow
-    g.fillStyle(monitorColor, 0.1);
-    g.fillRoundedRect(mx - 2, y - hh*0.8 - 42, 32, 26, 3);
+    g.fillRect(mx+2, y-hh*0.9-42, 30, 18);
+    g.fillStyle(monitorColor, 0.08);
+    g.fillRect(mx+2, y-hh*0.9-42, 30, 18);
+    g.fillStyle(monitorColor, 0.8);
+    g.fillRect(mx+4, y-hh*0.9-39, 14, 2);
+    g.fillRect(mx+4, y-hh*0.9-34, 22, 2);
+    g.fillRect(mx+4, y-hh*0.9-29, 10, 2);
+    g.fillStyle(monitorColor, 0.35);
+    g.fillRect(mx+18, y-hh*0.9-39, 12, 2);
   }
-
   // Keyboard
   g.fillStyle(0x1e1e22, 1);
-  g.fillRect(x - 14, y - hh*0.8 + 2, 35, 9);
-
-  // Energy drink can
+  g.fillRect(x-22, y-hh*0.9+2, 50, 10);
+  // Energy drink
   g.fillStyle(0x1a3a1a, 1);
-  g.fillRect(x + 28, y - hh*0.8 - 12, 6, 12);
-  g.fillStyle(0x22c55e, 0.6);
-  g.fillRect(x + 29, y - hh*0.8 - 10, 4, 6);
+  g.fillRoundedRect(x+36, y-hh*0.9-14, 7, 14, 1);
+  g.fillStyle(0x22c55e, 0.7);
+  g.fillRect(x+37, y-hh*0.9-12, 5, 8);
+
+  // Monitor glow
+  var glowG2 = this.add.graphics();
+  glowG2.setDepth(49);
+  this.tweens.add({
+    targets:{v:0}, v:1,
+    duration: 2600, yoyo:true, repeat:-1, ease:'Sine.easeInOut',
+    onUpdate: function(tw,tgt){
+      glowG2.clear();
+      glowG2.fillStyle(monitorColor, 0.04+tgt.v*0.08);
+      glowG2.fillRoundedRect(x-32, y-hh*0.9-52, 80, 44, 5);
+    }
+  });
 
   g.setDepth(50);
 }
 
-// ── DRAW RECEPTION DESK ───────────────────────────────────────
+// ─── RECEPTION DESK ──────────────────────────────────────────────
 function drawReceptionDesk(ix, iy, cx, cy) {
   var g = this.add.graphics();
   var p = isoToScreen(ix, iy);
-  var x = cx + p.x, y = cy + p.y;
-  var hw = ISO.tileW / 2, hh = ISO.tileH / 2;
-  var dH = 30;
+  var x = cx+p.x, y = cy+p.y;
+  var hw = ISO.tileW/2, hh = ISO.tileH/2;
+  var dH = 34;
 
-  // Counter top
-  g.fillStyle(0x2e2010, 1);
+  // Counter top (L-shape)
+  g.fillStyle(0x2a1f0e, 1);
   g.fillPoints([
-    {x:x - hw*1.6, y:y + hh*0.0},
-    {x:x + hw*0.3, y:y - hh*1.0},
-    {x:x + hw*0.3, y:y - hh*1.0 + dH},
-    {x:x - hw*1.6, y:y + hh*0.0 + dH}
+    {x:x-hw*1.8, y:y-hh*0.1},
+    {x:x+hw*0.4, y:y-hh*1.3},
+    {x:x+hw*0.4, y:y-hh*1.3+dH},
+    {x:x-hw*1.8, y:y-hh*0.1+dH}
   ], true);
-
   // Counter side
-  g.fillStyle(0x1e1408, 1);
+  g.fillStyle(0x1a1408, 1);
   g.fillPoints([
-    {x:x - hw*1.6, y:y + hh*0.0},
-    {x:x - hw*1.6, y:y + hh*0.0 + dH},
-    {x:x - hw*1.6, y:y + hh*0.0 + dH + 20},
-    {x:x - hw*1.6, y:y + hh*0.0 + 20}
+    {x:x-hw*1.8, y:y-hh*0.1},
+    {x:x-hw*1.8, y:y-hh*0.1+dH},
+    {x:x-hw*1.8, y:y-hh*0.1+dH+20},
+    {x:x-hw*1.8, y:y-hh*0.1+20}
+  ], true);
+  // Front face
+  g.fillStyle(0x221a0c, 1);
+  g.fillPoints([
+    {x:x-hw*1.8, y:y-hh*0.1+dH},
+    {x:x+hw*0.4, y:y-hh*1.3+dH},
+    {x:x+hw*0.4, y:y-hh*1.3+dH+20},
+    {x:x-hw*1.8, y:y-hh*0.1+dH+20}
   ], true);
 
-  // Monitor on reception desk
-  g.fillStyle(0x111111, 1);
-  g.fillRect(x - 20, y - hh - 38, 26, 18);
+  // Monitor
+  g.fillStyle(0x101010, 1);
+  g.fillRoundedRect(x-18, y-hh-46, 28, 20, 2);
   g.fillStyle(0x06050e, 1);
-  g.fillRect(x - 18, y - hh - 36, 22, 14);
+  g.fillRect(x-16, y-hh-44, 24, 16);
   g.fillStyle(0xe8622a, 0.5);
-  g.fillRect(x - 16, y - hh - 34, 14, 2);
-  g.fillRect(x - 16, y - hh - 30, 18, 2);
-  g.fillRect(x - 16, y - hh - 26, 10, 2);
+  g.fillRect(x-14, y-hh-42, 16, 2);
+  g.fillRect(x-14, y-hh-38, 20, 2);
+  g.fillRect(x-14, y-hh-34, 12, 2);
 
-  // Logo text on desk face
-  this.add.text(x - 18, y + 8, 'FACTORHUB', {
-    fontSize: '7px',
-    fontFamily: 'Courier New',
-    fontStyle: 'bold',
-    color: '#e8622a',
-    letterSpacing: 1,
-    stroke: '#000000',
-    strokeThickness: 2,
-  }).setOrigin(0.5).setDepth(200);
+  // "FH" logo on wall behind desk
+  this.add.text(x-6, y-hh-68, 'FH', {
+    fontSize: '18px', fontFamily: 'Courier New', fontStyle: 'bold',
+    color: '#e8622a', stroke: '#000000', strokeThickness: 3,
+    shadow: { offsetX:0, offsetY:0, color:'#e8622a', blur:12, fill:true }
+  }).setOrigin(0.5).setDepth(250);
+
+  // FactorHub label below
+  this.add.text(x-6, y-hh-52, 'FACTORHUB', {
+    fontSize: '6px', fontFamily: 'Courier New', fontStyle: 'bold',
+    color: '#e8622a66', letterSpacing: 2
+  }).setOrigin(0.5).setDepth(250);
 
   g.setDepth(50);
 }
 
-// ── DRAW MEETING TABLE ────────────────────────────────────────
+// ─── MEETING TABLE ────────────────────────────────────────────────
 function drawMeetingTable(ix, iy, cx, cy) {
   var g = this.add.graphics();
   var p = isoToScreen(ix, iy);
-  var x = cx + p.x, y = cy + p.y;
-  var dH = 18;
+  var x = cx+p.x, y = cy+p.y;
+  var dH = 20;
 
-  // Table top oval
-  g.fillStyle(0x2e2210, 1);
-  g.fillEllipse(x, y, 96, 48);
-
-  // Table edge highlight
-  g.lineStyle(1.5, 0x5a3e20, 0.7);
-  g.strokeEllipse(x, y, 96, 48);
-
-  // Table front face
-  g.fillStyle(0x1e1608, 1);
-  g.fillRect(x - 48, y + 10, 96, dH);
-
-  // Hanging lamp cable
-  g.fillStyle(0x2a1a00, 1);
-  g.fillRect(x - 1.5, y - 80, 3, 50);
-
-  // Lamp shade
-  g.fillStyle(0xc8882a, 1);
-  g.fillEllipse(x, y - 78, 34, 12);
-  g.fillStyle(0xffd06a, 0.6);
-  g.fillEllipse(x, y - 78, 18, 6);
-
-  // Table items
-  g.fillStyle(0x1a1a1a, 1);
-  g.fillRect(x - 20, y - 8, 16, 10);   // laptop
-  g.fillStyle(0x06050e, 1);
-  g.fillRect(x - 18, y - 6, 12, 8);
-  g.fillStyle(0x4ade80, 0.5);
-  g.fillRect(x - 17, y - 5, 8, 2);
-
-  // Water glasses
-  g.fillStyle(0x1a2a3a, 0.7);
-  g.fillRect(x + 12, y - 6, 5, 8);
-  g.fillRect(x + 22, y - 6, 5, 8);
-  g.fillStyle(0x5b9bd5, 0.4);
-  g.fillRect(x + 13, y - 5, 3, 6);
-  g.fillRect(x + 23, y - 5, 3, 6);
-
-  // Chairs around table
-  var chairDefs = [
-    {dx:-52, dy:0},   {dx:52, dy:0},
-    {dx:-26, dy:-26}, {dx:26, dy:-26},
-    {dx:-26, dy:26},  {dx:26, dy:26},
+  // Chairs first (behind table)
+  var chairs = [
+    {dx:-58,dy:-4},{dx:58,dy:-4},
+    {dx:-30,dy:-30},{dx:30,dy:-30},
+    {dx:-30,dy:22}, {dx:30,dy:22},
+    {dx:0,  dy:-36},{dx:0,  dy:28},
   ];
-  chairDefs.forEach(function(ch){
-    g.fillStyle(0x1a1520, 1);
-    g.fillEllipse(x + ch.dx, y + ch.dy, 20, 12);
-    g.fillStyle(0x2a2030, 1);
-    g.fillRect(x + ch.dx - 8, y + ch.dy - 14, 16, 14);
+  chairs.forEach(function(ch){
+    g.fillStyle(0x111118, 1);
+    g.fillEllipse(x+ch.dx, y+ch.dy, 24, 14);
+    g.fillStyle(0x181820, 1);
+    g.fillRect(x+ch.dx-9, y+ch.dy-18, 18, 18);
+    // Chair back
+    g.fillStyle(0x0d0d14, 1);
+    g.fillRect(x+ch.dx-9, y+ch.dy-20, 18, 4);
   });
 
-  // Projection screen
-  g.fillStyle(0x080810, 1);
-  g.fillRect(x + 22, y - 80, 52, 32);
-  g.lineStyle(1, 0x2a2848, 1);
-  g.strokeRect(x + 22, y - 80, 52, 32);
-  g.fillStyle(0x3d2a60, 0.5);
-  g.fillRect(x + 26, y - 78, 44, 8);
-  g.fillStyle(0x1d4ed8, 0.4);
-  g.fillRect(x + 26, y - 67, 22, 4);
-  g.fillRect(x + 26, y - 60, 30, 4);
-  g.fillRect(x + 26, y - 53, 18, 4);
+  // Table top oval
+  g.fillStyle(0x2a1f0e, 1);
+  g.fillEllipse(x, y, 110, 56);
+  g.lineStyle(1.5, 0x4a3420, 0.8);
+  g.strokeEllipse(x, y, 110, 56);
+  // Table sheen
+  g.fillStyle(0x3a2c18, 0.25);
+  g.fillEllipse(x-10, y-8, 60, 24);
 
-  // Point light for lamp
-  var pl = phaserScene.add.pointlight(x, y - 70, 0xc8882a, 130, 0.5, 0.04);
-  pl.setDepth(50);
+  // Table front edge
+  g.fillStyle(0x1a1408, 1);
+  g.fillRect(x-55, y+14, 110, dH);
+
+  // Hanging lamp cable
+  g.fillStyle(0x1a1208, 1);
+  g.fillRect(x-1.5, y-90, 3, 60);
+  // Lamp shade
+  g.fillStyle(0xc8882a, 1);
+  g.fillEllipse(x, y-88, 38, 14);
+  g.fillStyle(0xffd06a, 0.7);
+  g.fillEllipse(x, y-88, 20, 7);
+
+  // Floor lamp glow from above
+  var lampGlowG = this.add.graphics();
+  lampGlowG.fillStyle(0xc8882a, 0.10);
+  lampGlowG.fillCircle(x, y+10, 70);
+  lampGlowG.fillStyle(0xc8882a, 0.18);
+  lampGlowG.fillCircle(x, y+10, 30);
+  lampGlowG.setDepth(2);
+
+  // Table items: laptop, water glasses, plant centerpiece
+  g.fillStyle(0x1a1a22, 1); g.fillRoundedRect(x-24, y-10, 18, 12, 1);
+  g.fillStyle(0x06050e, 1); g.fillRect(x-22, y-8, 14, 10);
+  g.fillStyle(0x4ade80, 0.5); g.fillRect(x-21,y-7,9,2);
+
+  g.fillStyle(0x1a2a3a, 0.8); g.fillRoundedRect(x+16,y-8,6,10,1);
+  g.fillStyle(0x5b9bd5, 0.4); g.fillRect(x+17,y-7,4,8);
+  g.fillStyle(0x1a2a3a, 0.8); g.fillRoundedRect(x+28,y-8,6,10,1);
+  g.fillStyle(0x5b9bd5, 0.4); g.fillRect(x+29,y-7,4,8);
+
+  // Small plant center
+  g.fillStyle(0x3a1a0a, 1); g.fillRoundedRect(x+4, y-8, 10, 8, 1);
+  g.fillStyle(0x1a4a1a, 1); g.fillCircle(x+9, y-13, 7);
+  g.fillStyle(0x286a28, 0.7); g.fillCircle(x+6, y-16, 4);
+  g.fillStyle(0x286a28, 0.7); g.fillCircle(x+13, y-16, 4);
+
+  // Projection screen on wall
+  g.fillStyle(0x08080e, 1);
+  g.fillRect(x+30, y-92, 58, 36);
+  g.lineStyle(1, 0x2a2848, 1);
+  g.strokeRect(x+30, y-92, 58, 36);
+  g.fillStyle(0x3d2a60, 0.5); g.fillRect(x+33, y-90, 52, 10);
+  g.fillStyle(0x1d4ed8, 0.4); g.fillRect(x+33, y-77, 26, 5);
+  g.fillStyle(0x1d4ed8, 0.3); g.fillRect(x+33, y-69, 38, 5);
+  g.fillStyle(0x1d4ed8, 0.25); g.fillRect(x+33, y-61, 20, 5);
 
   g.setDepth(48);
 }
 
-// ── DRAW KITCHEN ──────────────────────────────────────────────
+// ─── KITCHEN ─────────────────────────────────────────────────────
 function drawKitchen(ix, iy, cx, cy) {
   var g = this.add.graphics();
   var p = isoToScreen(ix, iy);
-  var x = cx + p.x, y = cy + p.y;
+  var x = cx+p.x, y = cy+p.y;
 
-  // Counter back
-  g.fillStyle(0x1e1e24, 1);
-  g.fillRect(x - 55, y - 26, 90, 6);
+  // L-counter back panels
+  g.fillStyle(0x1a1a22, 1);
+  g.fillRect(x-60, y-30, 98, 7);
+  g.fillRect(x+30, y-60, 8, 38);
 
-  // Counter surface
-  g.fillStyle(0x2a2a32, 1);
-  g.fillRect(x - 55, y - 22, 90, 18);
+  // Counter surfaces
+  g.fillStyle(0x28282e, 1);
+  g.fillRect(x-60, y-24, 98, 20);
+  g.fillRect(x+30, y-62, 18, 40);
 
-  // Counter front
+  // Counter front face
   g.fillStyle(0x1a1a20, 1);
-  g.fillRect(x - 55, y - 4, 90, 18);
+  g.fillRect(x-60, y-4, 98, 22);
+  g.fillRect(x+38, y-24, 10, 40);
+
+  // Open shelves above
+  g.fillStyle(0x1a1a20, 1);
+  g.fillRect(x-55, y-70, 80, 4);
+  g.fillRect(x-55, y-54, 80, 4);
+  // Shelf items: mugs, bottles
+  for (var si=0; si<5; si++) {
+    g.fillStyle([0x3a2210,0x1a2a3a,0x2a1a3a,0x3a1a10,0x1a3a2a][si], 1);
+    g.fillRoundedRect(x-52+si*16, y-68, 9, 12, 1);
+  }
 
   // Coffee maker
   g.fillStyle(0x1c1c1c, 1);
-  g.fillRoundedRect(x - 50, y - 52, 22, 30, 2);
+  g.fillRoundedRect(x-55, y-56, 24, 32, 2);
   g.fillStyle(0x0a0a0a, 1);
-  g.fillRect(x - 48, y - 38, 18, 14);
+  g.fillRect(x-53, y-42, 20, 16);
   g.fillStyle(0xe8622a, 1);
-  g.fillCircle(x - 39, y - 48, 4);
+  g.fillCircle(x-43, y-52, 5);
   g.fillStyle(0x3a1a00, 1);
-  g.fillRect(x - 44, y - 26, 10, 6);
+  g.fillRoundedRect(x-48, y-28, 12, 6, 1);
 
   // Fridge
   g.fillStyle(0x28283a, 1);
-  g.fillRoundedRect(x + 16, y - 68, 26, 64, 2);
+  g.fillRoundedRect(x+18, y-76, 28, 72, 2);
   g.fillStyle(0x18182a, 1);
-  g.fillRect(x + 18, y - 66, 22, 28);
-  g.fillRect(x + 18, y - 36, 22, 30);
-  // Fridge handles
+  g.fillRect(x+20, y-74, 24, 32);
+  g.fillRect(x+20, y-40, 24, 34);
   g.fillStyle(0x3a3a4a, 1);
-  g.fillRect(x + 18, y - 54, 3, 8);
-  g.fillRect(x + 18, y - 22, 3, 8);
+  g.fillRect(x+20, y-58, 3, 10);
+  g.fillRect(x+20, y-22, 3, 10);
 
   // Microwave
   g.fillStyle(0x1e1e28, 1);
-  g.fillRoundedRect(x - 18, y - 52, 22, 16, 2);
+  g.fillRoundedRect(x-22, y-58, 24, 18, 2);
   g.fillStyle(0x06050e, 1);
-  g.fillRect(x - 16, y - 50, 14, 12);
+  g.fillRect(x-20, y-56, 16, 14);
   g.fillStyle(0xe8622a, 0.9);
-  g.fillCircle(x + 4, y - 47, 2.5);
-  g.fillCircle(x + 4, y - 41, 2.5);
+  g.fillCircle(x+0, y-52, 3);
+  g.fillCircle(x+0, y-45, 3);
 
   // Sink
-  g.fillStyle(0x333340, 1);
-  g.fillRect(x - 8, y - 22, 22, 16);
-  g.fillStyle(0x22222e, 1);
-  g.fillRect(x - 6, y - 20, 18, 12);
-  g.fillStyle(0x3a3a4a, 1);
-  g.fillRect(x + 1, y - 25, 4, 5);
+  g.fillStyle(0x2e2e3a, 1); g.fillRoundedRect(x-10, y-24, 26, 18, 2);
+  g.fillStyle(0x1e1e2a, 1); g.fillRect(x-8, y-22, 22, 14);
+  g.fillStyle(0x3a3a4a, 1); g.fillRect(x-1, y-28, 5, 6);
 
   g.setDepth(50);
 
-  // Coffee maker light pulse
+  // Coffee maker LED pulse
   var coffeeG = this.add.graphics();
   coffeeG.setDepth(51);
   this.tweens.add({
-    targets: {a: 0},
-    a: 1,
-    duration: 1300,
-    yoyo: true,
-    repeat: -1,
-    ease: 'Sine.easeInOut',
-    onUpdate: function(tween, target){
+    targets:{a:0}, a:1, duration:1300, yoyo:true, repeat:-1, ease:'Sine.easeInOut',
+    onUpdate: function(tw,tgt){
       coffeeG.clear();
-      coffeeG.fillStyle(0xe8622a, 0.08 + target.a * 0.28);
-      coffeeG.fillCircle(x - 39, y - 48, 9 + target.a * 5);
+      coffeeG.fillStyle(0xe8622a, 0.06+tgt.a*0.22);
+      coffeeG.fillCircle(x-43, y-52, 10+tgt.a*5);
     }
   });
 }
 
-// ── DRAW LOUNGE ───────────────────────────────────────────────
+// ─── LOUNGE ──────────────────────────────────────────────────────
 function drawLounge(ix, iy, cx, cy) {
   var g = this.add.graphics();
   var p = isoToScreen(ix, iy);
-  var x = cx + p.x, y = cy + p.y;
+  var x = cx+p.x, y = cy+p.y;
 
-  // Corner sofa — L shape
-  // Main horizontal part
+  // L-shaped dark sofa
+  // Main arm
   g.fillStyle(0x1a1208, 1);
-  g.fillRect(x - 64, y - 22, 108, 28);
+  g.fillRect(x-72, y-20, 118, 32);
   // Vertical arm of L
-  g.fillRect(x - 64, y - 52, 28, 32);
-  // Sofa back cushions
-  g.fillStyle(0x120e06, 1);
-  g.fillRect(x - 64, y - 52, 108, 9);
-  g.fillRect(x - 64, y - 52, 9, 30);
-  // Cushion highlights
-  g.fillStyle(0x241c0c, 1);
-  g.fillRect(x - 58, y - 12, 26, 18);
-  g.fillRect(x - 28, y - 12, 26, 18);
-  g.fillRect(x + 2,  y - 12, 26, 18);
+  g.fillRect(x-72, y-56, 32, 38);
+
+  // Sofa backs
+  g.fillStyle(0x110e06, 1);
+  g.fillRect(x-72, y-56, 118, 10);
+  g.fillRect(x-72, y-56, 10, 36);
+
+  // Seat cushions with highlights
+  g.fillStyle(0x221a0c, 1);
+  g.fillRoundedRect(x-66, y-10, 28, 20, 2);
+  g.fillRoundedRect(x-34, y-10, 28, 20, 2);
+  g.fillRoundedRect(x-2,  y-10, 28, 20, 2);
+  g.fillRoundedRect(x+30, y-10, 18, 20, 2);
+
+  // Cushion sheen
+  g.fillStyle(0x2e2416, 0.5);
+  g.fillRect(x-64, y-8, 24, 6);
+  g.fillRect(x-32, y-8, 24, 6);
+  g.fillRect(x,    y-8, 24, 6);
 
   // Coffee table
   g.fillStyle(0x2e2210, 1);
-  g.fillRoundedRect(x - 20, y - 42, 40, 22, 3);
-  g.lineStyle(1, 0x4a3820, 0.7);
-  g.strokeRoundedRect(x - 20, y - 42, 40, 22, 3);
+  g.fillRoundedRect(x-18, y-46, 48, 26, 3);
+  g.lineStyle(1, 0x4a3820, 0.8);
+  g.strokeRoundedRect(x-18, y-46, 48, 26, 3);
   // Table legs
   g.fillStyle(0x1a1208, 1);
-  g.fillRect(x - 18, y - 22, 4, 10);
-  g.fillRect(x + 14, y - 22, 4, 10);
+  g.fillRect(x-16, y-22, 5, 12);
+  g.fillRect(x+22, y-22, 5, 12);
 
-  // Items on coffee table
-  g.fillStyle(0x1a1a22, 0.8);
-  g.fillRect(x - 14, y - 40, 16, 12);  // tablet
-  g.fillStyle(0xe8622a, 0.5);
-  g.fillRect(x - 12, y - 38, 12, 8);
-  g.fillStyle(0x3a2a1a, 1);
-  g.fillCircle(x + 8, y - 34, 5);     // coffee mug
-  g.fillStyle(0x1a0a00, 0.8);
-  g.fillCircle(x + 8, y - 34, 3);
+  // Table items: tablet + mug
+  g.fillStyle(0x1a1a22, 0.9); g.fillRoundedRect(x-12, y-44, 18, 13, 1);
+  g.fillStyle(0xe8622a, 0.4); g.fillRect(x-10, y-42, 14, 9);
+  g.fillStyle(0x3a2a1a, 1); g.fillCircle(x+16, y-36, 6);
+  g.fillStyle(0x1a0a00, 0.8); g.fillCircle(x+16, y-36, 4);
 
-  // Foosball / ping pong table on right side
-  var ptx = x + 70, pty = y - 10;
-  g.fillStyle(0x1a3a5a, 1);
-  g.fillRoundedRect(ptx - 42, pty - 24, 84, 48, 4);
-  g.lineStyle(1.5, 0x5b9bd5, 0.5);
-  g.strokeRoundedRect(ptx - 42, pty - 24, 84, 48, 4);
-  // Net
-  g.lineStyle(2, 0xffffff, 0.7);
-  g.lineBetween(ptx, pty - 24, ptx, pty + 24);
-  // Center line
-  g.lineStyle(1, 0x5b9bd5, 0.4);
-  g.lineBetween(ptx - 42, pty, ptx + 42, pty);
-  // Table feet
-  g.fillStyle(0x101828, 1);
-  g.fillRect(ptx - 40, pty + 24, 10, 10);
-  g.fillRect(ptx + 30, pty + 24, 10, 10);
+  // TV on stand
+  var tvx = x+60, tvy = y;
+  g.fillStyle(0x0a0a0a, 1); g.fillRoundedRect(tvx-36, tvy-96, 72, 44, 3);
+  g.fillStyle(0x06050e, 1); g.fillRect(tvx-33, tvy-93, 66, 38);
+  // TV screen content
+  g.fillStyle(0x1a1a28, 1); g.fillRect(tvx-31, tvy-91, 62, 34);
+  g.fillStyle(0xe8622a, 0.35); g.fillRect(tvx-28, tvy-88, 22, 10);
+  g.fillStyle(0x4ade80, 0.35); g.fillRect(tvx+0, tvy-88, 16, 10);
+  g.fillStyle(0x5b9bd5, 0.3); g.fillRect(tvx-28, tvy-75, 60, 20);
+  // TV stand
+  g.fillStyle(0x1a1a1a, 1);
+  g.fillRect(tvx-4, tvy-52, 8, 16);
+  g.fillRect(tvx-16, tvy-36, 32, 6);
 
-  // TV on wall
-  g.fillStyle(0x0a0a0a, 1);
-  g.fillRoundedRect(x - 5, y - 88, 70, 40, 2);
-  g.fillStyle(0x06050e, 1);
-  g.fillRect(x - 3, y - 86, 66, 36);
-  g.fillStyle(0x1a1a2a, 1);
-  g.fillRect(x - 1, y - 84, 62, 32);
-  // TV screen content (dashboard-like)
-  g.fillStyle(0xe8622a, 0.4);
-  g.fillRect(x + 2, y - 82, 20, 8);
-  g.fillStyle(0x4ade80, 0.4);
-  g.fillRect(x + 26, y - 82, 14, 8);
-  g.fillStyle(0x5b9bd5, 0.3);
-  g.fillRect(x + 2, y - 71, 55, 18);
+  // Floor lamp with warm glow
+  var lampX = x-80, lampY = y-10;
+  g.fillStyle(0xc8882a, 0.10);
+  g.fillCircle(lampX, lampY+20, 64);
+  g.fillStyle(0xc8882a, 0.22);
+  g.fillCircle(lampX, lampY+20, 28);
+  g.fillStyle(0x1a1208, 1);
+  g.fillRect(lampX-3, lampY-48, 6, 56);
+  g.fillStyle(0xc8882a, 1);
+  g.fillEllipse(lampX, lampY-50, 22, 9);
+  g.fillStyle(0xffd06a, 0.7);
+  g.fillEllipse(lampX, lampY-50, 10, 4);
 
   g.setDepth(48);
 }
 
-// ── DRAW KANBAN ───────────────────────────────────────────────
-function drawKanban(ix, iy, cx, cy) {
+// ─── PING PONG TABLE ─────────────────────────────────────────────
+function drawPingPong(ix, iy, cx, cy) {
   var g = this.add.graphics();
   var p = isoToScreen(ix, iy);
-  var x = cx + p.x, y = cy + p.y - 32;
+  var x = cx+p.x, y = cy+p.y;
+  var tW = 96, tH = 54, tD = 14;
 
-  // Board background
-  g.fillStyle(0x080810, 1);
-  g.fillRoundedRect(x - 38, y - 44, 76, 54, 3);
-  g.lineStyle(1, 0x2a2848, 1);
-  g.strokeRoundedRect(x - 38, y - 44, 76, 54, 3);
+  // Table legs
+  g.fillStyle(0x101020, 1);
+  g.fillRect(x-tW/2+4, y+tH/2-4, 8, tD+6);
+  g.fillRect(x+tW/2-12, y+tH/2-4, 8, tD+6);
+  g.fillRect(x-tW/2+4, y-tH/2+4, 8, tD+6);
+  g.fillRect(x+tW/2-12, y-tH/2+4, 8, tD+6);
 
-  // Board title
-  this.add.text(x, y - 40, 'KANBAN', {
-    fontSize: '6px', fontFamily: 'Courier New', fontStyle: 'bold',
-    color: '#4c4c6c', letterSpacing: 2
-  }).setOrigin(0.5, 0).setDepth(201);
+  // Table face (front edge)
+  g.fillStyle(0x1a3a5a, 1);
+  g.fillRect(x-tW/2, y+tH/2-2, tW, tD);
 
-  // Column headers and cards
-  var cols = ['TODO', 'WIP', 'DONE'];
-  var colAccents = [0x2a1820, 0x1a2820, 0x1a1a30];
-  var colTextColors = ['#e8622a', '#4ade80', '#5b9bd5'];
-  var postItColors = [0xe8622a, 0x4ade80, 0x5b9bd5, 0xa78bfa, 0xf9a8d4, 0xfbbf24];
-  cols.forEach(function(col, ci){
-    var colX = x - 32 + ci * 24;
-    g.fillStyle(colAccents[ci], 1);
-    g.fillRect(colX, y - 34, 20, 42);
+  // Table top surface
+  g.fillStyle(0x1a3a60, 1);
+  g.fillRect(x-tW/2, y-tH/2, tW, tH);
+  // White border lines
+  g.lineStyle(2, 0xffffff, 0.85);
+  g.strokeRect(x-tW/2+4, y-tH/2+4, tW-8, tH-8);
+  // Center line
+  g.lineStyle(1.5, 0xffffff, 0.7);
+  g.lineBetween(x, y-tH/2+4, x, y+tH/2-4);
+  // Net
+  g.lineStyle(3, 0xffffff, 0.9);
+  g.lineBetween(x, y-tH/2-6, x, y+tH/2+6);
+  // Net posts
+  g.fillStyle(0xdddddd, 1);
+  g.fillRect(x-2, y-tH/2-8, 4, 6);
+  g.fillRect(x-2, y+tH/2+2, 4, 6);
+  // Ball
+  g.fillStyle(0xffffff, 1);
+  g.fillCircle(x-20, y-8, 4);
+  // Paddles
+  g.fillStyle(0xe84040, 1);
+  g.fillEllipse(x-tW/2-14, y, 14, 22);
+  g.fillStyle(0xcc3030, 1);
+  g.fillRect(x-tW/2-10, y+10, 5, 14);
+  g.fillStyle(0x404040, 1);
+  g.fillEllipse(x+tW/2+14, y, 14, 22);
+  g.fillStyle(0x303030, 1);
+  g.fillRect(x+tW/2+8, y+10, 5, 14);
 
-    // Post-it cards
-    var cardCounts = [2, 3, 2];
-    for (var pi = 0; pi < cardCounts[ci]; pi++) {
-      var cardColor = postItColors[(ci * 2 + pi) % postItColors.length];
-      g.fillStyle(cardColor, 0.85);
-      g.fillRoundedRect(colX + 2, y - 32 + pi * 13, 16, 10, 1);
-      // Line on card
-      g.fillStyle(0x000000, 0.2);
-      g.fillRect(colX + 4, y - 30 + pi * 13, 10, 1.5);
-      g.fillRect(colX + 4, y - 27 + pi * 13, 7, 1.5);
-    }
-  });
-
-  // Server rack in corner
-  g.fillStyle(0x141418, 1);
-  g.fillRoundedRect(x + 44, y - 40, 22, 52, 2);
-  for (var ri = 0; ri < 5; ri++) {
-    g.fillStyle(0x0c0c12, 1);
-    g.fillRect(x + 46, y - 37 + ri * 9, 18, 7);
-    g.fillStyle(0x22c55e, ri < 4 ? 0.9 : 0.3);
-    g.fillCircle(x + 60, y - 33 + ri * 9, 2.5);
-    g.fillStyle(0x1a3a1a, 0.5);
-    g.fillRect(x + 46, y - 36 + ri * 9, 10, 3);
-  }
-  // Server label
-  this.add.text(x + 55, y + 16, 'SRV', {
-    fontSize: '5px', fontFamily: 'Courier New', color: '#22c55e'
-  }).setOrigin(0.5).setDepth(201);
-
-  g.setDepth(80);
+  g.setDepth(49);
 }
 
-// ── DRAW WORLD MAP ────────────────────────────────────────────
+// ─── WALL DECORATIONS ────────────────────────────────────────────
+function drawAllWallDecor(cx, cy) {
+  drawWorldMap.call(this, 3, 0, cx, cy);
+  drawBookshelf.call(this, 5.5, 0, cx, cy);
+  drawKanban.call(this, 11.5, 0, cx, cy);
+  drawMoodboard.call(this, 3.5, 5, cx, cy);
+  drawFramesWall.call(this, 10, 5, cx, cy);
+}
+
+// ─── WORLD MAP ───────────────────────────────────────────────────
 function drawWorldMap(ix, iy, cx, cy) {
   var g = this.add.graphics();
   var p = isoToScreen(ix, iy);
-  var x = cx + p.x, y = cy + p.y - 32;
+  var x = cx+p.x, y = cy+p.y-42;
 
   // Frame
   g.fillStyle(0x080814, 1);
-  g.fillRoundedRect(x - 44, y - 38, 88, 50, 3);
-  g.lineStyle(1, 0x2a2848, 1);
-  g.strokeRoundedRect(x - 44, y - 38, 88, 50, 3);
+  g.fillRoundedRect(x-52, y-46, 104, 60, 3);
+  g.lineStyle(1.5, 0x1a1a30, 1);
+  g.strokeRoundedRect(x-52, y-46, 104, 60, 3);
 
-  // Grid lines (latitude/longitude)
-  g.lineStyle(0.5, 0x1a1a2a, 0.8);
-  for (var gi = 0; gi < 5; gi++) {
-    var gx = x - 40 + gi * 20;
-    g.lineBetween(gx, y - 36, gx, y + 9);
-    var gy = y - 36 + gi * 10;
-    g.lineBetween(x - 40, gy, x + 40, gy);
+  // Grid
+  g.lineStyle(0.5, 0x16162a, 0.9);
+  for (var gi=0; gi<6; gi++) {
+    g.lineBetween(x-48+gi*19, y-44, x-48+gi*19, y+12);
+  }
+  for (var gj=0; gj<4; gj++) {
+    g.lineBetween(x-48, y-44+gj*18, x+48, y-44+gj*18);
   }
 
-  // Continents (simplified isometric-style blobs)
+  // Continents (dark blue-teal blobs)
   var conts = [
-    {x:x-28, y:y-28, w:22, h:14, c:0x1a3a1a},   // Americas
-    {x:x-4,  y:y-26, w:16, h:18, c:0x1a2a3a},   // Europe/Africa
-    {x:x+14, y:y-22, w:18, h:14, c:0x2a1a3a},   // Asia
-    {x:x+26, y:y-14, w:12, h:10, c:0x1a2a1a},   // Australia
-    {x:x-38, y:y-16, w:8,  h:6,  c:0x2a2a3a},   // Greenland
+    {x:x-40, y:y-38, w:26, h:18, c:0x0d2a3a},
+    {x:x-14, y:y-40, w:14, h:22, c:0x0d1e2a},
+    {x:x+2,  y:y-36, w:22, h:20, c:0x0a1e30},
+    {x:x+26, y:y-28, w:18, h:14, c:0x0d2218},
+    {x:x-48, y:y-20, w:10, h:8,  c:0x16162a},
+    {x:x-38, y:y-18, w:14, h:16, c:0x0d1a2a},
   ];
   conts.forEach(function(c){
     g.fillStyle(c.c, 1);
-    g.fillRoundedRect(c.x, c.y, c.w, c.h, 3);
+    g.fillRoundedRect(c.x, c.y, c.w, c.h, 4);
+    // Continent highlight
+    g.fillStyle(0x1a3a4a, 0.3);
+    g.fillRoundedRect(c.x+2, c.y+2, c.w-4, 4, 2);
   });
 
-  // Pin markers
-  g.fillStyle(0xe8622a, 1);
-  g.fillCircle(x - 18, y - 18, 3);
-  g.fillStyle(0xe8622a, 0.4);
-  g.fillCircle(x - 18, y - 18, 6);
+  // Location pins
+  g.fillStyle(0xe8622a, 1); g.fillCircle(x-22, y-24, 4);
+  g.fillStyle(0xe8622a, 0.3); g.fillCircle(x-22, y-24, 8);
+  g.fillStyle(0x4ade80, 1); g.fillCircle(x+18, y-14, 3);
+  g.fillStyle(0x4ade80, 0.3); g.fillCircle(x+18, y-14, 6);
 
-  g.fillStyle(0x4ade80, 1);
-  g.fillCircle(x + 20, y - 10, 3);
-  g.fillStyle(0x4ade80, 0.4);
-  g.fillCircle(x + 20, y - 10, 6);
-
-  // Pulsing ring on main pin
-  var mapPingG = phaserScene.add.graphics();
-  mapPingG.setDepth(81);
-  phaserScene.tweens.add({
-    targets: {r: 3, a: 0.6},
-    r: 14, a: 0,
-    duration: 2000,
-    repeat: -1,
-    ease: 'Sine.easeOut',
-    onUpdate: function(tween, target){
-      mapPingG.clear();
-      mapPingG.lineStyle(1.5, 0xe8622a, target.a);
-      mapPingG.strokeCircle(x - 18, y - 18, target.r);
+  // Pulsing ping
+  var pingG = this.add.graphics();
+  pingG.setDepth(81);
+  this.tweens.add({
+    targets:{r:4,a:0.7}, r:16, a:0,
+    duration:2200, repeat:-1, ease:'Sine.easeOut',
+    onUpdate:function(tw,tgt){
+      pingG.clear();
+      pingG.lineStyle(1.5, 0xe8622a, tgt.a);
+      pingG.strokeCircle(x-22, y-24, tgt.r);
     }
   });
 
-  // Title
-  this.add.text(x, y + 12, 'WORLD PRESENCE', {
-    fontSize: '6px', fontFamily: 'Courier New', fontStyle: 'bold',
-    color: '#2a2848', letterSpacing: 1
-  }).setOrigin(0.5, 0).setDepth(201);
+  this.add.text(x, y+16, 'WORLD PRESENCE', {
+    fontSize:'6px', fontFamily:'Courier New', fontStyle:'bold',
+    color:'#1a1a3a', letterSpacing:1
+  }).setOrigin(0.5,0).setDepth(201);
 
   g.setDepth(80);
 }
 
-// ── DRAW MOODBOARD ────────────────────────────────────────────
+// ─── BOOKSHELF ────────────────────────────────────────────────────
+function drawBookshelf(ix, iy, cx, cy) {
+  var g = this.add.graphics();
+  var p = isoToScreen(ix, iy);
+  var x = cx+p.x, y = cy+p.y-42;
+
+  // Shelf backing
+  g.fillStyle(0x0e0c0a, 1);
+  g.fillRoundedRect(x-36, y-52, 72, 66, 2);
+  g.lineStyle(1, 0x201810, 1);
+  g.strokeRoundedRect(x-36, y-52, 72, 66, 2);
+
+  // Shelf boards
+  var colors = [
+    0x3d2a60, 0xfbbf24, 0xf472b6, 0x60a5fa, 0x4ade80, 0xfb923c,
+    0xa78bfa, 0xe8622a, 0x34d399, 0xf87171, 0x60a5fa, 0xfbbf24,
+    0x4ade80, 0xf472b6, 0x818cf8
+  ];
+  var shelves = 3;
+  for (var sh=0; sh<shelves; sh++) {
+    var shY = y-46 + sh*20;
+    // Shelf plank
+    g.fillStyle(0x1e1810, 1);
+    g.fillRect(x-33, shY+17, 66, 3);
+    // Books
+    var booksPerShelf = 5;
+    for (var bk=0; bk<booksPerShelf; bk++) {
+      var bkColor = colors[(sh*booksPerShelf+bk) % colors.length];
+      var bW = 9 + (bk%3)*2;
+      var bX = x-32 + bk*13;
+      g.fillStyle(bkColor, 0.85);
+      g.fillRect(bX, shY, bW, 16);
+      // Book spine highlight
+      g.fillStyle(bkColor, 0.4);
+      g.fillRect(bX+1, shY+1, 2, 14);
+      // Book top
+      g.fillStyle(bkColor, 0.5);
+      g.fillRect(bX, shY-1, bW, 2);
+    }
+  }
+
+  g.setDepth(80);
+}
+
+// ─── KANBAN BOARD (TECH ROOM) ─────────────────────────────────────
+function drawKanban(ix, iy, cx, cy) {
+  var g = this.add.graphics();
+  var p = isoToScreen(ix, iy);
+  var x = cx+p.x, y = cy+p.y-44;
+
+  // Board backing
+  g.fillStyle(0x080810, 1);
+  g.fillRoundedRect(x-50, y-58, 100, 72, 3);
+  g.lineStyle(1, 0x1a1a2a, 1);
+  g.strokeRoundedRect(x-50, y-58, 100, 72, 3);
+
+  // Header
+  this.add.text(x, y-54, 'KANBAN', {
+    fontSize:'7px', fontFamily:'Courier New', fontStyle:'bold',
+    color:'#4c4c6c', letterSpacing:3
+  }).setOrigin(0.5,0).setDepth(201);
+
+  // 4 columns of sticky notes
+  var colColors = [
+    [0xfbbf24, 0xf9a8d4, 0x60a5fa],  // TODO
+    [0x4ade80, 0xfbbf24, 0xfb923c],  // IN PROGRESS
+    [0xf472b6, 0xa78bfa, 0x60a5fa],  // REVIEW
+    [0x4ade80, 0x34d399, 0x4ade80],  // DONE
+  ];
+  var colLabels = ['TODO','WIP','REV','DONE'];
+  var colLabelColors = ['#e8622a','#fbbf24','#a78bfa','#4ade80'];
+
+  colColors.forEach(function(cards, ci){
+    var colX = x - 44 + ci*24;
+    // Column background
+    g.fillStyle(0x0d0d18, 1);
+    g.fillRect(colX, y-46, 20, 58);
+    // Column label
+    this.add.text(colX+10, y-44, colLabels[ci], {
+      fontSize:'5px', fontFamily:'Courier New', fontStyle:'bold',
+      color: colLabelColors[ci], letterSpacing:1
+    }).setOrigin(0.5,0).setDepth(202);
+    // Cards
+    cards.forEach(function(cardColor, ri){
+      g.fillStyle(cardColor, 0.90);
+      g.fillRoundedRect(colX+2, y-36+ri*16, 16, 12, 1);
+      // Lines on card
+      g.fillStyle(0x000000, 0.25);
+      g.fillRect(colX+4, y-34+ri*16, 10, 1.5);
+      g.fillRect(colX+4, y-31+ri*16, 7, 1.5);
+    });
+  }, this);
+
+  g.setDepth(80);
+}
+
+// ─── MOODBOARD / GALLERY (GROWTH ROOM) ───────────────────────────
 function drawMoodboard(ix, iy, cx, cy) {
   var g = this.add.graphics();
   var p = isoToScreen(ix, iy);
-  var x = cx + p.x, y = cy + p.y - 32;
+  var x = cx+p.x, y = cy+p.y-44;
 
-  // Board
-  g.fillStyle(0x0c0a14, 1);
-  g.fillRoundedRect(x - 38, y - 44, 76, 54, 3);
-  g.lineStyle(1, 0x1e1a2c, 1);
-  g.strokeRoundedRect(x - 38, y - 44, 76, 54, 3);
+  // Cork board
+  g.fillStyle(0x0c0a10, 1);
+  g.fillRoundedRect(x-48, y-56, 96, 70, 3);
+  g.lineStyle(1, 0x1e1828, 1);
+  g.strokeRoundedRect(x-48, y-56, 96, 70, 3);
 
-  // Cork texture dots
-  g.fillStyle(0x1e1810, 0.5);
-  for (var di = 0; di < 12; di++) {
-    var dx = x - 34 + (di % 6) * 12;
-    var dy = y - 40 + Math.floor(di / 6) * 24;
-    g.fillCircle(dx, dy, 1);
+  // Cork texture
+  for (var di=0; di<20; di++) {
+    g.fillStyle(0x1a1812, 0.4);
+    g.fillCircle(x-44+(di%5)*20, y-52+Math.floor(di/5)*16, 1.5);
   }
 
-  // Photos and post-its in scattered layout
-  var items = [
-    {x:x-34, y:y-42, w:22, h:14, c:0x2a1a3a, rotate:true},
-    {x:x-10, y:y-42, w:18, h:13, c:0x1a2a3a},
-    {x:x+10, y:y-40, w:20, h:15, c:0x2a2a1a, rotate:true},
-    {x:x-34, y:y-26, w:16, h:11, c:0xf9a8d4, op:0.55},
-    {x:x-16, y:y-28, w:22, h:13, c:0x4ade80, op:0.45},
-    {x:x+8,  y:y-24, w:18, h:12, c:0xe8622a, op:0.5},
-    {x:x-30, y:y-13, w:20, h:10, c:0x5b9bd5, op:0.5},
-    {x:x-8,  y:y-12, w:16, h:12, c:0xa78bfa, op:0.55},
-    {x:x+12, y:y-10, w:16, h:12, c:0xfbbf24, op:0.45},
+  // Colorful framed pictures and post-its
+  var artItems = [
+    {x:x-44, y:y-54, w:26, h:18, c:0x1a2a3a, type:'photo'},
+    {x:x-16, y:y-54, w:20, h:16, c:0x2a1a3a, type:'photo'},
+    {x:x+6,  y:y-52, w:22, h:20, c:0x1a3a1a, type:'photo'},
+    {x:x+30, y:y-54, w:16, h:18, c:0x2a2a1a, type:'photo'},
+    {x:x-44, y:y-34, w:18, h:14, c:0xfbbf24, type:'note',  op:0.85},
+    {x:x-24, y:y-36, w:22, h:16, c:0xf472b6, type:'note',  op:0.80},
+    {x:x+0,  y:y-32, w:20, h:14, c:0x60a5fa, type:'note',  op:0.80},
+    {x:x+22, y:y-34, w:18, h:16, c:0x4ade80, type:'note',  op:0.80},
+    {x:x-44, y:y-18, w:26, h:16, c:0xfb923c, type:'note',  op:0.75},
+    {x:x-16, y:y-18, w:20, h:14, c:0xa78bfa, type:'note',  op:0.75},
+    {x:x+6,  y:y-16, w:22, h:16, c:0xe8622a, type:'note',  op:0.80},
+    {x:x+30, y:y-18, w:16, h:14, c:0xfbbf24, type:'note',  op:0.75},
   ];
-  items.forEach(function(it){
-    g.fillStyle(it.c, it.op !== undefined ? it.op : 0.85);
+
+  artItems.forEach(function(it){
+    var op = it.op !== undefined ? it.op : 0.9;
+    g.fillStyle(it.c, op);
     g.fillRoundedRect(it.x, it.y, it.w, it.h, 1);
-    // Photo content lines
-    if (!it.op) {
-      g.fillStyle(0x000000, 0.15);
-      g.fillRect(it.x + 2, it.y + 3, it.w - 4, 2);
-      g.fillRect(it.x + 2, it.y + 7, it.w * 0.6, 2);
+    if (it.type === 'photo') {
+      // Fake photo content
+      g.fillStyle(0x000000, 0.2);
+      g.fillRect(it.x+3, it.y+4, it.w-6, 3);
+      g.fillRect(it.x+3, it.y+9, it.w*0.6, 3);
+    } else {
+      // Post-it lines
+      g.fillStyle(0x000000, 0.2);
+      g.fillRect(it.x+3, it.y+4, it.w-6, 2);
+      g.fillRect(it.x+3, it.y+8, it.w-8, 2);
     }
-    // Pin/thumbtack
-    g.fillStyle(0xffffff, 0.8);
-    g.fillCircle(it.x + it.w/2, it.y, 2);
+    // Thumbtack
+    g.fillStyle(0xffffff, 0.9);
+    g.fillCircle(it.x+it.w/2, it.y+2, 2.5);
+    g.fillStyle(0xcccccc, 1);
+    g.fillCircle(it.x+it.w/2, it.y+2, 1.5);
   });
 
-  // String connections
-  g.lineStyle(1, 0x6a3a1a, 0.45);
-  g.lineBetween(x - 24, y - 35, x - 8, y - 22);
-  g.lineBetween(x + 20, y - 32, x + 18, y - 18);
-  g.lineBetween(x - 4, y - 29, x - 2, y - 16);
+  // Red string connections
+  g.lineStyle(0.8, 0xc84040, 0.4);
+  g.lineBetween(x-32, y-46, x-14, y-30);
+  g.lineBetween(x+10, y-44, x+20, y-26);
+  g.lineBetween(x-8,  y-38, x-2,  y-20);
+  g.lineBetween(x+16, y-36, x+38, y-22);
 
-  this.add.text(x, y + 12, 'CREATIVE BOARD', {
-    fontSize: '6px', fontFamily: 'Courier New', fontStyle: 'bold',
-    color: '#2a2848', letterSpacing: 1
-  }).setOrigin(0.5, 0).setDepth(201);
+  this.add.text(x, y+16, 'CREATIVE BOARD', {
+    fontSize:'6px', fontFamily:'Courier New', fontStyle:'bold',
+    color:'#1e1a28', letterSpacing:2
+  }).setOrigin(0.5,0).setDepth(201);
 
   g.setDepth(80);
 }
 
-// ── DRAW PLANT ────────────────────────────────────────────────
-function drawPlant(g, ix, iy, cx, cy) {
+// ─── FRAMES WALL (MEETING ROOM) ───────────────────────────────────
+function drawFramesWall(ix, iy, cx, cy) {
+  var g = this.add.graphics();
   var p = isoToScreen(ix, iy);
-  var x = cx + p.x, y = cy + p.y;
+  var x = cx+p.x, y = cy+p.y-44;
 
-  // Pot
-  g.fillStyle(0x3a1a0a, 1);
-  g.fillRoundedRect(x - 7, y - 6, 14, 14, 2);
-  g.fillStyle(0x2a1208, 1);
-  g.fillRect(x - 8, y + 2, 16, 6);
-  g.fillStyle(0x4a2a10, 1);
-  g.fillRect(x - 6, y - 4, 12, 4);
-
-  // Soil
-  g.fillStyle(0x1a0e06, 1);
-  g.fillEllipse(x, y - 5, 12, 5);
-
-  // Leaves
-  g.fillStyle(0x1a4a1a, 1);
-  g.fillCircle(x, y - 18, 11);
-  g.fillStyle(0x0e3a0e, 1);
-  g.fillCircle(x - 9, y - 12, 7);
-  g.fillCircle(x + 9, y - 12, 7);
-  g.fillStyle(0x286a28, 0.7);
-  g.fillCircle(x, y - 24, 7);
-  g.fillCircle(x - 6, y - 22, 4);
-  g.fillCircle(x + 6, y - 22, 4);
-  // Highlight
-  g.fillStyle(0x3a8a3a, 0.3);
-  g.fillCircle(x - 3, y - 21, 4);
+  var frames = [
+    {x:x-30, y:y-54, w:22, h:16, c:0x3d2a60},
+    {x:x-6,  y:y-52, w:26, h:20, c:0x1d4ed8},
+    {x:x+22, y:y-54, w:20, h:16, c:0x0a2a1a},
+    {x:x-30, y:y-36, w:18, h:18, c:0x2a1a3a},
+    {x:x-10, y:y-30, w:24, h:18, c:0x1a2a1a},
+    {x:x+16, y:y-34, w:22, h:20, c:0x3a1a10},
+  ];
+  frames.forEach(function(fr){
+    // Frame border
+    g.fillStyle(0x2a2810, 1);
+    g.fillRect(fr.x-2, fr.y-2, fr.w+4, fr.h+4);
+    // Content
+    g.fillStyle(fr.c, 0.75);
+    g.fillRect(fr.x, fr.y, fr.w, fr.h);
+    // Abstract art lines
+    g.fillStyle(0xffffff, 0.15);
+    g.fillRect(fr.x+3, fr.y+3, fr.w-6, 2);
+    g.fillRect(fr.x+3, fr.y+7, fr.w*0.6, 2);
+    g.fillRect(fr.x+3, fr.y+11, fr.w*0.4, 2);
+  });
+  g.setDepth(80);
 }
 
-// ── CREATE AGENT SPRITES ──────────────────────────────────────
+// ─── PLANTS ──────────────────────────────────────────────────────
+function drawAllPlants(cx, cy) {
+  var g = this.add.graphics();
+  g.setDepth(55);
+  var plantPos = [
+    {ix:0, iy:0}, {ix:7, iy:0}, {ix:13, iy:2}, {ix:14, iy:9},
+    {ix:-3, iy:4}, {ix:0, iy:10}, {ix:11, iy:10},
+    {ix:6, iy:14}, {ix:19, iy:2},
+  ];
+  plantPos.forEach(function(pp){
+    drawPlant(g, pp.ix, pp.iy, cx, cy);
+  });
+}
+
+function drawPlant(g, ix, iy, cx, cy) {
+  var p = isoToScreen(ix, iy);
+  var x = cx+p.x, y = cy+p.y;
+
+  g.fillStyle(0x2a1208, 1); g.fillRoundedRect(x-8, y-4, 16, 16, 2);
+  g.fillStyle(0x1a0a06, 1); g.fillRect(x-9, y+4, 18, 8);
+  g.fillStyle(0x3a1a0a, 1); g.fillRect(x-7, y-2, 14, 6);
+  g.fillStyle(0x1a0e06, 1); g.fillEllipse(x, y-3, 14, 6);
+
+  g.fillStyle(0x1a4a1a, 1); g.fillCircle(x, y-20, 13);
+  g.fillStyle(0x0e3a0e, 1); g.fillCircle(x-10, y-13, 8);
+  g.fillStyle(0x0e3a0e, 1); g.fillCircle(x+10, y-13, 8);
+  g.fillStyle(0x286a28, 0.8); g.fillCircle(x, y-28, 9);
+  g.fillStyle(0x286a28, 0.6); g.fillCircle(x-7, y-26, 5);
+  g.fillStyle(0x286a28, 0.6); g.fillCircle(x+7, y-26, 5);
+  g.fillStyle(0x3a8a3a, 0.3); g.fillCircle(x-4, y-24, 5);
+}
+
+// ─── LAMPS (floor standing + warm glow circles) ───────────────────
+function drawAllLamps(cx, cy) {
+  var lampDefs = [
+    // Strategy room
+    {ix:1,   iy:1,   glow:80},
+    {ix:4.5, iy:3.5, glow:80},
+    // Tech room
+    {ix:12,  iy:1,   glow:70},
+    // Growth room
+    {ix:1,   iy:6,   glow:70},
+    {ix:5.5, iy:9,   glow:70},
+    // Reception
+    {ix:-2,  iy:5,   glow:60},
+    // Lounge
+    {ix:1,   iy:14,  glow:80},
+    // Meeting room lamp (done via table)
+  ];
+
+  var g = this.add.graphics();
+  g.setDepth(45);
+
+  lampDefs.forEach(function(lamp){
+    var lp = isoToScreen(lamp.ix, lamp.iy);
+    var lx = cx + lp.x;
+    var ly = cy + lp.y;
+
+    // Large soft floor glow circle (on floor level)
+    g.fillStyle(0xc8882a, 0.10);
+    g.fillCircle(lx, ly+8, lamp.glow);
+    g.fillStyle(0xc8882a, 0.20);
+    g.fillCircle(lx, ly+8, lamp.glow*0.4);
+    g.fillStyle(0xc8882a, 0.30);
+    g.fillCircle(lx, ly+8, lamp.glow*0.15);
+
+    // Lamp post
+    g.fillStyle(0x1e1610, 1);
+    g.fillRect(lx-3, ly-54, 6, 54);
+
+    // Lamp base
+    g.fillStyle(0x2a2010, 1);
+    g.fillEllipse(lx, ly+2, 18, 7);
+
+    // Lamp head / shade
+    g.fillStyle(0x362a10, 1);
+    g.fillEllipse(lx, ly-52, 28, 14);
+    g.fillStyle(0xc8882a, 1);
+    g.fillEllipse(lx, ly-56, 22, 9);
+    g.fillStyle(0xffd06a, 0.7);
+    g.fillEllipse(lx, ly-56, 10, 4);
+
+    // Animated point light for dynamic glow
+    var pl = phaserScene.add.pointlight(lx, ly-50, 0xc8882a, lamp.glow*1.4, 0.4, 0.04);
+    pl.setDepth(46);
+  });
+}
+
+// ─── DRAW CHARACTER FRAME ─────────────────────────────────────────
+function drawCharacterFrame(g, agentDef, frameType, frameIndex) {
+  var S = 2.5;
+  var W = Math.round(9*S);
+  var H = Math.round(22*S);
+
+  var bobY = (frameType==='idle' && frameIndex%2===1) ? 1 : 0;
+  var armFwd = (frameType==='type') ? 2.5 : 0;
+  var leftLegY  = (frameType==='walk') ? (frameIndex%2===0 ? -2.5 : 2.5) : 0;
+  var rightLegY = (frameType==='walk') ? (frameIndex%2===0 ? 2.5 : -2.5) : 0;
+
+  g.clear();
+
+  // Shadow
+  g.fillStyle(0x000000, 0.22);
+  g.fillEllipse(W/2, H+4, W*1.3, 5);
+
+  // Shoes
+  g.fillStyle(0x0a0a0a, 1);
+  g.fillRoundedRect(W/2-3.5*S, H-1.5*S+bobY+leftLegY,  3.5*S, 2*S, 1);
+  g.fillRoundedRect(W/2+0.2*S, H-1.5*S+bobY+rightLegY, 3.5*S, 2*S, 1);
+
+  // Legs
+  g.fillStyle(0x111111, 1);
+  g.fillRect(W/2-3*S,   H-6*S+bobY, 2.5*S, 5*S+leftLegY);
+  g.fillRect(W/2+0.5*S, H-6*S+bobY, 2.5*S, 5*S+rightLegY);
+
+  // Body
+  g.fillStyle(agentDef.clothColor, 1);
+  g.fillRoundedRect(W/2-3.5*S, H-14*S+bobY, 7*S, 8.5*S, 1);
+
+  // Shirt collar
+  var lighter = Phaser.Display.Color.IntegerToColor(agentDef.clothColor).lighten(22).color;
+  g.fillStyle(lighter, 1);
+  g.fillRect(W/2-1*S, H-14*S+bobY, 2*S, 5*S);
+
+  // Left arm
+  g.fillStyle(agentDef.clothColor, 1);
+  g.fillRoundedRect(W/2-5.8*S, H-13.5*S+bobY, 2.5*S, 5.5*S+armFwd, 1);
+  // Right arm
+  g.fillRoundedRect(W/2+3.2*S, H-13.5*S+bobY, 2.5*S, 5.5*S+armFwd, 1);
+
+  // Hands
+  g.fillStyle(agentDef.skinColor, 1);
+  g.fillRect(W/2-5.5*S, H-7.5*S+bobY+armFwd, 2.2*S, 1.8*S);
+  g.fillRect(W/2+3.4*S, H-7.5*S+bobY+armFwd, 2.2*S, 1.8*S);
+
+  // Neck
+  g.fillStyle(agentDef.skinColor, 1);
+  g.fillRect(W/2-1.2*S, H-15.5*S+bobY, 2.4*S, 2*S);
+
+  // Head
+  g.fillStyle(agentDef.skinColor, 1);
+  g.fillRoundedRect(W/2-3.5*S, H-23.5*S+bobY, 7*S, 8.5*S, 2);
+
+  // Eyes white
+  g.fillStyle(0xffffff, 1);
+  g.fillRect(W/2-2.5*S, H-20*S+bobY, 2*S, 1.6*S);
+  g.fillRect(W/2+0.5*S, H-20*S+bobY, 2*S, 1.6*S);
+  // Pupils
+  g.fillStyle(0x111111, 1);
+  g.fillRect(W/2-1.8*S, H-20*S+bobY, 1*S, 1.6*S);
+  g.fillRect(W/2+1.0*S, H-20*S+bobY, 1*S, 1.6*S);
+  // Mouth
+  g.fillStyle(0x6a3a1a, 0.55);
+  g.fillRect(W/2-1.1*S, H-17.5*S+bobY, 2.2*S, 0.9*S);
+
+  // Hair
+  g.fillStyle(agentDef.hairColor, 1);
+  var hs = agentDef.hairStyle;
+  if (hs==='straight'||hs==='wavy') {
+    g.fillRoundedRect(W/2-3.5*S, H-25*S+bobY, 7*S, 4*S, 2);
+    g.fillRect(W/2-3.5*S, H-22.5*S+bobY, 1.5*S, 2.5*S);
+    g.fillRect(W/2+2*S, H-22.5*S+bobY, 1.5*S, 2.5*S);
+    if (hs==='wavy') {
+      g.fillCircle(W/2-1.5*S, H-25.5*S+bobY, 1.6*S);
+      g.fillCircle(W/2+1.5*S, H-25.5*S+bobY, 1.6*S);
+    }
+  } else if (hs==='afro') {
+    g.fillCircle(W/2, H-23*S+bobY, 5*S);
+    g.fillCircle(W/2-4*S, H-22*S+bobY, 3.2*S);
+    g.fillCircle(W/2+4*S, H-22*S+bobY, 3.2*S);
+    g.fillCircle(W/2, H-27*S+bobY, 3.2*S);
+  } else if (hs==='afro-short') {
+    g.fillRoundedRect(W/2-3.8*S, H-25.5*S+bobY, 7.6*S, 5.5*S, 2.5);
+    g.fillCircle(W/2-3*S, H-23.5*S+bobY, 2.2*S);
+    g.fillCircle(W/2+3*S, H-23.5*S+bobY, 2.2*S);
+    g.fillCircle(W/2, H-26.5*S+bobY, 2.5*S);
+  } else if (hs==='messy') {
+    g.fillRect(W/2-3.5*S, H-24.5*S+bobY, 7*S, 3.8*S);
+    for (var sp=0; sp<5; sp++) {
+      g.fillTriangle(
+        W/2-3*S+sp*1.5*S, H-24.5*S+bobY,
+        W/2-2.5*S+sp*1.5*S, H-27.5*S+bobY,
+        W/2-2*S+sp*1.5*S, H-24.5*S+bobY
+      );
+    }
+    g.fillCircle(W/2-3.5*S, H-23*S+bobY, 1.5*S);
+  } else if (hs==='long') {
+    g.fillRoundedRect(W/2-3.5*S, H-25.5*S+bobY, 7*S, 4.5*S, 2);
+    g.fillRoundedRect(W/2-5.2*S, H-24*S+bobY, 2.2*S, 12*S, 1);
+    g.fillRoundedRect(W/2+3*S, H-24*S+bobY, 2.2*S, 12*S, 1);
+    g.fillCircle(W/2-4.2*S, H-13*S+bobY, 2*S);
+    g.fillCircle(W/2+4.2*S, H-13*S+bobY, 2*S);
+  } else if (hs==='bald') {
+    g.fillStyle(agentDef.hairColor, 0.45);
+    g.fillRoundedRect(W/2-3*S, H-25*S+bobY, 6*S, 2*S, 1);
+  }
+
+  // Status dot
+  var dotColor = agentDef.status==='working' ? 0xe8622a : (agentDef.status==='online' ? 0x4ade80 : 0x3f3f5f);
+  g.fillStyle(dotColor, 1);
+  g.fillCircle(W/2, H-27*S+bobY, 2.5);
+}
+
+// ─── CREATE AGENT SPRITES ─────────────────────────────────────────
 function createAgentSprites(cx, cy) {
   var self = this;
   AGENTS.forEach(function(agentDef){
-    var deskPos = (DESK_POSITIONS[agentDef.room] || [])[agentDef.deskIndex] || {ix: 5, iy: 5};
+    var deskPos = (DESK_POSITIONS[agentDef.room]||[])[agentDef.deskIndex] || {ix:5,iy:5};
     var sp = isoToScreen(deskPos.ix, deskPos.iy);
-    var startX = cx + sp.x;
-    var startY = cy + sp.y - 24;
+    var startX = cx+sp.x, startY = cy+sp.y-28;
 
-    // Character graphics
     var charG = self.add.graphics();
     drawCharacterFrame(charG, agentDef, 'idle', 0);
 
-    // Status dot
-    var dotG = self.add.graphics();
-    var dotColor = agentDef.status === 'working' ? 0xe8622a : (agentDef.status === 'online' ? 0x4ade80 : 0x3f3f5f);
-    dotG.fillStyle(dotColor, 1);
-    dotG.fillCircle(0, 0, 4);
-
-    // Name label
     var nameLabel = self.add.text(0, 0, agentDef.id, {
-      fontSize: '8px',
-      fontFamily: 'Courier New',
-      fontStyle: 'bold',
-      color: '#' + agentDef.clothColor.toString(16).padStart(6,'0'),
-      stroke: '#000000',
-      strokeThickness: 2,
+      fontSize:'8px', fontFamily:'Courier New', fontStyle:'bold',
+      color:'#'+agentDef.clothColor.toString(16).padStart(6,'0'),
+      stroke:'#000000', strokeThickness:3,
     }).setOrigin(0.5, 1);
 
-    var container = self.add.container(startX, startY, [charG, dotG, nameLabel]);
-    container.setDepth(150);
+    var S = 2.5;
+    var halfW = Math.round(9*S)/2;
+    var charH  = Math.round(22*S);
+    charG.setPosition(-halfW, -charH);
+    nameLabel.setPosition(0, -charH-4);
 
-    // Offset child elements within container
-    var S = 2.4;
-    var charHalfW = Math.round(9 * S) / 2;
-    charG.setPosition(0, 0);
-    dotG.setPosition(charHalfW, -Math.round(22 * S) - 8);
-    nameLabel.setPosition(charHalfW, -Math.round(22 * S) - 10);
+    var container = self.add.container(startX, startY, [charG, nameLabel]);
+    container.setDepth(200);
 
     agentSprites[agentDef.id] = container;
     agentStates[agentDef.id] = {
-      agentDef:      agentDef,
-      container:     container,
-      charG:         charG,
-      dotG:          dotG,
-      nameLabel:     nameLabel,
-      currentStatus: agentDef.status,
-      frameIndex:    0,
-      homeX:         startX,
-      homeY:         startY,
-      isAtHome:      true,
-      walkTween:     null,
+      agentDef:   agentDef,
+      container:  container,
+      charG:      charG,
+      nameLabel:  nameLabel,
+      frameIndex: 0,
+      homeX:      startX,
+      homeY:      startY,
+      isAtHome:   true,
+      walkTween:  null,
     };
 
-    startIdleAnimation.call(self, agentDef.id);
+    startIdleAnim.call(self, agentDef.id);
+
+    // Click to open modal
+    container.setInteractive(new Phaser.Geom.Rectangle(-halfW, -charH-4, halfW*2, charH+4), Phaser.Geom.Rectangle.Contains);
+    container.on('pointerdown', function(){ openModal(agentDef.id); });
+    container.on('pointerover', function(){ container.setScale(1.08); });
+    container.on('pointerout',  function(){ container.setScale(1); });
   });
 }
 
-// ── START IDLE ANIMATION ──────────────────────────────────────
-function startIdleAnimation(agentId) {
+function startIdleAnim(agentId) {
   var state = agentStates[agentId];
   if (!state) return;
-
-  var bobAmt = (state.currentStatus === 'working') ? 1.5 : 0.8;
-  var bobDur = (state.currentStatus === 'working') ? 200 : 2400;
-
+  var bobAmt = (state.agentDef.status==='working') ? 1.5 : 0.7;
+  var bobDur = (state.agentDef.status==='working') ? 280 : 2500;
   this.tweens.add({
     targets: state.container,
     y: state.container.y + bobAmt,
-    duration: bobDur,
-    yoyo: true,
-    repeat: -1,
-    ease: 'Sine.easeInOut',
+    duration: bobDur, yoyo:true, repeat:-1, ease:'Sine.easeInOut'
   });
 }
 
-// ── SETUP BEHAVIORS ───────────────────────────────────────────
+// ─── BEHAVIORS ────────────────────────────────────────────────────
 function setupBehaviors() {
   var self = this;
 
-  // Idle agents occasionally walk to kitchen
+  // Redraw character frames at ~5fps
   self.time.addEvent({
-    delay: 9000,
-    callback: function(){
-      AGENTS.forEach(function(a){
-        var state = agentStates[a.id];
-        if (!state || state.currentStatus !== 'idle') return;
-        if (state.isAtHome && Math.random() < 0.35) {
-          walkToKitchen.call(self, a.id);
-        }
-      });
-    },
-    loop: true,
-  });
-
-  // Frame animation ticker — redraw character frames
-  self.time.addEvent({
-    delay: 220,
+    delay: 200,
     callback: function(){
       AGENTS.forEach(function(a){
         var state = agentStates[a.id];
         if (!state) return;
-        state.frameIndex = (state.frameIndex + 1) % 4;
-        var fType = (state.currentStatus === 'working') ? 'type' : ((state.walkTween) ? 'walk' : 'idle');
-        drawCharacterFrame(state.charG, state.agentDef, fType, state.frameIndex);
+        state.frameIndex = (state.frameIndex+1) % 4;
+        var ft = (a.status==='working') ? 'type' : (state.walkTween ? 'walk' : 'idle');
+        drawCharacterFrame(state.charG, state.agentDef, ft, state.frameIndex);
       });
     },
-    loop: true,
+    loop: true
+  });
+
+  // Idle agents occasionally walk to kitchen/lounge
+  self.time.addEvent({
+    delay: 10000,
+    callback: function(){
+      AGENTS.forEach(function(a){
+        var state = agentStates[a.id];
+        if (!state || a.status!=='idle' || !state.isAtHome) return;
+        if (Math.random() < 0.3) walkToPoint.call(self, a.id);
+      });
+    },
+    loop: true
   });
 }
 
-// ── WALK TO KITCHEN ───────────────────────────────────────────
-function walkToKitchen(agentId) {
+function walkToPoint(agentId) {
   var state = agentStates[agentId];
   if (!state || state.walkTween) return;
 
-  var W = phaserScene.scale.width;
-  var H = phaserScene.scale.height;
-  var cx = W / 2;
-  var cy = H / 2 - 10;
-
-  var kitchenPos = isoToScreen(16, 4);
-  var targetX = cx + kitchenPos.x;
-  var targetY = cy + kitchenPos.y - 24;
+  var W = phaserScene.scale.width, H = phaserScene.scale.height;
+  var cx = W/2-20, cy = H/2-60;
+  var destinations = [{ix:16,iy:4},{ix:3,iy:12},{ix:15,iy:4}];
+  var dest = destinations[Math.floor(Math.random()*destinations.length)];
+  var dp = isoToScreen(dest.ix, dest.iy);
+  var tx = cx+dp.x, ty = cy+dp.y-28;
 
   state.isAtHome = false;
-
   var self = phaserScene;
   state.walkTween = self.tweens.add({
-    targets: state.container,
-    x: targetX,
-    y: targetY,
-    duration: 2800,
-    ease: 'Linear',
+    targets: state.container, x:tx, y:ty,
+    duration: 2800+Math.random()*1000, ease:'Linear',
     onComplete: function(){
-      // Wait 3-5s at kitchen, then return home
-      self.time.delayedCall(3000 + Math.random() * 2000, function(){
+      self.time.delayedCall(2500+Math.random()*2500, function(){
+        if (!state.container.active) return;
         state.walkTween = self.tweens.add({
-          targets: state.container,
-          x: state.homeX,
-          y: state.homeY,
-          duration: 2800,
-          ease: 'Linear',
-          onComplete: function(){
-            state.isAtHome = true;
-            state.walkTween = null;
-          }
+          targets: state.container, x:state.homeX, y:state.homeY,
+          duration: 2800, ease:'Linear',
+          onComplete: function(){ state.isAtHome=true; state.walkTween=null; }
         });
       });
     }
   });
 }
 
-// ── SPEECH BUBBLES ────────────────────────────────────────────
+// ─── SPEECH BUBBLES ───────────────────────────────────────────────
 function showSpeechBubble(agentId, text) {
   var state = agentStates[agentId];
   if (!state) return;
 
-  // Remove old bubble for this agent
+  // Remove existing bubble for this agent
   bubbleList = bubbleList.filter(function(b){
-    if (b.agentId === agentId) {
-      if (b.bubble && b.bubble.active) b.bubble.destroy();
-      return false;
-    }
+    if (b.agentId===agentId) { if(b.bubble&&b.bubble.active) b.bubble.destroy(); return false; }
     return true;
   });
 
-  var truncated = text.length > 30 ? text.slice(0, 30) + '…' : text;
-  var bW = Math.max(72, truncated.length * 5.8 + 16);
+  var truncated = text.length>32 ? text.slice(0,32)+'…' : text;
+  var bW = Math.max(78, truncated.length*5.6+18);
   var bH = 26;
 
   var bg = phaserScene.add.graphics();
-  bg.fillStyle(0x1a1828, 0.95);
+  bg.fillStyle(0x1a1828, 0.96);
   bg.fillRoundedRect(-bW/2, -bH, bW, bH, 4);
   bg.lineStyle(1, 0x3a3860, 0.9);
   bg.strokeRoundedRect(-bW/2, -bH, bW, bH, 4);
-  // Bubble tail
-  bg.fillStyle(0x1a1828, 0.95);
-  bg.fillTriangle(-5, 0, 5, 0, 0, 9);
+  bg.fillStyle(0x1a1828, 0.96);
+  bg.fillTriangle(-5,0, 5,0, 0,9);
 
-  var txt = phaserScene.add.text(0, -bH/2 - 2, truncated, {
-    fontSize: '8px',
-    fontFamily: 'Courier New',
-    color: '#e0e0f0',
-    align: 'center',
+  var txt = phaserScene.add.text(0, -bH/2-1, truncated, {
+    fontSize:'8px', fontFamily:'Courier New', color:'#e0e0f0', align:'center'
   }).setOrigin(0.5, 0.5);
 
-  var S = 2.4;
-  var charHalfW = Math.round(9 * S) / 2;
-  var bContainer = phaserScene.add.container(
-    state.container.x + charHalfW,
-    state.container.y - 58,
-    [bg, txt]
-  );
-  bContainer.setDepth(300);
-  bContainer.setAlpha(0);
+  var S = 2.5;
+  var charH = Math.round(22*S);
+  var bub = phaserScene.add.container(state.container.x, state.container.y-70, [bg, txt]);
+  bub.setDepth(500);
 
-  phaserScene.tweens.add({
-    targets: bContainer,
-    alpha: 1,
-    duration: 280,
-    onComplete: function(){
-      phaserScene.time.delayedCall(3400, function(){
-        phaserScene.tweens.add({
-          targets: bContainer,
-          alpha: 0,
-          duration: 450,
-          onComplete: function(){
-            if (bContainer.active) bContainer.destroy();
-            bubbleList = bubbleList.filter(function(b){ return b.bubble !== bContainer; });
-          }
-        });
-      });
-    }
+  // Fade in
+  bub.setAlpha(0);
+  phaserScene.tweens.add({ targets:bub, alpha:1, duration:180, ease:'Linear' });
+
+  // Auto destroy after 3.5s
+  phaserScene.time.delayedCall(3500, function(){
+    if (!bub.active) return;
+    phaserScene.tweens.add({
+      targets:bub, alpha:0, duration:300, ease:'Linear',
+      onComplete: function(){ if(bub.active) bub.destroy(); }
+    });
+    bubbleList = bubbleList.filter(function(b){ return b.agentId!==agentId; });
   });
 
-  bubbleList.push({
-    agentId:  agentId,
-    bubble:   bContainer,
-    sprite:   state.container,
-  });
+  bubbleList.push({ agentId:agentId, sprite:state.container, bubble:bub });
 }
 
-// ── SIMULATION ────────────────────────────────────────────────
-// TODO: Replace with Supabase Realtime channels:
-// supabase.channel('live').on('postgres_changes', {event:'*',schema:'public',table:'agents'}, handleAgentUpdate).subscribe()
-// supabase.channel('live').on('postgres_changes', {event:'*',schema:'public',table:'missions'}, handleMissionUpdate).subscribe()
-
+// ─── SIMULATION ───────────────────────────────────────────────────
 function startSimulation() {
   var self = this;
 
-  var scheduleNext = function(){
-    var delay = 4500 + Math.random() * 3500;
-    self.time.delayedCall(delay, function(){
-      simulationTick.call(self);
-      scheduleNext();
-    });
-  };
-  scheduleNext();
-
-  // Mission progress ticker
+  // Occasional speech bubbles
   self.time.addEvent({
-    delay: 7000,
+    delay: 4500,
     callback: function(){
-      MISSIONS.forEach(function(m){
-        m.progress = Math.min(100, m.progress + Math.floor(Math.random() * 3));
-      });
-      renderMissions();
+      var a = AGENTS[Math.floor(Math.random()*AGENTS.length)];
+      var lines = SPEECH[a.id];
+      if (lines && lines.length) {
+        showSpeechBubble(a.id, lines[Math.floor(Math.random()*lines.length)]);
+      }
     },
-    loop: true,
+    loop: true
   });
 
-  // Metrics chart update
+  // Cycle task text every 20s
   self.time.addEvent({
-    delay: 6000,
-    callback: updateChartMetrics,
-    loop: true,
+    delay: 20000,
+    callback: function(){
+      AGENTS.forEach(function(a){
+        if (a.status==='working') {
+          var tasks = TASKS[a.id];
+          if (tasks && tasks.length) {
+            a.task = tasks[Math.floor(Math.random()*tasks.length)];
+          }
+          a.progress = Math.min(100, a.progress + Math.floor(Math.random()*8));
+        }
+      });
+      renderAgentList();
+    },
+    loop: true
   });
-}
-
-function simulationTick() {
-  // TODO: Replace with supabase realtime update push
-  var a = AGENTS[Math.floor(Math.random() * AGENTS.length)];
-  var state = agentStates[a.id];
-  if (!state) return;
-
-  var statuses = ['working', 'working', 'working', 'online', 'idle'];
-  var newStatus = statuses[Math.floor(Math.random() * statuses.length)];
-
-  if (newStatus === 'working') {
-    var taskList = TASKS[a.id] || ['Em execução'];
-    a.task = taskList[Math.floor(Math.random() * taskList.length)];
-    var increment = 5 + Math.floor(Math.random() * 18);
-    a.progress = Math.min(100, a.progress + increment);
-    if (a.progress >= 100) {
-      a.progress = 0;
-      if (a.history.length >= 3) a.history.pop();
-      a.history.unshift(a.task);
-      addTickerEvent(a.id, a.name + ' concluiu: ' + a.task, '#4ade80');
-    }
-  } else if (newStatus === 'idle') {
-    a.task = '';
-    a.progress = 0;
-  }
-
-  a.status = newStatus;
-  state.currentStatus = newStatus;
-
-  // Update status dot in canvas
-  var dotColor = newStatus === 'working' ? 0xe8622a : (newStatus === 'online' ? 0x4ade80 : 0x3f3f5f);
-  state.dotG.clear();
-  if (newStatus === 'working') {
-    // Pulse ring
-    state.dotG.fillStyle(dotColor, 0.25);
-    state.dotG.fillCircle(0, 0, 8);
-  }
-  state.dotG.fillStyle(dotColor, 1);
-  state.dotG.fillCircle(0, 0, 4);
-
-  // Speech bubble when working
-  if (newStatus === 'working') {
-    var speechList = SPEECH[a.id] || ['Processando…'];
-    var msg = speechList[Math.floor(Math.random() * speechList.length)];
-    showSpeechBubble(a.id, msg);
-    addTickerEvent(a.id, '[' + a.id + '] ' + msg, '#' + a.clothColor.toString(16).padStart(6,'0'));
-  }
-
-  // Update missions count badge
-  var workingCount = AGENTS.filter(function(x){ return x.status === 'working'; }).length;
-  document.getElementById('missions-count').textContent = String(workingCount);
-
-  renderAgentList();
-
-  // Update modal if open for this agent
-  if (selectedAgent && selectedAgent.id === a.id) {
-    document.getElementById('modal-task').textContent = a.task || '—';
-    document.getElementById('modal-progress-fill').style.width = a.progress + '%';
-    document.getElementById('modal-progress-fill').style.background = a.status === 'working' ? '#e8622a' : '#4ade80';
-  }
-}
-
-function addTickerEvent(agentId, text, color) {
-  var now = new Date();
-  var time = now.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  tickerLog.unshift({color: color, text: text, time: time});
-  if (tickerLog.length > 14) tickerLog.pop();
-
-  var inner = document.getElementById('ticker-inner');
-  var doubled = tickerLog.concat(tickerLog);
-  inner.innerHTML = doubled.map(function(e){
-    return '<span class="ticker-event">' +
-      '<span class="ticker-dot" style="background:' + e.color + '"></span>' +
-      e.text +
-      '<span class="ticker-time">' + e.time + '</span>' +
-    '</span>';
-  }).join('');
-}
-
-function updateChartMetrics() {
-  var newVals = [
-    Math.min(100, Math.max(50, 78 + Math.floor(Math.random() * 8 - 4))),
-    Math.min(100, Math.max(30, 61 + Math.floor(Math.random() * 10 - 5))),
-    Math.min(100, Math.max(20, 45 + Math.floor(Math.random() * 12 - 6))),
-  ];
-  var ids = ['val-crescimento', 'val-conversoes', 'val-campanhas'];
-  var fills = document.querySelectorAll('.chart-bar-fill');
-  newVals.forEach(function(v, i){
-    var el = document.getElementById(ids[i]);
-    if (el) el.textContent = v + '%';
-    if (fills[i]) fills[i].style.width = v + '%';
-  });
-
-  // Evolve chart points slightly
-  chartPoints.shift();
-  chartPoints.push(Math.max(15, Math.min(95, chartPoints[chartPoints.length-1] + Math.floor(Math.random() * 10 - 4))));
-  drawMiniChart();
 }
 
 </script>
