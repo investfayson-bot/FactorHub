@@ -7,6 +7,7 @@ import { calcCerebroCompletion } from '@/lib/cerebro'
 import type { CerebroRow } from '@/lib/cerebro'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
+import { MissionProvider, useMission } from './mission-context'
 
 const TerminalModal = dynamic(() => import('@/components/layout/TerminalModal'), { ssr: false })
 
@@ -31,8 +32,7 @@ const NAV: { label: string; items: NavItem[] }[] = [
   {
     label: 'Squad',
     items: [
-      { href: '/dashboard/agentes', icon: 'fa-robot', label: 'Conselho · C1', badge: '7', badgeColor: '#e8622a' },
-      { href: '/dashboard/mapa', icon: 'fa-map', label: 'Pesquisa · C2', badge: '6', badgeColor: '#0d9488' },
+      { href: '/dashboard/agentes', icon: 'fa-robot', label: 'Agentes · Squad', badge: '26', badgeColor: '#e8622a' },
       { href: '/dashboard/chat', icon: 'fa-comment-dots', label: 'Chat' },
     ],
   },
@@ -72,7 +72,7 @@ function isActive(pathname: string, item: NavItem) {
   return pathname === item.href || pathname.startsWith(item.href + '/')
 }
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
@@ -278,6 +278,48 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </div>
 
       <TerminalModal open={terminalOpen} onClose={() => setTerminalOpen(false)} />
+      <MissionFloatingBar pathname={pathname} />
     </div>
+  )
+}
+
+function MissionFloatingBar({ pathname }: { pathname: string }) {
+  const { state, currentAgentId, phases, selectedLevel } = useMission()
+  if (state !== 'running' || pathname === '/dashboard/missoes') return null
+
+  const runningAgent = phases.flatMap(p => p.agents).find(a => a.agentId === currentAgentId)
+  const done = phases.flatMap(p => p.agents).filter(a => a.status === 'done').length
+  const total = phases.flatMap(p => p.agents).length
+
+  return (
+    <Link href="/dashboard/missoes" style={{ textDecoration: 'none' }}>
+      <div style={{
+        position: 'fixed', bottom: 20, right: 20, zIndex: 999,
+        background: 'var(--surface)', border: '1px solid var(--accent)',
+        borderRadius: 12, padding: '10px 16px',
+        display: 'flex', alignItems: 'center', gap: 10,
+        boxShadow: '0 4px 24px rgba(232,98,42,.25)',
+        cursor: 'pointer', minWidth: 240,
+      }}>
+        <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', animation: 'pulse 1s infinite' }} />
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)' }}>
+            Missão {selectedLevel} em andamento
+          </div>
+          <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 2 }}>
+            {runningAgent ? `${runningAgent.agentName} pensando…` : 'Inicializando…'} · {done}/{total} agentes
+          </div>
+        </div>
+        <i className="fa-solid fa-arrow-right" style={{ fontSize: 10, color: 'var(--muted)' }} />
+      </div>
+    </Link>
+  )
+}
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <MissionProvider>
+      <DashboardLayoutInner>{children}</DashboardLayoutInner>
+    </MissionProvider>
   )
 }
