@@ -1,1781 +1,517 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FactorHub OS — Live Monitor</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #060408; overflow: hidden; font-family: 'Courier New', monospace; width: 100vw; height: 100vh; }
-    #phaser-container { position: fixed; inset: 0; }
-
-    /* TOPBAR */
-    #hud-top {
-      position: fixed; top: 0; left: 0; right: 0; height: 44px; z-index: 100;
-      background: #06040f; border-bottom: 1px solid #1a1728;
-      display: flex; align-items: center; padding: 0 16px; gap: 16px;
-    }
-    .logo-text { font-size: 14px; font-weight: 800; letter-spacing: 0.12em; color: #f0f0f0; }
-    .logo-accent { color: #e8622a; }
-    .live-pip { width: 8px; height: 8px; border-radius: 50%; background: #4ade80; animation: pip-glow 1.5s ease-in-out infinite; }
-    @keyframes pip-glow { 0%,100%{box-shadow:0 0 4px #4ade80} 50%{box-shadow:0 0 12px #4ade80,0 0 20px #4ade8066} }
-    .online-badge { background: rgba(74,222,128,0.1); border: 1px solid rgba(74,222,128,0.3); color: #4ade80; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 4px; letter-spacing: 0.06em; }
-    .hud-center { flex: 1; display: flex; justify-content: center; align-items: center; gap: 12px; }
-    .missions-counter { background: rgba(232,98,42,0.1); border: 1px solid rgba(232,98,42,0.3); color: #e8622a; font-size: 11px; font-weight: 700; padding: 4px 12px; border-radius: 6px; }
-    .counter-badge { background: #e8622a; color: #fff; font-size: 10px; font-weight: 800; padding: 1px 6px; border-radius: 10px; margin-left: 6px; }
-    .hud-right-top { display: flex; align-items: center; gap: 8px; }
-    .ceo-avatar { width: 32px; height: 32px; border-radius: 6px; background: #3d2a60; border: 1px solid #6d4a90; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; color: #c9a0f0; }
-    .ceo-info { font-size: 10px; color: #f0f0f0; font-weight: 700; }
-    .ceo-sub { font-size: 9px; color: #5c5c7c; }
-
-    /* RIGHT PANEL */
-    #hud-right {
-      position: fixed; top: 44px; right: 0; bottom: 36px; width: 200px; z-index: 100;
-      background: #0d0b16; border-left: 1px solid #1a1728; overflow-y: auto;
-    }
-    .panel-section { padding: 12px; border-bottom: 1px solid #1a1728; }
-    .panel-title { font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #4c4c6c; margin-bottom: 10px; }
-    .agent-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer; padding: 6px; border-radius: 6px; transition: background 0.15s; }
-    .agent-row:hover { background: rgba(255,255,255,0.04); }
-    .agent-avatar { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 800; flex-shrink: 0; }
-    .agent-info { flex: 1; min-width: 0; }
-    .agent-name { font-size: 10px; font-weight: 700; color: #e0e0f0; }
-    .agent-role { font-size: 8px; color: #5c5c7c; }
-    .agent-task { font-size: 8px; color: #8888aa; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100px; }
-    .status-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-    .dot-working { background: #e8622a; box-shadow: 0 0 6px #e8622a88; }
-    .dot-online { background: #4ade80; box-shadow: 0 0 6px #4ade8088; }
-    .dot-idle { background: #3f3f5f; }
-    .mini-progress { height: 2px; background: #1a1a2a; border-radius: 1px; margin-top: 3px; }
-    .mini-progress-fill { height: 100%; border-radius: 1px; transition: width 0.5s; }
-
-    /* Charts section */
-    .chart-bar-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
-    .chart-bar-label { font-size: 8px; color: #5c5c7c; width: 70px; text-align: right; }
-    .chart-bar-track { flex: 1; height: 4px; background: #1a1a2a; border-radius: 2px; }
-    .chart-bar-fill { height: 100%; border-radius: 2px; }
-    .chart-value { font-size: 8px; color: #8888aa; width: 28px; text-align: right; }
-
-    /* Missions section */
-    .mission-card { background: #0f0d1c; border: 1px solid #1a1728; border-radius: 6px; padding: 8px; margin-bottom: 6px; cursor: pointer; }
-    .mission-card:hover { border-color: #2a2848; }
-    .mission-name { font-size: 9px; font-weight: 700; color: #e0e0f0; margin-bottom: 4px; }
-    .mission-badge { display: inline-block; font-size: 7px; font-weight: 800; padding: 1px 5px; border-radius: 3px; margin-right: 4px; }
-    .mission-progress-track { height: 3px; background: #1a1a2a; border-radius: 2px; margin-top: 4px; }
-    .mission-progress-fill { height: 100%; border-radius: 2px; transition: width 0.5s; }
-    .ver-todas-btn { width: 100%; padding: 6px; background: rgba(232,98,42,0.08); border: 1px solid rgba(232,98,42,0.2); border-radius: 6px; color: #e8622a; font-size: 9px; font-weight: 700; cursor: pointer; font-family: inherit; letter-spacing: 0.05em; }
-    .ver-todas-btn:hover { background: rgba(232,98,42,0.15); }
-
-    /* TICKER */
-    #hud-ticker {
-      position: fixed; bottom: 0; left: 0; right: 0; height: 36px; z-index: 100;
-      background: #06040f; border-top: 1px solid #1a1728;
-      display: flex; align-items: center; overflow: hidden;
-    }
-    .ticker-label { padding: 0 12px; font-size: 8px; font-weight: 800; letter-spacing: 0.1em; color: #e8622a; white-space: nowrap; border-right: 1px solid #1a1728; }
-    .ticker-track { flex: 1; overflow: hidden; }
-    .ticker-inner { display: flex; gap: 0; animation: ticker-scroll 60s linear infinite; white-space: nowrap; }
-    @keyframes ticker-scroll { from{transform:translateX(0)} to{transform:translateX(-50%)} }
-    .ticker-event { display: inline-flex; align-items: center; gap: 6px; padding: 0 24px; font-size: 10px; color: #8888aa; }
-    .ticker-dot { width: 5px; height: 5px; border-radius: 50%; }
-    .ticker-time { color: #4c4c6c; font-size: 9px; }
-
-    /* AGENT MODAL */
-    #agent-modal {
-      position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
-      display: none; align-items: center; justify-content: center;
-    }
-    #agent-modal.open { display: flex; }
-    .modal-card { background: #0d0b16; border: 1px solid #2a2848; border-radius: 12px; padding: 24px; width: 320px; }
-    .modal-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
-    .modal-avatar { width: 64px; height: 64px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 800; }
-    .modal-name { font-size: 16px; font-weight: 800; color: #f0f0f0; }
-    .modal-role { font-size: 11px; color: #8888aa; margin-top: 2px; }
-    .modal-close { margin-left: auto; background: none; border: none; color: #5c5c7c; cursor: pointer; font-size: 16px; }
-    .modal-task-label { font-size: 9px; color: #5c5c7c; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
-    .modal-task-text { font-size: 12px; font-weight: 600; color: #e0e0f0; margin-bottom: 8px; }
-    .modal-progress { height: 4px; background: #1a1a2a; border-radius: 2px; }
-    .modal-progress-fill { height: 100%; border-radius: 2px; transition: width 0.5s; }
-    .modal-history { margin-top: 16px; }
-    .modal-history-item { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 8px; }
-    .modal-history-dot { width: 6px; height: 6px; border-radius: 50%; background: #2a2848; margin-top: 4px; flex-shrink: 0; }
-    .modal-history-text { font-size: 10px; color: #5c5c7c; }
-  </style>
+<meta charset="UTF-8">
+<title>FactorHub OS — Live Monitor</title>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#060408;font-family:'Courier New',monospace;color:#e0e0f0}
+#cv{position:fixed;top:44px;left:0;display:block}
+#top{position:fixed;top:0;left:0;right:0;height:44px;background:#06040f;border-bottom:1px solid #1a1535;display:flex;align-items:center;padding:0 16px;gap:14px;z-index:100}
+.logo{font-size:14px;font-weight:900;letter-spacing:.14em}.logo span{color:#e8622a}
+.pip{width:8px;height:8px;border-radius:50%;background:#4ade80;animation:glow 1.5s ease-in-out infinite}
+@keyframes glow{0%,100%{box-shadow:0 0 4px #4ade80}50%{box-shadow:0 0 14px #4ade80,0 0 28px #4ade8055}}
+.badge{font-size:9px;font-weight:800;padding:2px 8px;border-radius:4px;letter-spacing:.07em}
+.b-green{background:rgba(74,222,128,.12);border:1px solid rgba(74,222,128,.3);color:#4ade80}
+.b-orange{background:rgba(232,98,42,.12);border:1px solid rgba(232,98,42,.3);color:#e8622a}
+.top-c{flex:1;display:flex;justify-content:center;align-items:center;gap:12px}
+.top-r{display:flex;align-items:center;gap:10px}
+.tav{width:30px;height:30px;border-radius:7px;background:#3d2a60;border:1px solid #5a3a8a;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:900;color:#c9a0f0}
+#clock{font-size:10px;color:#5c5c7c}
+#panel{position:fixed;top:44px;right:0;bottom:36px;width:200px;background:#0a0814;border-left:1px solid #1a1535;overflow-y:auto;z-index:100}
+#panel::-webkit-scrollbar{width:3px}#panel::-webkit-scrollbar-thumb{background:#2a2848;border-radius:2px}
+.ps{padding:12px;border-bottom:1px solid #1a1535}
+.pt{font-size:8px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#3a3a5a;margin-bottom:10px}
+.ar{display:flex;align-items:center;gap:7px;padding:5px 6px;border-radius:7px;cursor:pointer;transition:background .12s;margin-bottom:4px}
+.ar:hover{background:rgba(255,255,255,.04)}
+.aav{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:900;flex-shrink:0}
+.ai{flex:1;min-width:0}
+.an{font-size:9px;font-weight:700;color:#d0d0e8}
+.at2{font-size:8px;color:#5c5c80;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ap{height:2px;background:#1a1a2e;border-radius:1px;margin-top:3px}
+.apf{height:100%;border-radius:1px;transition:width .6s}
+.sd{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.sw{background:#e8622a;box-shadow:0 0 5px #e8622a88}
+.so{background:#4ade80;box-shadow:0 0 5px #4ade8088}
+.si{background:#3f3f5f}
+.cr{display:flex;align-items:center;gap:5px;margin-bottom:5px}
+.cl{font-size:7px;color:#4a4a6a;width:65px;text-align:right}
+.cb{flex:1;height:3px;background:#14122a;border-radius:2px}
+.cf{height:100%;border-radius:2px;transition:width .5s}
+.cv2t{font-size:7px;color:#6060a0;width:26px;text-align:right}
+.mc2{background:#0d0b1c;border:1px solid #1a1535;border-radius:6px;padding:8px;margin-bottom:5px;cursor:pointer}
+.mcn{font-size:8px;font-weight:700;color:#c0c0e0;margin-bottom:3px}
+.mcp{height:2px;background:#14122a;border-radius:1px}
+.mcf{height:100%;border-radius:2px;transition:width .5s}
+.ball{width:100%;padding:6px;background:rgba(232,98,42,.08);border:1px solid rgba(232,98,42,.2);border-radius:5px;color:#e8622a;font-size:8px;font-weight:800;cursor:pointer;font-family:inherit;letter-spacing:.06em;margin-top:4px}
+.ball:hover{background:rgba(232,98,42,.15)}
+#ticker{position:fixed;bottom:0;left:0;right:0;height:36px;background:#06040f;border-top:1px solid #1a1535;display:flex;align-items:center;overflow:hidden;z-index:100}
+.tlbl{padding:0 12px;font-size:7px;font-weight:900;letter-spacing:.12em;color:#e8622a;white-space:nowrap;border-right:1px solid #1a1535;text-transform:uppercase}
+.ttrk{flex:1;overflow:hidden}
+.tinn{display:flex;animation:tscroll 55s linear infinite;white-space:nowrap}
+@keyframes tscroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.tev{display:inline-flex;align-items:center;gap:6px;padding:0 22px;font-size:9px;color:#6060a0}
+.tdot{width:4px;height:4px;border-radius:50%}
+.ttm{font-size:8px;color:#3a3a5a}
+#modal{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center}
+#modal.open{display:flex}
+.mbox{background:#0d0b1e;border:1px solid #2a2848;border-radius:14px;padding:24px;width:300px}
+.mhd{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.mavb{width:56px;height:56px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;flex-shrink:0}
+.mnm{font-size:15px;font-weight:800}
+.mrl{font-size:10px;color:#6060a0;margin-top:2px}
+.mxb{margin-left:auto;background:none;border:none;color:#4a4a6a;cursor:pointer;font-size:20px;line-height:1}
+.mlbl{font-size:8px;color:#4a4a6a;text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px;margin-top:12px}
+.mtk{font-size:11px;font-weight:600;color:#d0d0f0;margin-bottom:6px}
+.mpr{height:3px;background:#14122a;border-radius:2px}
+.mpf{height:100%;border-radius:2px;transition:width .5s}
+.mhi{display:flex;align-items:center;gap:6px;padding:5px 0;border-top:1px solid #1a1535}
+.mhidot{width:5px;height:5px;border-radius:50%;background:#2a2848;flex-shrink:0}
+.mhitxt{font-size:9px;color:#5c5c80}
+</style>
 </head>
 <body>
-
-<!-- HUD TOPBAR -->
-<div id="hud-top">
+<div id="top">
   <div style="display:flex;align-items:center;gap:10px">
-    <div class="live-pip"></div>
-    <span class="logo-text"><span class="logo-accent">FACTOR</span>HUB</span>
-    <span class="online-badge">Sistema Online</span>
+    <div class="pip"></div>
+    <div class="logo"><span>FACTOR</span>HUB</div>
+    <div class="badge b-green">Sistema Online</div>
   </div>
-  <div class="hud-center">
-    <span class="missions-counter">
-      Missões Ativas <span class="counter-badge" id="missions-count">3</span>
-    </span>
-    <span style="font-size:10px;color:#4c4c6c" id="hud-clock">--:--:--</span>
+  <div class="top-c">
+    <div class="badge b-orange">Missões Ativas <span id="mcn" style="background:#e8622a;color:#fff;padding:1px 6px;border-radius:8px;margin-left:4px">3</span></div>
+    <div id="clock">--:--:--</div>
   </div>
-  <div class="hud-right-top">
-    <div class="ceo-avatar">CE</div>
+  <div class="top-r">
+    <div class="tav">CE</div>
     <div>
-      <div class="ceo-info">CEO / Nível 10</div>
-      <div class="ceo-sub">FactorHub OS v2.0</div>
+      <div style="font-size:10px;font-weight:700;color:#d0d0e0">CEO / Nível 10</div>
+      <div style="font-size:8px;color:#5c5c80">FactorHub OS v2.0</div>
     </div>
   </div>
 </div>
-
-<!-- HUD RIGHT PANEL -->
-<div id="hud-right">
-  <div class="panel-section">
-    <div class="panel-title">Agentes</div>
-    <div id="agent-list"></div>
+<div id="panel">
+  <div class="ps"><div class="pt">Agentes</div><div id="alist"></div></div>
+  <div class="ps">
+    <div class="pt">Métricas</div>
+    <canvas id="mchart" width="176" height="48" style="width:100%;margin-bottom:8px;border-radius:4px"></canvas>
+    <div id="cbars"></div>
   </div>
-  <div class="panel-section">
-    <div class="panel-title">Dados &amp; Métricas</div>
-    <canvas id="mini-chart" width="160" height="50" style="width:100%;margin-bottom:10px;border-radius:4px"></canvas>
-    <div class="chart-bar-row">
-      <span class="chart-bar-label">Crescimento</span>
-      <div class="chart-bar-track"><div class="chart-bar-fill" style="width:78%;background:#4ade80"></div></div>
-      <span class="chart-value" id="val-crescimento">78%</span>
-    </div>
-    <div class="chart-bar-row">
-      <span class="chart-bar-label">Conversões</span>
-      <div class="chart-bar-track"><div class="chart-bar-fill" style="width:61%;background:#e8622a"></div></div>
-      <span class="chart-value" id="val-conversoes">61%</span>
-    </div>
-    <div class="chart-bar-row">
-      <span class="chart-bar-label">Campanhas</span>
-      <div class="chart-bar-track"><div class="chart-bar-fill" style="width:45%;background:#5b9bd5"></div></div>
-      <span class="chart-value" id="val-campanhas">45%</span>
-    </div>
-  </div>
-  <div class="panel-section">
-    <div class="panel-title">Missões</div>
-    <div id="mission-list"></div>
-    <button class="ver-todas-btn">Ver todas as missões</button>
+  <div class="ps">
+    <div class="pt">Missões</div>
+    <div id="mlist"></div>
+    <button class="ball">Ver todas as missões →</button>
   </div>
 </div>
-
-<!-- TICKER -->
-<div id="hud-ticker">
-  <div class="ticker-label">ATIVIDADE RECENTE</div>
-  <div class="ticker-track">
-    <div class="ticker-inner" id="ticker-inner"></div>
+<div id="ticker">
+  <div class="tlbl">Atividade Recente</div>
+  <div class="ttrk"><div class="tinn" id="tinn"></div></div>
+</div>
+<div id="modal">
+  <div class="mbox">
+    <div class="mhd">
+      <div class="mavb" id="mavb">—</div>
+      <div><div class="mnm" id="mname">—</div><div class="mrl" id="mrole">—</div></div>
+      <button class="mxb" onclick="closeModal()">×</button>
+    </div>
+    <div class="mlbl">Task Atual</div>
+    <div class="mtk" id="mtsk">—</div>
+    <div class="mpr"><div class="mpf" id="mpf" style="width:0%"></div></div>
+    <div class="mlbl" style="margin-top:14px">Histórico</div>
+    <div id="mhist"></div>
   </div>
 </div>
-
-<!-- AGENT MODAL -->
-<div id="agent-modal">
-  <div class="modal-card">
-    <div class="modal-header">
-      <div class="modal-avatar" id="modal-avatar">CE</div>
-      <div>
-        <div class="modal-name" id="modal-name">CEO</div>
-        <div class="modal-role" id="modal-role">Líder Estratégico</div>
-      </div>
-      <button class="modal-close" onclick="closeModal()">&#x2715;</button>
-    </div>
-    <div class="modal-task-label">Task Atual</div>
-    <div class="modal-task-text" id="modal-task">&#8212;</div>
-    <div class="modal-progress"><div class="modal-progress-fill" id="modal-progress-fill" style="width:0%"></div></div>
-    <div class="modal-history">
-      <div class="modal-task-label" style="margin-top:12px">Histórico</div>
-      <div id="modal-history-list"></div>
-    </div>
-  </div>
-</div>
-
-<!-- PHASER CANVAS -->
-<div id="phaser-container"></div>
-
-<script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+<canvas id="cv"></canvas>
 <script>
-// ═══════════════════════════════════════════════════════════════════
-// FACTORHUB LIVE MONITOR — Phaser 3 Isometric Office
-// TODO (Supabase): Replace simulated data with Supabase Realtime:
-// const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-// const { data: agentsData } = await supabase.from('agents').select('*')
-// supabase.channel('live')
-//   .on('postgres_changes',{event:'*',schema:'public',table:'missions'}, updateMission)
-//   .on('postgres_changes',{event:'*',schema:'public',table:'agents'}, updateAgent)
-//   .subscribe()
-// ═══════════════════════════════════════════════════════════════════
+// FACTORHUB LIVE MONITOR v4 — Pure Canvas 2D HD, No Dependencies
+// TODO: Connect Supabase:
+// supabase.channel('live').on('postgres_changes',{event:'*',schema:'public',table:'missions'},cb).subscribe()
+const AGENTS=[
+  {id:'CEO',name:'CEO Estratégico',role:'Líder Estratégico',cloth:'#3d2a60',hair:'#111111',skin:'#c8956c',hs:'straight',room:'strategy',di:0,status:'working',task:'Validando missão Vigano',prog:72,hist:['Revisão Q2 concluída','Sprint 12 validado','Plano expansão aprovado']},
+  {id:'CFO',name:'CFO',role:'Financeiro',cloth:'#1a3a6a',hair:'#5a3a1a',skin:'#f0d0a8',hs:'wavy',room:'strategy',di:1,status:'online',task:'Aguardando análise',prog:0,hist:['Relatório Q2 gerado','CAC validado','Margem 68% ok']},
+  {id:'COO',name:'COO',role:'Operações',cloth:'#2a2a3a',hair:'#1a1a1a',skin:'#7a4a2a',hs:'bald',room:'strategy',di:2,status:'online',task:'Alinhando processos',prog:20,hist:['Sprint atualizado','Dependências mapeadas','Times coordenados']},
+  {id:'CMO',name:'CMO',role:'Marketing',cloth:'#1a4a1a',hair:'#0a0a0a',skin:'#c8956c',hs:'afro',room:'growth',di:0,status:'working',task:'Nova campanha Q3',prog:80,hist:['ROAS 3.2x alcançado','Meta leads: 50','Campanha aprovada']},
+  {id:'CTO',name:'CTO',role:'Tecnologia',cloth:'#0f0f18',hair:'#111118',skin:'#f0d0a8',hs:'messy',room:'tech',di:0,status:'working',task:'Deploy FactorOS v0.2',prog:85,hist:['Build v0.2 pronto','Zero bugs críticos','CI/CD configurado']},
+  {id:'CW',name:'Copywriter',role:'Copy & Content',cloth:'#c0406a',hair:'#f9a8d4',skin:'#f5ddb8',hs:'long',room:'growth',di:1,status:'working',task:'Copy IG Nova Lima',prog:45,hist:['Script Reels pronto','Headlines testadas','Copy entregue']},
+  {id:'CA',name:'Chief of Staff',role:'Chief of Staff',cloth:'#e8622a',hair:'#0a0a0a',skin:'#5a2a0a',hs:'afro-short',room:'reception',di:0,status:'online',task:'Coordenando agenda',prog:30,hist:['Briefing enviado','Agenda atualizada','Missão coordenada']},
+]
+const SPEECH={CEO:['Validando risco da missão','Oportunidade identificada','Aprovando plano N2'],CFO:['Viabilidade confirmada','CAC ok','Margem 68% aprovada'],COO:['Sprint atualizado','Dependências ok','Time alinhado'],CMO:['ROAS 3.2x alcançado','Campanha pronta','Leads: 50/semana'],CTO:['Build concluído','Deploy em prod','Zero bugs'],CW:['Copy entregue','Headlines aprovadas','Script ok'],CA:['Briefing enviado','Agenda atualizada','Squad ok']}
+const TASKS={CEO:['Validando missão Vigano','Revisão Q3','Aprovando expansão'],CFO:['Análise financeira Q3','Projeção de receita','Revisão de margem'],COO:['Sprint planning','Mapeando deps','Review OKRs'],CMO:['Nova campanha Q3','ROAS optimization','Funil de conversão'],CTO:['Deploy FactorOS v0.2','Code review PR #42','Infra scaling'],CW:['Copy IG Nova Lima','Script Reels Q3','Email sequence'],CA:['Coordenando agenda','Briefing missão','Report semanal']}
+const MISSIONS=[{name:'Análise de Mercado',level:'N2',color:'#e8622a',prog:72},{name:'Processo Financeiro',level:'N3',color:'#5b9bd5',prog:35},{name:'Campanha Q3 Ativa',level:'N1',color:'#4ade80',prog:80}]
+const CHARTS=[{label:'Crescimento',val:78,color:'#4ade80'},{label:'Conversões',val:61,color:'#e8622a'},{label:'Campanhas',val:45,color:'#5b9bd5'}]
 
-// ── ISOMETRIC CONFIG ────────────────────────────────────────────
-var ISO = { tileW: 96, tileH: 48 };
-function isoToScreen(ix, iy) {
-  return {
-    x: (ix - iy) * (ISO.tileW / 2),
-    y: (ix + iy) * (ISO.tileH / 2)
-  };
+// HD Canvas
+const canvas=document.getElementById('cv'),ctx=canvas.getContext('2d',{alpha:false})
+let DPR=1,CW=1,CH=1
+function resize(){
+  CW=window.innerWidth-200; CH=window.innerHeight-80
+  DPR=Math.min(window.devicePixelRatio||1,3)
+  canvas.width=Math.round(CW*DPR); canvas.height=Math.round(CH*DPR)
+  canvas.style.width=CW+'px'; canvas.style.height=CH+'px'
+  canvas.style.top='44px'; canvas.style.left='0'
+  ctx.setTransform(DPR,0,0,DPR,0,0)
+  ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high'
+}
+resize(); window.addEventListener('resize',resize)
+
+// ISO
+const TW=96,TH=48,WH=54
+function iso(gx,gy){return{x:CW/2+(gx-gy)*TW/2,y:CH*.36+(gx+gy)*TH/2}}
+
+// Floors
+function tile(gx,gy,c){
+  const{x,y}=iso(gx,gy),hw=TW/2,hh=TH/2
+  ctx.beginPath();ctx.moveTo(x,y-hh);ctx.lineTo(x+hw,y);ctx.lineTo(x,y+hh);ctx.lineTo(x-hw,y);ctx.closePath()
+  ctx.fillStyle=c;ctx.fill()
+  ctx.save();ctx.clip()
+  for(let i=-1;i<=5;i++){
+    ctx.beginPath();ctx.moveTo(x-hw,(y-hh)+i*(TH/4)+hh*.5);ctx.lineTo(x+hw,(y-hh)+i*(TH/4)-hh*.5)
+    ctx.strokeStyle=i%2===0?'rgba(0,0,0,0.15)':'rgba(255,255,255,0.023)';ctx.lineWidth=1.1;ctx.stroke()
+  }
+  ctx.restore()
 }
 
-// ── AGENT DATA ──────────────────────────────────────────────────
-var AGENTS = [
-  { id:'CEO', name:'CEO Estratégico', role:'Líder Estratégico',  clothColor:0x3d2a60, hairColor:0x111111, skinColor:0xc8956c, hairStyle:'straight',  status:'working', task:'Validando missão Vigano',   progress:72, room:'strategy',  deskIndex:0, history:['Revisão Q2 concluída','Plano crescimento aprovado','Sprint 12 validado'] },
-  { id:'CFO', name:'CFO',             role:'Financeiro',          clothColor:0x1a3a6a, hairColor:0x5a3a1a, skinColor:0xf0d0a8, hairStyle:'wavy',       status:'online',  task:'Aguardando análise',        progress:0,  room:'strategy',  deskIndex:1, history:['Relatório financeiro','CAC validado','Margem 68%'] },
-  { id:'COO', name:'COO',             role:'Operações',           clothColor:0x2a2a3a, hairColor:0x1a0a0a, skinColor:0x6b3a2a, hairStyle:'bald',        status:'online',  task:'Alinhando processos',       progress:20, room:'strategy',  deskIndex:2, history:['Sprint atualizado','Times coordenados','Dependências mapeadas'] },
-  { id:'CMO', name:'CMO',             role:'Marketing',           clothColor:0x1a4a1a, hairColor:0x0a0a0a, skinColor:0xc8956c, hairStyle:'afro',        status:'working', task:'Nova campanha Q3',          progress:80, room:'growth',    deskIndex:0, history:['ROAS 3.2x alcançado','Meta leads: 50','Campanha IG aprovada'] },
-  { id:'CTO', name:'CTO',             role:'Tecnologia',          clothColor:0x0a0a12, hairColor:0x151515, skinColor:0xf0d0a8, hairStyle:'messy',       status:'working', task:'Deploy FactorOS v0.2',      progress:85, room:'tech',      deskIndex:0, history:['Build v0.2 concluído','Zero bugs críticos','CI/CD configurado'] },
-  { id:'CW',  name:'Copywriter',      role:'Copy & Content',      clothColor:0xd4608a, hairColor:0xf9a8d4, skinColor:0xf5ddb8, hairStyle:'long',        status:'working', task:'Copy IG Nova Lima',         progress:45, room:'growth',    deskIndex:1, history:['Headlines testadas','Script Reels pronto','Copy entregue'] },
-  { id:'CA',  name:'Chief of Staff',  role:'Chief of Staff',      clothColor:0xe8622a, hairColor:0x0a0a0a, skinColor:0x5a2a1a, hairStyle:'afro-short',  status:'online',  task:'Coordenando agenda',        progress:30, room:'reception', deskIndex:0, history:['Briefing enviado','Agenda atualizada','Missão coordenada'] },
-];
-
-var MISSIONS = [
-  { name:'Análise de Mercado',    level:'N2', color:'#e8622a', progress:72 },
-  { name:'Processo Financeiro',   level:'N3', color:'#5b9bd5', progress:35 },
-  { name:'Campanha Q3 Ativa',     level:'N1', color:'#4ade80', progress:80 },
-];
-
-var SPEECH = {
-  CEO:['Validando risco da missão','Oportunidade identificada','Aprovando plano N2','Análise concluída'],
-  CFO:['Viabilidade confirmada','CAC dentro do limite','Margem 68% aprovada','Projeção atualizada'],
-  COO:['Sprint atualizado','Dependências mapeadas','Time coordenado','Entrega no prazo'],
-  CMO:['ROAS 3.2x alcançado','Nova campanha pronta','Meta de leads: 50','Funil otimizado'],
-  CTO:['Build v0.2 concluído','Deploy em produção','Zero bugs críticos','CI passou'],
-  CW:['Copy entregue para revisão','Headlines testadas','Script do Reels pronto','Engajamento +40%'],
-  CA:['Briefing enviado','Agenda atualizada','Missão coordenada','Squad alinhado'],
-};
-
-var TASKS = {
-  CEO:['Validando missão Vigano','Revisão estratégica Q3','Aprovando plano expansão','Análise competitiva'],
-  CFO:['Análise financeira CFO','Projeção financeira','Revisão de margem','CAC analysis'],
-  COO:['Alinhando processos','Sprint planning','Mapeando dependências','Review de OKRs'],
-  CMO:['Nova campanha Q3','ROAS optimization','Funil de conversão','A/B test landing'],
-  CTO:['Deploy FactorOS v0.2','Code review PR #42','Infra scaling','Security audit'],
-  CW:['Copy IG Nova Lima','Script Reels Q3','Headlines A/B','Email sequence'],
-  CA:['Coordenando agenda','Briefing de missão','Alinhamento squad','Report semanal'],
-};
-
-// ── DESK POSITIONS (isometric grid coords) ──────────────────────
-var DESK_POSITIONS = {
-  strategy:  [ {ix:2.5, iy:2},   {ix:1.5, iy:3.5}, {ix:4,   iy:1.5} ],
-  tech:      [ {ix:9,   iy:1.5} ],
-  growth:    [ {ix:2,   iy:7},   {ix:4,   iy:8}    ],
-  reception: [ {ix:-1,  iy:6}   ],
-};
-
-// ── CLOCK ────────────────────────────────────────────────────────
-function updateClock() {
-  var now = new Date();
-  document.getElementById('hud-clock').textContent =
-    now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-}
-setInterval(updateClock, 1000);
-updateClock();
-
-// ── MODAL ────────────────────────────────────────────────────────
-function openModal(agentId) {
-  var a = AGENTS.find(function(x){ return x.id === agentId; });
-  if (!a) return;
-  var modal = document.getElementById('agent-modal');
-  document.getElementById('modal-avatar').textContent = a.id;
-  document.getElementById('modal-avatar').style.background = '#' + a.clothColor.toString(16).padStart(6,'0');
-  document.getElementById('modal-avatar').style.color = '#ffffff';
-  document.getElementById('modal-name').textContent = a.name;
-  document.getElementById('modal-role').textContent = a.role;
-  document.getElementById('modal-task').textContent = a.task || '—';
-  document.getElementById('modal-progress-fill').style.width = a.progress + '%';
-  document.getElementById('modal-progress-fill').style.background = a.status === 'working' ? '#e8622a' : '#4ade80';
-  var histEl = document.getElementById('modal-history-list');
-  histEl.innerHTML = (a.history||[]).map(function(h){
-    return '<div class="modal-history-item"><div class="modal-history-dot"></div><span class="modal-history-text">'+h+'</span></div>';
-  }).join('');
-  modal.classList.add('open');
-}
-function closeModal() { document.getElementById('agent-modal').classList.remove('open'); }
-document.getElementById('agent-modal').addEventListener('click', function(e){ if(e.target===e.currentTarget) closeModal(); });
-
-// ── AGENT LIST ───────────────────────────────────────────────────
-function renderAgentList() {
-  var el = document.getElementById('agent-list');
-  el.innerHTML = AGENTS.map(function(a){
-    var dotClass = a.status==='working'?'dot-working':(a.status==='online'?'dot-online':'dot-idle');
-    var color = '#'+a.clothColor.toString(16).padStart(6,'0');
-    var pColor = a.status==='working'?'#e8622a':'#4ade80';
-    return '<div class="agent-row" onclick="openModal(\''+a.id+'\')">' +
-      '<div class="agent-avatar" style="background:'+color+'18;border:1px solid '+color+'50;color:'+color+'"><span style="font-size:8px;font-weight:800">'+a.id+'</span></div>' +
-      '<div class="agent-info">' +
-        '<div class="agent-name">'+a.id+'</div>' +
-        '<div class="agent-role">'+a.role+'</div>' +
-        '<div class="agent-task">'+(a.task||'Idle')+'</div>' +
-        '<div class="mini-progress"><div class="mini-progress-fill" style="width:'+a.progress+'%;background:'+pColor+'"></div></div>' +
-      '</div>' +
-      '<div class="status-dot '+dotClass+'"></div>' +
-    '</div>';
-  }).join('');
-}
-renderAgentList();
-
-// ── MISSIONS ─────────────────────────────────────────────────────
-function renderMissions() {
-  var el = document.getElementById('mission-list');
-  el.innerHTML = MISSIONS.map(function(m){
-    return '<div class="mission-card">' +
-      '<div class="mission-name"><span class="mission-badge" style="background:'+m.color+'22;color:'+m.color+'">'+m.level+'</span>'+m.name+'</div>' +
-      '<div class="mission-progress-track"><div class="mission-progress-fill" style="width:'+m.progress+'%;background:'+m.color+'"></div></div>' +
-    '</div>';
-  }).join('');
-}
-renderMissions();
-
-// ── TICKER ────────────────────────────────────────────────────────
-var tickerEvents = [
-  {color:'#4ade80',text:'Nova missão criada por CEO',time:'2m atrás'},
-  {color:'#5b9bd5',text:'Relatório financeiro gerado',time:'5m atrás'},
-  {color:'#e8622a',text:'Campanha Q3 atualizada 80%',time:'8m atrás'},
-  {color:'#a78bfa',text:'Deploy realizado com sucesso',time:'12m atrás'},
-  {color:'#4ade80',text:'CEO aprovou plano estratégico',time:'15m atrás'},
-  {color:'#f9a8d4',text:'Copy entregue para revisão',time:'18m atrás'},
-  {color:'#e8622a',text:'Análise de mercado concluída',time:'22m atrás'},
-  {color:'#5b9bd5',text:'CAC validado pelo CFO',time:'25m atrás'},
-];
-(function(){
-  var inner = document.getElementById('ticker-inner');
-  var doubled = tickerEvents.concat(tickerEvents);
-  inner.innerHTML = doubled.map(function(e){
-    return '<span class="ticker-event"><span class="ticker-dot" style="background:'+e.color+'"></span>'+e.text+'<span class="ticker-time">'+e.time+'</span></span>';
-  }).join('');
-})();
-
-// ── MINI CHART ────────────────────────────────────────────────────
-(function(){
-  var canvas = document.getElementById('mini-chart');
-  var ctx = canvas.getContext('2d');
-  var w = canvas.width, h = canvas.height;
-  var points = [20,35,28,42,38,55,48,60,52,70,65,72,68,80,75];
-  ctx.fillStyle = '#0f0d1c'; ctx.fillRect(0,0,w,h);
-  var max = Math.max.apply(null,points), min = Math.min.apply(null,points);
-  var norm = function(v){ return h-4-((v-min)/(max-min))*(h-8); };
-  var step = w/(points.length-1);
-  ctx.beginPath(); ctx.moveTo(0,norm(points[0]));
-  for(var i=1;i<points.length;i++) ctx.lineTo(i*step,norm(points[i]));
-  ctx.strokeStyle='#e8622a'; ctx.lineWidth=1.5; ctx.stroke();
-  ctx.lineTo(w,h); ctx.lineTo(0,h); ctx.closePath();
-  ctx.fillStyle='rgba(232,98,42,0.08)'; ctx.fill();
-})();
-
-// ════════════════════════════════════════════════════════════════
-// PHASER GAME
-// ════════════════════════════════════════════════════════════════
-var phaserScene = null;
-var agentSprites = {};
-var agentStates = {};
-var bubbleList = [];
-
-var config = {
-  type: Phaser.AUTO,
-  width: window.innerWidth - 200,
-  height: window.innerHeight - 44 - 36,
-  parent: 'phaser-container',
-  backgroundColor: '#060408',
-  antialias: true,
-  pixelArt: false,
-  scale: {
-    mode: Phaser.Scale.RESIZE,
-    autoCenter: Phaser.Scale.CENTER_BOTH,
-  },
-  scene: { preload: preloadScene, create: createScene, update: updateScene }
-};
-
-var game = new Phaser.Game(config);
-window.addEventListener('resize', function(){
-  game.scale.resize(window.innerWidth - 200, window.innerHeight - 80);
-});
-
-function preloadScene() { phaserScene = this; }
-
-function createScene() {
-  phaserScene = this;
-  var W = this.scale.width, H = this.scale.height;
-  var cx = W / 2 - 20, cy = H / 2 - 60;
-
-  drawFloor.call(this, cx, cy);
-  drawRooms.call(this, cx, cy);
-  drawAllFurniture.call(this, cx, cy);
-  drawAllWallDecor.call(this, cx, cy);
-  drawAllPlants.call(this, cx, cy);
-  drawAllLamps.call(this, cx, cy);
-  createAgentSprites.call(this, cx, cy);
-  setupBehaviors.call(this);
-  startSimulation.call(this);
-}
-
-function updateScene() {
-  var allSprites = Object.values(agentSprites);
-  allSprites.sort(function(a,b){ return a.y - b.y; });
-  allSprites.forEach(function(s,i){ s.setDepth(200+i); });
-  bubbleList.forEach(function(b){
-    if (b.sprite && b.bubble && b.bubble.active) {
-      b.bubble.setPosition(b.sprite.x, b.sprite.y - 70);
-    }
-  });
-}
-
-// ─── FLOOR ──────────────────────────────────────────────────────
-function drawFloor(cx, cy) {
-  var g = this.add.graphics();
-  g.setDepth(0);
-  var hw = ISO.tileW/2, hh = ISO.tileH/2;
-
-  // Large floor footprint covering all rooms
-  for (var ix = -3; ix <= 22; ix++) {
-    for (var iy = -1; iy <= 17; iy++) {
-      var p = isoToScreen(ix, iy);
-      var tx = cx + p.x, ty = cy + p.y;
-
-      // Dark wood base - alternating planks
-      var baseColor = ((ix + iy) % 2 === 0) ? 0x1a1208 : 0x160f06;
-      g.fillStyle(baseColor, 1);
-      g.fillPoints([
-        {x:tx,     y:ty-hh},
-        {x:tx+hw,  y:ty},
-        {x:tx,     y:ty+hh},
-        {x:tx-hw,  y:ty}
-      ], true);
-
-      // Wood grain plank lines
-      g.lineStyle(0.6, 0x0d0b06, 0.7);
-      g.lineBetween(tx-hw*0.6, ty-hh*0.3, tx+hw*0.6, ty+hh*0.3);
-      g.lineStyle(0.4, 0x201508, 0.4);
-      g.lineBetween(tx-hw*0.3, ty-hh*0.7, tx+hw*0.3, ty+hh*0.1);
-
-      // Subtle tile border
-      g.lineStyle(0.5, 0x0a0806, 0.5);
-      g.strokePoints([
-        {x:tx,     y:ty-hh},
-        {x:tx+hw,  y:ty},
-        {x:tx,     y:ty+hh},
-        {x:tx-hw,  y:ty}
-      ], true);
-    }
+// Walls
+function walls(gx,gy,w,h,cr,cl,ct){
+  cr=cr||'#0e0c1e'; cl=cl||'#120f28'; ct=ct||'#181430'
+  for(let x=gx;x<gx+w;x++){
+    const p=iso(x,gy),hw=TW/2,hh=TH/2
+    ctx.beginPath();ctx.moveTo(p.x,p.y-hh-WH);ctx.lineTo(p.x+hw,p.y-WH);ctx.lineTo(p.x,p.y+hh-WH);ctx.lineTo(p.x-hw,p.y-WH);ctx.closePath();ctx.fillStyle=ct;ctx.fill()
+    ctx.beginPath();ctx.moveTo(p.x,p.y+hh-WH);ctx.lineTo(p.x+hw,p.y-WH);ctx.lineTo(p.x+hw,p.y);ctx.lineTo(p.x,p.y+hh);ctx.closePath();ctx.fillStyle=cr;ctx.fill()
+  }
+  for(let y=gy;y<gy+h;y++){
+    const p=iso(gx,y),hw=TW/2,hh=TH/2
+    ctx.beginPath();ctx.moveTo(p.x-hw,p.y-WH);ctx.lineTo(p.x,p.y+hh-WH);ctx.lineTo(p.x,p.y+hh);ctx.lineTo(p.x-hw,p.y);ctx.closePath();ctx.fillStyle=cl;ctx.fill()
   }
 }
 
-// ─── ROOMS ──────────────────────────────────────────────────────
-// Layout:
-//  STRATEGY ROOM  (ix:0..6,  iy:0..5)   top-left
-//  TECH ROOM      (ix:7..13, iy:0..5)   top-right
-//  RECEPTION      (ix:-3..-1,iy:4..9)   far left
-//  GROWTH ROOM    (ix:0..6,  iy:5..10)  center-left
-//  MEETING ROOM   (ix:7..13, iy:5..10)  center-right
-//  KITCHEN        (ix:14..19,iy:2..9)   far right
-//  LOUNGE         (ix:0..10, iy:10..16) bottom
-
-function drawRooms(cx, cy) {
-  var rooms = [
-    { ix:0,   iy:0,  w:7,  h:5,  label:'STRATEGY ROOM', wallColor:0x0c0a14, accentLine:0x3d2060 },
-    { ix:7,   iy:0,  w:7,  h:5,  label:'TECH ROOM',      wallColor:0x080c10, accentLine:0x0a2a1a },
-    { ix:-3,  iy:4,  w:3,  h:6,  label:'RECEPTION',      wallColor:0x0a0810, accentLine:0x2a1040 },
-    { ix:0,   iy:5,  w:7,  h:5,  label:'GROWTH ROOM',    wallColor:0x080c0a, accentLine:0x0a2a18 },
-    { ix:7,   iy:5,  w:7,  h:5,  label:'MEETING ROOM',   wallColor:0x0a0a12, accentLine:0x1a1040 },
-    { ix:14,  iy:2,  w:6,  h:7,  label:'KITCHEN',        wallColor:0x080a0c, accentLine:0x0a1828 },
-    { ix:0,   iy:10, w:11, h:6,  label:'LOUNGE',         wallColor:0x0c0a08, accentLine:0x1a1008 },
-  ];
-  rooms.forEach(function(r){ drawRoom.call(this, r, cx, cy); }, this);
+// Desk
+function desk(gx,gy,mc){
+  const{x,y}=iso(gx,gy),hw=TW/2*.78,hh=TH/2*.78,dH=20
+  ctx.beginPath();ctx.moveTo(x,y-hh);ctx.lineTo(x+hw,y);ctx.lineTo(x,y+hh);ctx.lineTo(x-hw,y);ctx.closePath()
+  const tg=ctx.createLinearGradient(x-hw,y,x+hw,y);tg.addColorStop(0,'#352818');tg.addColorStop(1,'#261c0c');ctx.fillStyle=tg;ctx.fill()
+  ctx.beginPath();ctx.moveTo(x-hw,y);ctx.lineTo(x,y+hh);ctx.lineTo(x,y+hh+dH);ctx.lineTo(x-hw,y+dH);ctx.closePath();ctx.fillStyle='#1a1208';ctx.fill()
+  ctx.beginPath();ctx.moveTo(x,y+hh);ctx.lineTo(x+hw,y);ctx.lineTo(x+hw,y+dH);ctx.lineTo(x,y+hh+dH);ctx.closePath();ctx.fillStyle='#201610';ctx.fill()
+  ctx.fillStyle='#1a1a22';ctx.fillRect(x-3,y-hh-26,6,26);ctx.fillRect(x-10,y-hh-2,20,4)
+  ctx.fillStyle='#0d0d18';ctx.beginPath();ctx.roundRect(x-26,y-hh-58,52,34,3);ctx.fill()
+  ctx.strokeStyle='#2a2a3a';ctx.lineWidth=1;ctx.stroke()
+  ctx.shadowColor=mc;ctx.shadowBlur=14;ctx.fillStyle=mc+'28';ctx.fillRect(x-22,y-hh-54,44,28);ctx.shadowBlur=0
+  ctx.fillStyle=mc+'cc';for(let i=0;i<4;i++)ctx.fillRect(x-18+(i%2)*6,y-hh-51+i*6,8+Math.random()*16,1.5)
+  ctx.fillStyle='#181820';ctx.beginPath();ctx.roundRect(x-18,y-hh+2,36,10,2);ctx.fill()
+  ctx.strokeStyle='#2a1e08';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x+16,y-hh+8);ctx.lineTo(x+16,y-hh-28);ctx.stroke()
+  ctx.fillStyle='#c8882a';ctx.shadowColor='#c8882a';ctx.shadowBlur=6
+  ctx.beginPath();ctx.ellipse(x+16,y-hh-28,9,4,0,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0
+  const lg=ctx.createRadialGradient(x+16,y-hh,0,x+16,y-hh,30);lg.addColorStop(0,'rgba(200,136,42,0.13)');lg.addColorStop(1,'rgba(200,136,42,0)')
+  ctx.fillStyle=lg;ctx.beginPath();ctx.ellipse(x+16,y-hh,30,18,0,0,Math.PI*2);ctx.fill()
 }
 
-function drawRoom(r, cx, cy) {
-  var g = this.add.graphics();
-  g.setDepth(1);
-  var hw = ISO.tileW/2, hh = ISO.tileH/2;
-  var wallH = 64;
-
-  // Room floor overlay (slightly lighter than plain floor)
-  for (var i = r.ix; i < r.ix + r.w; i++) {
-    for (var j = r.iy; j < r.iy + r.h; j++) {
-      var p = isoToScreen(i, j);
-      var tx = cx + p.x, ty = cy + p.y;
-      var c = ((i+j)%2===0) ? 0x1d1510 : 0x19120d;
-      g.fillStyle(c, 1);
-      g.fillPoints([{x:tx,y:ty-hh},{x:tx+hw,y:ty},{x:tx,y:ty+hh},{x:tx-hw,y:ty}], true);
-      // grain
-      g.lineStyle(0.5, 0x0e0b07, 0.6);
-      g.lineBetween(tx-hw*0.6, ty-hh*0.3, tx+hw*0.6, ty+hh*0.3);
-      g.lineStyle(0.4, 0x221709, 0.35);
-      g.lineBetween(tx-hw*0.3, ty-hh*0.6, tx+hw*0.3, ty+hh*0.1);
-    }
+function dualDesk(gx,gy){
+  const{x,y}=iso(gx,gy),hw=TW/2*1.2,hh=TH/2*.78,dH=20,mc='#22c55e'
+  ctx.beginPath();ctx.moveTo(x,y-hh);ctx.lineTo(x+hw,y);ctx.lineTo(x,y+hh);ctx.lineTo(x-hw,y);ctx.closePath();ctx.fillStyle='#2e2010';ctx.fill()
+  ctx.beginPath();ctx.moveTo(x-hw,y);ctx.lineTo(x,y+hh);ctx.lineTo(x,y+hh+dH);ctx.lineTo(x-hw,y+dH);ctx.closePath();ctx.fillStyle='#1a1208';ctx.fill()
+  ctx.beginPath();ctx.moveTo(x,y+hh);ctx.lineTo(x+hw,y);ctx.lineTo(x+hw,y+dH);ctx.lineTo(x,y+hh+dH);ctx.closePath();ctx.fillStyle='#201610';ctx.fill()
+  for(let mi=0;mi<2;mi++){
+    const mx=x-26+mi*52
+    ctx.fillStyle='#1a1a22';ctx.fillRect(mx+10,y-hh-26,5,24);ctx.fillRect(mx+1,y-hh-4,22,4)
+    ctx.fillStyle='#0d0d18';ctx.beginPath();ctx.roundRect(mx,y-hh-54,24,30,2);ctx.fill()
+    ctx.shadowColor=mc;ctx.shadowBlur=12;ctx.fillStyle=mc+'22';ctx.fillRect(mx+2,y-hh-52,20,26);ctx.shadowBlur=0
+    ctx.fillStyle=mc+'cc';for(let li=0;li<3;li++)ctx.fillRect(mx+3,y-hh-49+li*8,6+Math.random()*8,1.5)
   }
+}
 
-  // Back walls: draw wall for top row (iy edge) and left col (ix edge)
-  // Top wall face (right-facing face on the top-most row)
-  for (var ti = r.ix; ti < r.ix + r.w; ti++) {
-    var tp = isoToScreen(ti, r.iy);
-    var tx2 = cx + tp.x, ty2 = cy + tp.y;
-    // Right face of wall block
-    g.fillStyle(r.wallColor, 1);
-    g.fillPoints([
-      {x:tx2,     y:ty2+hh},
-      {x:tx2+hw,  y:ty2},
-      {x:tx2+hw,  y:ty2-wallH},
-      {x:tx2,     y:ty2+hh-wallH}
-    ], true);
-    // Top cap
-    g.fillStyle(0x0e0c18, 1);
-    g.fillPoints([
-      {x:tx2,     y:ty2-hh},
-      {x:tx2+hw,  y:ty2},
-      {x:tx2+hw,  y:ty2-wallH},
-      {x:tx2,     y:ty2-hh-wallH}
-    ], true);
+function lamp(gx,gy,dx,dy){
+  const p=iso(gx,gy),px=p.x+(dx||0),py=p.y+(dy||0)
+  const g=ctx.createRadialGradient(px,py+4,0,px,py+4,65);g.addColorStop(0,'rgba(200,136,42,0.22)');g.addColorStop(.5,'rgba(200,136,42,0.07)');g.addColorStop(1,'rgba(200,136,42,0)')
+  ctx.beginPath();ctx.ellipse(px,py+4,65,36,0,0,Math.PI*2);ctx.fillStyle=g;ctx.fill()
+  ctx.strokeStyle='#2a1e08';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(px,py-58);ctx.stroke()
+  ctx.fillStyle='#c8882a';ctx.shadowColor='#c8882a';ctx.shadowBlur=10
+  ctx.beginPath();ctx.ellipse(px,py-58,13,5,0,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0
+  ctx.fillStyle='rgba(255,230,140,0.7)';ctx.beginPath();ctx.ellipse(px,py-58,5,2,0,0,Math.PI*2);ctx.fill()
+}
+
+function plant(px,py,s){
+  s=s||1
+  ctx.fillStyle='#281808';ctx.beginPath();ctx.roundRect(px-7*s,py-2*s,14*s,12*s,2);ctx.fill()
+  ctx.fillStyle='#0d2d0d';ctx.beginPath();ctx.arc(px,py-10*s,11*s,0,Math.PI*2);ctx.fill()
+  ctx.fillStyle='#1a4a1a';ctx.beginPath();ctx.arc(px-9*s,py-6*s,7*s,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(px+9*s,py-6*s,7*s,0,Math.PI*2);ctx.fill()
+  ctx.fillStyle='#2a6a2a';ctx.beginPath();ctx.arc(px,py-17*s,6*s,0,Math.PI*2);ctx.fill()
+}
+
+function label(gx,gy,text,col){
+  const{x,y}=iso(gx,gy);ctx.save();ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 9px "Courier New"'
+  ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillText(text,x+1,y-WH-14+1)
+  ctx.fillStyle=col||'rgba(255,255,255,0.55)';ctx.fillText(text,x,y-WH-14);ctx.restore()
+}
+
+function kanban(px,py){
+  ctx.fillStyle='#090814';ctx.strokeStyle='#1e1c36';ctx.lineWidth=1
+  ctx.beginPath();ctx.roundRect(px-78,py-64,156,64,4);ctx.fill();ctx.stroke()
+  const cols=['TODO','WIP','REV','DONE'],cc=['#fbbf24','#60a5fa','#f472b6','#4ade80'],cw=34
+  const pc=['#fbbf24','#f472b6','#60a5fa','#4ade80','#fb923c','#a78bfa']
+  cols.forEach((c,ci)=>{
+    const cx=px-72+ci*(cw+2)
+    ctx.fillStyle=cc[ci]+'28';ctx.fillRect(cx,py-62,cw,10)
+    ctx.fillStyle=cc[ci];ctx.font='bold 6px "Courier New"';ctx.textAlign='center';ctx.fillText(c,cx+cw/2,py-56)
+    for(let pi=0;pi<2+ci;pi++){if(py-50+pi*13>py-2)break;ctx.fillStyle=pc[(ci*3+pi)%pc.length]+'cc';ctx.beginPath();ctx.roundRect(cx+1,py-50+pi*13,cw-2,11,1);ctx.fill()}
+  })
+}
+
+function worldMap(px,py){
+  ctx.fillStyle='#080818';ctx.strokeStyle='#2a2848';ctx.lineWidth=1
+  ctx.beginPath();ctx.roundRect(px-52,py-48,104,56,3);ctx.fill();ctx.stroke()
+  [{x:-40,y:-40,w:18,h:13,c:'#1a3a1a'},{x:-18,y:-42,w:22,h:17,c:'#1a2a3a'},{x:8,y:-38,w:15,h:13,c:'#2a1a3a'},{x:-34,y:-26,w:12,h:8,c:'#3a2a1a'},{x:-12,y:-25,w:20,h:10,c:'#1a2a1a'},{x:14,y:-23,w:12,h:12,c:'#2a1a2a'}].forEach(b=>{ctx.fillStyle=b.c;ctx.beginPath();ctx.roundRect(px+b.x,py+b.y,b.w,b.h,2);ctx.fill()})
+  [[px-24,py-32],[px+16,py-16]].forEach(([bx,by])=>{ctx.fillStyle='#e8622a';ctx.beginPath();ctx.arc(bx,by,2.5,0,Math.PI*2);ctx.fill();ctx.strokeStyle='rgba(232,98,42,0.4)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(bx,by,5,0,Math.PI*2);ctx.stroke()})
+}
+
+function moodboard(px,py){
+  ctx.fillStyle='#08060e';ctx.strokeStyle='#1e1c36';ctx.lineWidth=1
+  ctx.beginPath();ctx.roundRect(px-58,py-62,100,66,3);ctx.fill();ctx.stroke()
+  [{x:-52,y:-58,w:26,h:18,c:'#3d2a60'},{x:-24,y:-60,w:20,h:16,c:'#1a3a6a'},{x:0,y:-56,w:22,h:20,c:'#065f46'},{x:-54,y:-38,w:18,h:13,c:'#fbbf24',o:.7},{x:-34,y:-36,w:24,h:15,c:'#f472b6',o:.7},{x:-8,y:-40,w:18,h:17,c:'#60a5fa',o:.7},{x:14,y:-34,w:14,h:18,c:'#4ade80',o:.7},{x:-52,y:-22,w:22,h:12,c:'#fb923c',o:.6},{x:-28,y:-20,w:20,h:14,c:'#a78bfa',o:.6},{x:0,y:-18,w:16,h:16,c:'#f87171',o:.6}].forEach(it=>{ctx.globalAlpha=it.o||.85;ctx.fillStyle=it.c;ctx.fillRect(px+it.x,py+it.y,it.w,it.h);ctx.globalAlpha=1;ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.lineWidth=.5;ctx.strokeRect(px+it.x,py+it.y,it.w,it.h)})
+  [{x:-40,y:-48},{x:-12,y:-52},{x:14,y:-44},{x:-44,y:-30},{x:-16,y:-28}].forEach(t=>{ctx.fillStyle='#e8622a';ctx.beginPath();ctx.arc(px+t.x,py+t.y,2.5,0,Math.PI*2);ctx.fill()})
+  ctx.strokeStyle='#c0392b';ctx.globalAlpha=.35;ctx.lineWidth=.8;ctx.setLineDash([3,3])
+  ctx.beginPath();ctx.moveTo(px-40,py-48);ctx.lineTo(px-12,py-52);ctx.moveTo(px-12,py-52);ctx.lineTo(px+14,py-44);ctx.stroke()
+  ctx.setLineDash([]);ctx.globalAlpha=1
+}
+
+function bookshelf(px,py){
+  const sw=54,gap=14,sh=3
+  ctx.fillStyle='#1a1208';ctx.fillRect(px-sw/2-4,py-sh*gap-10,sw+8,sh*gap+10)
+  const bc=['#c0392b','#2980b9','#27ae60','#8e44ad','#e67e22','#16a085','#d35400','#2c3e50','#f39c12','#1abc9c','#e74c3c','#3498db']
+  for(let si=0;si<sh;si++){
+    const sy=py-(si+1)*gap;ctx.fillStyle='#2a1e0c';ctx.fillRect(px-sw/2,sy,sw,3)
+    let bx=px-sw/2+2
+    for(let bi=0;bi<9;bi++){const bw=4+Math.random()*4;ctx.fillStyle=bc[(si*9+bi)%bc.length];ctx.fillRect(bx,sy-13,bw,13);ctx.fillStyle='rgba(255,255,255,0.07)';ctx.fillRect(bx,sy-13,1,13);bx+=bw+1;if(bx>px+sw/2-4)break}
   }
+}
 
-  // Left wall face (left-facing face on the left-most col)
-  for (var li2 = r.iy; li2 < r.iy + r.h; li2++) {
-    var lp2 = isoToScreen(r.ix, li2);
-    var lx2 = cx + lp2.x, ly2 = cy + lp2.y;
-    g.fillStyle(0x08060e, 1);
-    g.fillPoints([
-      {x:lx2-hw,  y:ly2},
-      {x:lx2,     y:ly2+hh},
-      {x:lx2,     y:ly2+hh-wallH},
-      {x:lx2-hw,  y:ly2-wallH}
-    ], true);
+function fhLogo(px,py){
+  ctx.save();ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 32px "Courier New"'
+  ctx.shadowColor='#e8622a';ctx.shadowBlur=24;ctx.fillStyle='rgba(232,98,42,0.15)';ctx.fillText('FH',px,py)
+  ctx.shadowBlur=12;ctx.fillStyle='#e8622a';ctx.fillText('FH',px,py);ctx.shadowBlur=0;ctx.restore()
+}
+
+function meetingTable(px,py){
+  ctx.fillStyle='rgba(0,0,0,0.28)';ctx.beginPath();ctx.ellipse(px+3,py+10,74,34,0,0,Math.PI*2);ctx.fill()
+  ctx.fillStyle='#2a1e0a';ctx.shadowColor='#000';ctx.shadowBlur=8;ctx.beginPath();ctx.ellipse(px,py,72,33,0,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0
+  ctx.strokeStyle='#4a3518';ctx.lineWidth=2;ctx.stroke()
+  [{x:-84,y:0},{x:84,y:0},{x:-46,y:-38},{x:46,y:-38},{x:-46,y:38},{x:46,y:38},{x:0,y:-44},{x:0,y:44}].forEach(c=>{ctx.fillStyle='#111118';ctx.beginPath();ctx.ellipse(px+c.x,py+c.y,14,8,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#2a2a38';ctx.lineWidth=1;ctx.stroke()})
+  ctx.fillStyle='#1a4a1a';ctx.beginPath();ctx.arc(px-28,py,7,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(px+28,py,7,0,Math.PI*2);ctx.fill()
+  ctx.fillStyle='#080812';ctx.strokeStyle='#2a2848';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(px+48,py-78,58,38,2);ctx.fill();ctx.stroke()
+  ctx.fillStyle='#100a24';ctx.fillRect(px+51,py-75,52,32);ctx.fillStyle='#3d2a60';ctx.fillRect(px+51,py-75,52,7)
+  for(let li=0;li<3;li++){ctx.fillStyle='rgba(255,255,255,0.18)';ctx.fillRect(px+53,py-65+li*9,18+li*6,3)}
+}
+
+function kitchen(px,py){
+  ctx.fillStyle='#28282e';ctx.fillRect(px-58,py-22,92,20);ctx.fillRect(px-58,py-22,20,52)
+  ctx.fillStyle='#363640';ctx.fillRect(px-58,py-24,92,4);ctx.fillRect(px-58,py-24,20,4)
+  ctx.fillStyle='#32324a';ctx.fillRect(px+8,py-36,22,18);ctx.fillStyle='#1a1a28';ctx.fillRect(px+11,py-33,16,12)
+  ctx.fillStyle='#5a5a7a';ctx.fillRect(px+17,py-40,4,6)
+  ctx.fillStyle='#1a1a22';ctx.fillRect(px-48,py-50,22,28)
+  ctx.fillStyle='#e8622a';ctx.shadowColor='#e8622a';ctx.shadowBlur=8;ctx.beginPath();ctx.arc(px-37,py-40,4,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0
+  ctx.fillStyle='#222232';ctx.fillRect(px+16,py-70,28,62);ctx.fillStyle='#181828';ctx.fillRect(px+18,py-68,24,28);ctx.fillRect(px+18,py-38,24,28)
+  ctx.fillStyle='#363646';ctx.fillRect(px+20,py-56,3,3);ctx.fillRect(px+20,py-28,3,3)
+  for(let si=0;si<3;si++){ctx.fillStyle='#1e1e28';ctx.fillRect(px-52,py-62+si*16,14,3);ctx.fillStyle=['#2980b9','#27ae60','#e74c3c'][si];ctx.fillRect(px-50,py-75+si*16,5,13)}
+}
+
+function sofa(px,py){
+  const sg=ctx.createLinearGradient(px-62,py-20,px+42,py+12);sg.addColorStop(0,'#141420');sg.addColorStop(1,'#0e0e1a')
+  ctx.fillStyle=sg;ctx.beginPath();ctx.roundRect(px-62,py-20,104,32,4);ctx.fill()
+  ctx.fillStyle='#0d0d17';ctx.beginPath();ctx.roundRect(px-62,py-36,104,18,4);ctx.fill()
+  ctx.fillStyle='#111120';ctx.beginPath();ctx.roundRect(px-66,py-36,10,52,3);ctx.fill();ctx.beginPath();ctx.roundRect(px+46,py-36,10,52,3);ctx.fill()
+  const cg=ctx.createLinearGradient(px-58,py-18,px-28,py+10);cg.addColorStop(0,'#1a1a28');cg.addColorStop(1,'#141420')
+  ctx.fillStyle=cg;ctx.beginPath();ctx.roundRect(px-57,py-18,28,28,3);ctx.fill();ctx.beginPath();ctx.roundRect(px-26,py-18,28,28,3);ctx.fill();ctx.beginPath();ctx.roundRect(px+5,py-18,28,28,3);ctx.fill()
+  ctx.fillStyle='#121220';ctx.beginPath();ctx.roundRect(px-62,py+10,46,30,4);ctx.fill()
+}
+
+function pingpong(px,py){
+  ctx.fillStyle='rgba(0,0,0,0.28)';ctx.beginPath();ctx.ellipse(px+3,py+12,58,28,0,0,Math.PI*2);ctx.fill()
+  ctx.fillStyle='#1a3a60';ctx.shadowColor='#1a3a60';ctx.shadowBlur=6;ctx.beginPath();ctx.ellipse(px,py,56,28,0,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0
+  ctx.strokeStyle='#5b9bd5';ctx.lineWidth=2;ctx.stroke()
+  ctx.strokeStyle='rgba(255,255,255,0.55)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(px,py-28);ctx.lineTo(px,py+28);ctx.stroke()
+  ctx.strokeStyle='#fff';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(px-56,py);ctx.lineTo(px+56,py);ctx.stroke()
+  [{dx:-72,dy:-14,c:'#e53e3e',a:-.4},{dx:72,dy:14,c:'#2b6cb0',a:.4}].forEach(p=>{
+    ctx.fillStyle=p.c;ctx.save();ctx.translate(px+p.dx,py+p.dy);ctx.rotate(p.a);ctx.beginPath();ctx.ellipse(0,0,9,6,0,0,Math.PI*2);ctx.fill()
+    ctx.fillStyle='#5a3a1a';ctx.fillRect(6,-1.5,14,3);ctx.restore()
+  })
+}
+
+function serverRack(px,py){
+  ctx.fillStyle='#1a1a22';ctx.fillRect(px,py-58,24,58)
+  for(let ri=0;ri<7;ri++){ctx.fillStyle='#111118';ctx.fillRect(px+2,py-56+ri*7,20,5);ctx.fillStyle=ri%3===0?'#22c55e':'#3a3a5a';ctx.beginPath();ctx.arc(px+20,py-53+ri*7,1.8,0,Math.PI*2);ctx.fill()}
+}
+
+// Draw office
+function drawOffice(){
+  ctx.fillStyle='#060408';ctx.fillRect(0,0,CW,CH)
+  // Floors
+  for(let gx=-1;gx<6;gx++)for(let gy=-1;gy<5;gy++)tile(gx,gy,(gx+gy)%2===0?'#1a1208':'#160f06')
+  for(let gx=6;gx<12;gx++)for(let gy=-1;gy<5;gy++)tile(gx,gy,(gx+gy)%2===0?'#0d1a0d':'#0b160b')
+  for(let gx=-4;gx<-1;gx++)for(let gy=2;gy<8;gy++)tile(gx,gy,(gx+gy)%2===0?'#140e1a':'#110c16')
+  for(let gx=-1;gx<6;gx++)for(let gy=5;gy<10;gy++)tile(gx,gy,(gx+gy)%2===0?'#0a160e':'#08120c')
+  for(let gx=6;gx<12;gx++)for(let gy=5;gy<10;gy++)tile(gx,gy,(gx+gy)%2===0?'#120e1c':'#0e0a18')
+  for(let gx=12;gx<17;gx++)for(let gy=0;gy<8;gy++)tile(gx,gy,(gx+gy)%2===0?'#0a1420':'#08111c')
+  for(let gx=-1;gx<12;gx++)for(let gy=10;gy<15;gy++)tile(gx,gy,(gx+gy)%2===0?'#16100a':'#120d08')
+  // Walls
+  walls(-1,-1,6,5);walls(6,-1,12,5,'#0a160a','#081208','#0f1f0f');walls(-4,2,-1,6);walls(-1,5,6,10);walls(6,5,12,10);walls(12,0,17,8)
+  // STRATEGY
+  desk(.4,.4,'#7c3aed');desk(2.4,.8,'#3b82f6');desk(1.4,2.6,'#374151')
+  const wm=iso(1.5,-.8);worldMap(wm.x,wm.y-8)
+  const bs=iso(4.6,1.6);bookshelf(bs.x+8,bs.y-12)
+  lamp(-.6,2.4,-8,-5);lamp(4.2,-.6,8,-5)
+  const spl=iso(4.8,3.8);plant(spl.x,spl.y-5,.9)
+  label(2,-.5,'STRATEGY ROOM','#9d6ff0')
+  // TECH
+  dualDesk(7.4,.8)
+  const kb=iso(9.4,-.8);kanban(kb.x,kb.y-6)
+  const sr=iso(10.6,1.6);serverRack(sr.x-12,sr.y-18)
+  const tp1=iso(6.2,3.8);plant(tp1.x,tp1.y-5,.85);const tp2=iso(11,3.8);plant(tp2.x,tp2.y-5,1)
+  lamp(10.4,-.4,6,-5);label(8.5,-.5,'TECH ROOM','#4ade80')
+  // RECEPTION
+  const rd=iso(-2.4,4.6)
+  ctx.fillStyle='#2a2010';ctx.beginPath();ctx.roundRect(rd.x-38,rd.y-6,76,22,3);ctx.fill()
+  ctx.fillStyle='#1a1408';ctx.beginPath();ctx.roundRect(rd.x-38,rd.y+16,76,16,3);ctx.fill()
+  ctx.fillStyle='#3a2e18';ctx.fillRect(rd.x-38,rd.y-6,76,4)
+  const fh=iso(-2.4,2.8);fhLogo(fh.x,fh.y-22)
+  const rpl=iso(-3.6,6.4);plant(rpl.x,rpl.y-5,1.1);lamp(-3.8,3.4,4,-5)
+  label(-2.4,2.2,'RECEPÇÃO','#e8622a')
+  // GROWTH
+  desk(.4,5.6,'#10b981');desk(2.4,6.6,'#c0406a')
+  const mb=iso(.4,4.2);moodboard(mb.x-6,mb.y-14)
+  const gb=iso(4.6,6.6);bookshelf(gb.x+8,gb.y-10)
+  const gpl=iso(-.4,8.6);plant(gpl.x,gpl.y-5,1);lamp(4.4,4.6,-4,-5)
+  label(2,4.2,'GROWTH ROOM','#10b981')
+  // MEETING
+  const mt=iso(8.5,6.5);meetingTable(mt.x,mt.y-4)
+  const mpl1=iso(6.2,8.6);plant(mpl1.x,mpl1.y-5,.8);const mpl2=iso(11.2,4.5);plant(mpl2.x,mpl2.y-5,.8)
+  lamp(6.4,4.4,4,-5);label(8.5,4.2,'MEETING ROOM','#8b5cf6')
+  // KITCHEN
+  const kit=iso(14.5,3.5);kitchen(kit.x,kit.y-8);const kpl=iso(15.6,6.6);plant(kpl.x,kpl.y-5,.9)
+  label(14.5,.2,'KITCHEN','#5b9bd5')
+  // LOUNGE
+  const sf=iso(2.5,11.6);sofa(sf.x,sf.y-4);const pp=iso(7.5,12.2);pingpong(pp.x,pp.y-4)
+  const cft=iso(3.5,12.6)
+  ctx.fillStyle='#2a1e0a';ctx.beginPath();ctx.roundRect(cft.x-22,cft.y-6,44,24,3);ctx.fill()
+  const tv=iso(1.5,10.2)
+  ctx.fillStyle='#0e0e18';ctx.beginPath();ctx.roundRect(tv.x-30,tv.y-30,60,38,3);ctx.fill();ctx.strokeStyle='#2a2a3a';ctx.lineWidth=1;ctx.stroke()
+  ctx.fillStyle='#060612';ctx.fillRect(tv.x-26,tv.y-26,52,30)
+  lamp(-.4,11.4,4,-5);lamp(10.6,13.4,-4,-5)
+  const lpl1=iso(-.4,13.6);plant(lpl1.x,lpl1.y-5,1.2);const lpl2=iso(10.6,9.6);plant(lpl2.x,lpl2.y-5,1.2)
+  label(4.5,9.5,'LOUNGE','#c8882a')
+}
+
+// Agent positions
+const DPOS={strategy:[{gx:.4,gy:.4},{gx:2.4,gy:.8},{gx:1.4,gy:2.6}],tech:[{gx:7.4,gy:.8}],growth:[{gx:.4,gy:5.6},{gx:2.4,gy:6.6}],reception:[{gx:-2.4,gy:4.6}]}
+function apos(ag){const dp=DPOS[ag.room],d=dp?dp[ag.di]:{gx:0,gy:0},p=iso(d.gx,d.gy);return{x:p.x,y:p.y-30}}
+
+// Draw agent
+function drawAgent(ag,fi){
+  const{x,y}=apos(ag),S=2.1,ft=ag.status==='working'?'type':'idle'
+  const bob=ft==='idle'&&fi%2===1?1:0,arm=ft==='type'?2:0,cy=y+bob
+  ctx.fillStyle='rgba(0,0,0,0.2)';ctx.beginPath();ctx.ellipse(x,cy+S,6.5*S,2*S,0,0,Math.PI*2);ctx.fill()
+  ctx.fillStyle='#0a0a0a';ctx.beginPath();ctx.roundRect(x-3.2*S,cy-1*S,3.8*S,2.2*S,.5);ctx.fill();ctx.beginPath();ctx.roundRect(x+.4*S,cy-1*S,3.8*S,2.2*S,.5);ctx.fill()
+  ctx.fillStyle='#111111';ctx.beginPath();ctx.roundRect(x-3.2*S,cy-5.5*S,2.8*S,4.5*S,.5);ctx.fill();ctx.beginPath();ctx.roundRect(x+.4*S,cy-5.5*S,2.8*S,4.5*S,.5);ctx.fill()
+  ctx.fillStyle=ag.cloth;ctx.beginPath();ctx.roundRect(x-3.5*S,cy-13.5*S,7*S,8*S,1.2);ctx.fill()
+  const bg=ctx.createLinearGradient(x-3.5*S,cy-13.5*S,x+3.5*S,cy-5.5*S);bg.addColorStop(0,'rgba(255,255,255,0.07)');bg.addColorStop(1,'rgba(0,0,0,0.1)')
+  ctx.fillStyle=bg;ctx.beginPath();ctx.roundRect(x-3.5*S,cy-13.5*S,7*S,8*S,1.2);ctx.fill()
+  ctx.fillStyle='rgba(255,255,255,0.10)';ctx.fillRect(x-.8*S,cy-13.5*S,1.6*S,3.5*S)
+  ctx.fillStyle=ag.cloth;ctx.beginPath();ctx.roundRect(x-5.5*S,cy-12.5*S,2.8*S,5.5*S+arm,.8);ctx.fill();ctx.beginPath();ctx.roundRect(x+2.8*S,cy-12.5*S,2.8*S,5.5*S+arm,.8);ctx.fill()
+  ctx.fillStyle=ag.skin;ctx.fillRect(x-1*S,cy-14.5*S,2*S,1.8*S)
+  ctx.fillStyle=ag.skin;ctx.beginPath();ctx.roundRect(x-3.5*S,cy-22.5*S,7*S,8.5*S,1.8);ctx.fill()
+  const hg=ctx.createLinearGradient(x-3.5*S,cy-22.5*S,x+3.5*S,cy-14*S);hg.addColorStop(0,'rgba(255,255,255,0.11)');hg.addColorStop(1,'rgba(0,0,0,0.05)')
+  ctx.fillStyle=hg;ctx.beginPath();ctx.roundRect(x-3.5*S,cy-22.5*S,7*S,8.5*S,1.8);ctx.fill()
+  ctx.fillStyle='#ffffff';ctx.fillRect(x-2.6*S,cy-18.8*S,2.2*S,1.6*S);ctx.fillRect(x+.4*S,cy-18.8*S,2.2*S,1.6*S)
+  ctx.fillStyle='#000000';ctx.fillRect(x-2*S,cy-18.8*S,1.3*S,1.6*S);ctx.fillRect(x+1*S,cy-18.8*S,1.3*S,1.6*S)
+  ctx.fillStyle=ag.hair
+  switch(ag.hs){
+    case'straight':case'wavy':ctx.beginPath();ctx.roundRect(x-3.5*S,cy-24*S,7*S,3.5*S,1.8);ctx.fill();ctx.fillRect(x-3.5*S,cy-21.5*S,1.5*S,2*S);ctx.fillRect(x+2*S,cy-21.5*S,1.5*S,2*S);break
+    case'afro':ctx.beginPath();ctx.arc(x,cy-21.5*S,5*S,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(x-4*S,cy-19.5*S,3.2*S,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(x+4*S,cy-19.5*S,3.2*S,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(x,cy-25.5*S,3*S,0,Math.PI*2);ctx.fill();break
+    case'afro-short':ctx.beginPath();ctx.roundRect(x-3.5*S,cy-24.5*S,7*S,5*S,2.5);ctx.fill();ctx.beginPath();ctx.arc(x-2.5*S,cy-23*S,2.2*S,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(x+2.5*S,cy-23*S,2.2*S,0,Math.PI*2);ctx.fill();break
+    case'messy':ctx.fillRect(x-3.5*S,cy-23.5*S,7*S,3.5*S);for(let i=0;i<5;i++){ctx.beginPath();ctx.moveTo(x-3*S+i*1.5*S,cy-23.5*S);ctx.lineTo(x-2.5*S+i*1.5*S,cy-26.5*S);ctx.lineTo(x-2*S+i*1.5*S,cy-23.5*S);ctx.fill()}break
+    case'long':ctx.beginPath();ctx.roundRect(x-3.5*S,cy-24*S,7*S,4*S,2);ctx.fill();ctx.beginPath();ctx.roundRect(x-5.2*S,cy-23*S,2.2*S,12.5*S,1);ctx.fill();ctx.beginPath();ctx.roundRect(x+3*S,cy-23*S,2.2*S,12.5*S,1);ctx.fill();break
+    case'bald':ctx.beginPath();ctx.roundRect(x-3*S,cy-23.5*S,6*S,2*S,1);ctx.fill();break
   }
-
-  // Accent light strip at wall top
-  g.lineStyle(1.5, r.accentLine, 0.5);
-  var ws = isoToScreen(r.ix, r.iy), we = isoToScreen(r.ix+r.w, r.iy);
-  g.lineBetween(cx+ws.x, cy+ws.y-wallH, cx+we.x, cy+we.y-wallH);
-
-  // Room label at ceiling
-  var lp = isoToScreen(r.ix + r.w*0.5, r.iy);
-  this.add.text(cx+lp.x, cy+lp.y-wallH-6, r.label, {
-    fontSize: '8px', fontFamily: 'Courier New', fontStyle: 'bold',
-    color: '#ffffff', stroke: '#000000', strokeThickness: 3,
-    align: 'center', letterSpacing: 2,
-  }).setOrigin(0.5, 1).setDepth(300);
+  const dc=ag.status==='working'?'#e8622a':ag.status==='online'?'#4ade80':'#3f3f5f'
+  if(ag.status==='working'){ctx.fillStyle=dc+'44';ctx.beginPath();ctx.arc(x,cy-25.5*S,6,0,Math.PI*2);ctx.fill()}
+  ctx.fillStyle=dc;ctx.beginPath();ctx.arc(x,cy-25.5*S,3.2,0,Math.PI*2);ctx.fill()
+  ctx.save();ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 8px "Courier New"'
+  ctx.fillStyle='rgba(0,0,0,0.5)';ctx.fillText(ag.id,x+1,cy-28*S+1);ctx.fillStyle=ag.cloth;ctx.fillText(ag.id,x,cy-28*S);ctx.restore()
 }
 
-// ─── ALL FURNITURE ───────────────────────────────────────────────
-function drawAllFurniture(cx, cy) {
-  // STRATEGY ROOM desks (3)
-  drawDesk.call(this, 2.5, 2,   0x7c3aed, cx, cy);
-  drawDesk.call(this, 1.5, 3.5, 0x3b82f6, cx, cy);
-  drawDesk.call(this, 4,   1.5, 0x6b7280, cx, cy);
-
-  // TECH ROOM dual-monitor desk
-  drawDualDesk.call(this, 9, 1.5, 0x22c55e, cx, cy);
-
-  // GROWTH ROOM desks (2)
-  drawDesk.call(this, 2,   7,   0x1a4a1a, cx, cy);
-  drawDesk.call(this, 4,   8,   0xd4608a, cx, cy);
-
-  // RECEPTION counter
-  drawReceptionDesk.call(this, -1, 6, cx, cy);
-
-  // MEETING ROOM oval table
-  drawMeetingTable.call(this, 10.5, 7, cx, cy);
-
-  // KITCHEN L-counter
-  drawKitchen.call(this, 15, 3, cx, cy);
-
-  // LOUNGE sofa + coffee table
-  drawLounge.call(this, 2, 11, cx, cy);
-
-  // PING PONG TABLE
-  drawPingPong.call(this, 7, 13, cx, cy);
-}
-
-// ─── SINGLE DESK ─────────────────────────────────────────────────
-function drawDesk(ix, iy, monitorColor, cx, cy) {
-  var g = this.add.graphics();
-  var p = isoToScreen(ix, iy);
-  var x = cx+p.x, y = cy+p.y;
-  var hw = ISO.tileW/2, hh = ISO.tileH/2;
-  var dH = 22;
-
-  // Desk surface (dark wood)
-  g.fillStyle(0x2a1f0e, 1);
-  g.fillPoints([
-    {x:x,       y:y-hh*0.82},
-    {x:x+hw*0.82, y:y},
-    {x:x,       y:y+hh*0.82},
-    {x:x-hw*0.82, y:y}
-  ], true);
-  // Surface highlight
-  g.lineStyle(0.5, 0x3a2e18, 0.6);
-  g.strokePoints([{x:x,y:y-hh*0.82},{x:x+hw*0.82,y:y},{x:x,y:y+hh*0.82},{x:x-hw*0.82,y:y}], true);
-
-  // Front-left face
-  g.fillStyle(0x1a1408, 1);
-  g.fillPoints([
-    {x:x-hw*0.82, y:y},
-    {x:x,         y:y+hh*0.82},
-    {x:x,         y:y+hh*0.82+dH},
-    {x:x-hw*0.82, y:y+dH}
-  ], true);
-  // Front-right face
-  g.fillStyle(0x221a0c, 1);
-  g.fillPoints([
-    {x:x,         y:y+hh*0.82},
-    {x:x+hw*0.82, y:y},
-    {x:x+hw*0.82, y:y+dH},
-    {x:x,         y:y+hh*0.82+dH}
-  ], true);
-
-  // Monitor stand
-  g.fillStyle(0x181818, 1);
-  g.fillRect(x-3, y-hh*0.82-26, 6, 24);
-  g.fillRect(x-10, y-hh*0.82-3, 20, 4);
-  // Monitor frame
-  g.fillStyle(0x101010, 1);
-  g.fillRoundedRect(x-20, y-hh*0.82-46, 40, 26, 2);
-  // Screen
-  g.fillStyle(0x06050e, 1);
-  g.fillRect(x-17, y-hh*0.82-43, 34, 20);
-  // Screen glow
-  g.fillStyle(monitorColor, 0.08);
-  g.fillRect(x-17, y-hh*0.82-43, 34, 20);
-  // Code lines
-  g.fillStyle(monitorColor, 0.75);
-  g.fillRect(x-14, y-hh*0.82-40, 18, 2);
-  g.fillRect(x-14, y-hh*0.82-35, 26, 2);
-  g.fillRect(x-14, y-hh*0.82-30, 12, 2);
-  g.fillStyle(monitorColor, 0.4);
-  g.fillRect(x-6,  y-hh*0.82-40, 14, 2);
-
-  // Keyboard
-  g.fillStyle(0x1e1e22, 1);
-  g.fillRoundedRect(x-16, y-hh*0.82+2, 32, 10, 1);
-  g.fillStyle(0x2a2a34, 1);
-  for (var ki=0; ki<6; ki++) {
-    g.fillRect(x-14+ki*5, y-hh*0.82+4, 4, 2);
-    g.fillRect(x-14+ki*5, y-hh*0.82+7, 4, 2);
+// Speech bubbles
+const bubbles=[]
+function addBubble(ag,text){bubbles.push({ag,text:text.length>32?text.slice(0,32)+'…':text,life:0,max:210})}
+function drawBubbles(){
+  for(let i=bubbles.length-1;i>=0;i--){
+    const b=bubbles[i];b.life++;let a=1;if(b.life<12)a=b.life/12;else if(b.life>b.max-20)a=(b.max-b.life)/20
+    if(b.life>=b.max){bubbles.splice(i,1);continue}
+    const{x,y}=apos(b.ag),bx=x,by=y-60,tw=b.text.length*5.2+18,th=22
+    ctx.globalAlpha=a;ctx.fillStyle='#1a1828';ctx.strokeStyle='#2a2848';ctx.lineWidth=1
+    ctx.beginPath();ctx.roundRect(bx-tw/2,by-th,tw,th,4);ctx.fill();ctx.stroke()
+    ctx.beginPath();ctx.moveTo(bx-5,by);ctx.lineTo(bx+5,by);ctx.lineTo(bx,by+8);ctx.closePath();ctx.fill()
+    ctx.fillStyle='#e0e0f0';ctx.font='8px "Courier New"';ctx.textAlign='center';ctx.textBaseline='middle'
+    ctx.fillText(b.text,bx,by-th/2);ctx.globalAlpha=1
   }
-
-  // Desk lamp
-  g.fillStyle(0x2a1a00, 1);
-  g.fillRect(x+14, y-hh*0.82-28, 3, 26);
-  g.fillStyle(0xc8882a, 1);
-  g.fillEllipse(x+15.5, y-hh*0.82-30, 14, 6);
-  g.fillStyle(0xffd06a, 0.6);
-  g.fillEllipse(x+15.5, y-hh*0.82-30, 6, 3);
-
-  // Coffee mug
-  g.fillStyle(0x1a1a22, 1);
-  g.fillRoundedRect(x-24, y-hh*0.82-2, 9, 8, 1);
-  g.fillStyle(monitorColor, 0.35);
-  g.fillRect(x-23, y-hh*0.82-1, 7, 6);
-
-  g.setDepth(50);
-
-  // Monitor glow pulse
-  var glowG = this.add.graphics();
-  glowG.setDepth(49);
-  this.tweens.add({
-    targets:{v:0}, v:1,
-    duration: 2200 + Math.random()*1000,
-    yoyo:true, repeat:-1, ease:'Sine.easeInOut',
-    onUpdate: function(tw,tgt){
-      glowG.clear();
-      glowG.fillStyle(monitorColor, 0.03+tgt.v*0.06);
-      glowG.fillRoundedRect(x-24, y-hh*0.82-50, 48, 36, 4);
-    }
-  });
 }
 
-// ─── DUAL MONITOR DESK (TECH ROOM) ───────────────────────────────
-function drawDualDesk(ix, iy, monitorColor, cx, cy) {
-  var g = this.add.graphics();
-  var p = isoToScreen(ix, iy);
-  var x = cx+p.x, y = cy+p.y;
-  var hw = ISO.tileW/2, hh = ISO.tileH/2;
-  var dH = 22;
-
-  // Wide desk surface
-  g.fillStyle(0x2a1f0e, 1);
-  g.fillPoints([
-    {x:x-hw*0.6, y:y-hh*0.9},
-    {x:x+hw*1.4, y:y-hh*0.1},
-    {x:x+hw*0.6, y:y+hh*0.9},
-    {x:x-hw*1.4, y:y+hh*0.1}
-  ], true);
-  g.fillStyle(0x1a1408, 1);
-  g.fillPoints([
-    {x:x-hw*1.4, y:y+hh*0.1},
-    {x:x+hw*0.6, y:y+hh*0.9},
-    {x:x+hw*0.6, y:y+hh*0.9+dH},
-    {x:x-hw*1.4, y:y+hh*0.1+dH}
-  ], true);
-
-  // Two monitors
-  for (var mi=0; mi<2; mi++) {
-    var mx = x - 28 + mi*38;
-    g.fillStyle(0x181818, 1);
-    g.fillRect(mx+12, y-hh*0.9-26, 5, 22);
-    g.fillRect(mx+7,  y-hh*0.9-5,  15, 4);
-    g.fillStyle(0x101010, 1);
-    g.fillRoundedRect(mx, y-hh*0.9-44, 34, 24, 2);
-    g.fillStyle(0x06050e, 1);
-    g.fillRect(mx+2, y-hh*0.9-42, 30, 18);
-    g.fillStyle(monitorColor, 0.08);
-    g.fillRect(mx+2, y-hh*0.9-42, 30, 18);
-    g.fillStyle(monitorColor, 0.8);
-    g.fillRect(mx+4, y-hh*0.9-39, 14, 2);
-    g.fillRect(mx+4, y-hh*0.9-34, 22, 2);
-    g.fillRect(mx+4, y-hh*0.9-29, 10, 2);
-    g.fillStyle(monitorColor, 0.35);
-    g.fillRect(mx+18, y-hh*0.9-39, 12, 2);
-  }
-  // Keyboard
-  g.fillStyle(0x1e1e22, 1);
-  g.fillRect(x-22, y-hh*0.9+2, 50, 10);
-  // Energy drink
-  g.fillStyle(0x1a3a1a, 1);
-  g.fillRoundedRect(x+36, y-hh*0.9-14, 7, 14, 1);
-  g.fillStyle(0x22c55e, 0.7);
-  g.fillRect(x+37, y-hh*0.9-12, 5, 8);
-
-  // Monitor glow
-  var glowG2 = this.add.graphics();
-  glowG2.setDepth(49);
-  this.tweens.add({
-    targets:{v:0}, v:1,
-    duration: 2600, yoyo:true, repeat:-1, ease:'Sine.easeInOut',
-    onUpdate: function(tw,tgt){
-      glowG2.clear();
-      glowG2.fillStyle(monitorColor, 0.04+tgt.v*0.08);
-      glowG2.fillRoundedRect(x-32, y-hh*0.9-52, 80, 44, 5);
-    }
-  });
-
-  g.setDepth(50);
+// Render loop
+let fi=0
+function render(){
+  fi++;drawOffice()
+  const sorted=[...AGENTS].sort((a,b)=>apos(a).y-apos(b).y)
+  sorted.forEach(ag=>drawAgent(ag,Math.floor(fi/10)%4))
+  drawBubbles();requestAnimationFrame(render)
 }
 
-// ─── RECEPTION DESK ──────────────────────────────────────────────
-function drawReceptionDesk(ix, iy, cx, cy) {
-  var g = this.add.graphics();
-  var p = isoToScreen(ix, iy);
-  var x = cx+p.x, y = cy+p.y;
-  var hw = ISO.tileW/2, hh = ISO.tileH/2;
-  var dH = 34;
-
-  // Counter top (L-shape)
-  g.fillStyle(0x2a1f0e, 1);
-  g.fillPoints([
-    {x:x-hw*1.8, y:y-hh*0.1},
-    {x:x+hw*0.4, y:y-hh*1.3},
-    {x:x+hw*0.4, y:y-hh*1.3+dH},
-    {x:x-hw*1.8, y:y-hh*0.1+dH}
-  ], true);
-  // Counter side
-  g.fillStyle(0x1a1408, 1);
-  g.fillPoints([
-    {x:x-hw*1.8, y:y-hh*0.1},
-    {x:x-hw*1.8, y:y-hh*0.1+dH},
-    {x:x-hw*1.8, y:y-hh*0.1+dH+20},
-    {x:x-hw*1.8, y:y-hh*0.1+20}
-  ], true);
-  // Front face
-  g.fillStyle(0x221a0c, 1);
-  g.fillPoints([
-    {x:x-hw*1.8, y:y-hh*0.1+dH},
-    {x:x+hw*0.4, y:y-hh*1.3+dH},
-    {x:x+hw*0.4, y:y-hh*1.3+dH+20},
-    {x:x-hw*1.8, y:y-hh*0.1+dH+20}
-  ], true);
-
-  // Monitor
-  g.fillStyle(0x101010, 1);
-  g.fillRoundedRect(x-18, y-hh-46, 28, 20, 2);
-  g.fillStyle(0x06050e, 1);
-  g.fillRect(x-16, y-hh-44, 24, 16);
-  g.fillStyle(0xe8622a, 0.5);
-  g.fillRect(x-14, y-hh-42, 16, 2);
-  g.fillRect(x-14, y-hh-38, 20, 2);
-  g.fillRect(x-14, y-hh-34, 12, 2);
-
-  // "FH" logo on wall behind desk
-  this.add.text(x-6, y-hh-68, 'FH', {
-    fontSize: '18px', fontFamily: 'Courier New', fontStyle: 'bold',
-    color: '#e8622a', stroke: '#000000', strokeThickness: 3,
-    shadow: { offsetX:0, offsetY:0, color:'#e8622a', blur:12, fill:true }
-  }).setOrigin(0.5).setDepth(250);
-
-  // FactorHub label below
-  this.add.text(x-6, y-hh-52, 'FACTORHUB', {
-    fontSize: '6px', fontFamily: 'Courier New', fontStyle: 'bold',
-    color: '#e8622a66', letterSpacing: 2
-  }).setOrigin(0.5).setDepth(250);
-
-  g.setDepth(50);
+// HUD
+function renderAll(){
+  document.getElementById('alist').innerHTML=AGENTS.map(a=>{
+    const dc=a.status==='working'?'sw':a.status==='online'?'so':'si',pc=a.status==='working'?'#e8622a':'#4ade80'
+    return`<div class="ar" onclick="openModal('${a.id}')"><div class="aav" style="background:${a.cloth}20;border:1px solid ${a.cloth}50;color:${a.cloth}">${a.id}</div><div class="ai"><div class="an">${a.id}</div><div class="at2">${a.task||'Idle'}</div><div class="ap"><div class="apf" style="width:${a.prog}%;background:${pc}"></div></div></div><span class="sd ${dc}"></span></div>`
+  }).join('')
+  document.getElementById('cbars').innerHTML=CHARTS.map(c=>`<div class="cr"><span class="cl">${c.label}</span><div class="cb"><div class="cf" style="width:${c.val}%;background:${c.color}"></div></div><span class="cv2t">${c.val}%</span></div>`).join('')
+  const cv2=document.getElementById('mchart'),cx2=cv2.getContext('2d'),w2=cv2.width,h2=cv2.height
+  cx2.fillStyle='#0d0b1c';cx2.fillRect(0,0,w2,h2)
+  const pts=[30,45,38,55,48,62,55,70,60,75,68,72],mx=Math.max(...pts),mn=Math.min(...pts)
+  const no=v=>h2-3-((v-mn)/(mx-mn))*(h2-6),st=w2/(pts.length-1)
+  cx2.beginPath();cx2.moveTo(0,no(pts[0]));pts.forEach((p,i)=>i>0&&cx2.lineTo(i*st,no(p)))
+  cx2.strokeStyle='#e8622a';cx2.lineWidth=1.5;cx2.stroke();cx2.lineTo(w2,h2);cx2.lineTo(0,h2);cx2.closePath();cx2.fillStyle='rgba(232,98,42,0.08)';cx2.fill()
+  document.getElementById('mlist').innerHTML=MISSIONS.map(m=>`<div class="mc2"><div class="mcn"><span style="background:${m.color}22;color:${m.color};font-size:7px;font-weight:800;padding:1px 5px;border-radius:3px;margin-right:4px">${m.level}</span>${m.name}</div><div class="mcp"><div class="mcf" style="width:${m.prog}%;background:${m.color}"></div></div></div>`).join('')
+  document.getElementById('mcn').textContent=String(AGENTS.filter(a=>a.status==='working').length)
 }
 
-// ─── MEETING TABLE ────────────────────────────────────────────────
-function drawMeetingTable(ix, iy, cx, cy) {
-  var g = this.add.graphics();
-  var p = isoToScreen(ix, iy);
-  var x = cx+p.x, y = cy+p.y;
-  var dH = 20;
-
-  // Chairs first (behind table)
-  var chairs = [
-    {dx:-58,dy:-4},{dx:58,dy:-4},
-    {dx:-30,dy:-30},{dx:30,dy:-30},
-    {dx:-30,dy:22}, {dx:30,dy:22},
-    {dx:0,  dy:-36},{dx:0,  dy:28},
-  ];
-  chairs.forEach(function(ch){
-    g.fillStyle(0x111118, 1);
-    g.fillEllipse(x+ch.dx, y+ch.dy, 24, 14);
-    g.fillStyle(0x181820, 1);
-    g.fillRect(x+ch.dx-9, y+ch.dy-18, 18, 18);
-    // Chair back
-    g.fillStyle(0x0d0d14, 1);
-    g.fillRect(x+ch.dx-9, y+ch.dy-20, 18, 4);
-  });
-
-  // Table top oval
-  g.fillStyle(0x2a1f0e, 1);
-  g.fillEllipse(x, y, 110, 56);
-  g.lineStyle(1.5, 0x4a3420, 0.8);
-  g.strokeEllipse(x, y, 110, 56);
-  // Table sheen
-  g.fillStyle(0x3a2c18, 0.25);
-  g.fillEllipse(x-10, y-8, 60, 24);
-
-  // Table front edge
-  g.fillStyle(0x1a1408, 1);
-  g.fillRect(x-55, y+14, 110, dH);
-
-  // Hanging lamp cable
-  g.fillStyle(0x1a1208, 1);
-  g.fillRect(x-1.5, y-90, 3, 60);
-  // Lamp shade
-  g.fillStyle(0xc8882a, 1);
-  g.fillEllipse(x, y-88, 38, 14);
-  g.fillStyle(0xffd06a, 0.7);
-  g.fillEllipse(x, y-88, 20, 7);
-
-  // Floor lamp glow from above
-  var lampGlowG = this.add.graphics();
-  lampGlowG.fillStyle(0xc8882a, 0.10);
-  lampGlowG.fillCircle(x, y+10, 70);
-  lampGlowG.fillStyle(0xc8882a, 0.18);
-  lampGlowG.fillCircle(x, y+10, 30);
-  lampGlowG.setDepth(2);
-
-  // Table items: laptop, water glasses, plant centerpiece
-  g.fillStyle(0x1a1a22, 1); g.fillRoundedRect(x-24, y-10, 18, 12, 1);
-  g.fillStyle(0x06050e, 1); g.fillRect(x-22, y-8, 14, 10);
-  g.fillStyle(0x4ade80, 0.5); g.fillRect(x-21,y-7,9,2);
-
-  g.fillStyle(0x1a2a3a, 0.8); g.fillRoundedRect(x+16,y-8,6,10,1);
-  g.fillStyle(0x5b9bd5, 0.4); g.fillRect(x+17,y-7,4,8);
-  g.fillStyle(0x1a2a3a, 0.8); g.fillRoundedRect(x+28,y-8,6,10,1);
-  g.fillStyle(0x5b9bd5, 0.4); g.fillRect(x+29,y-7,4,8);
-
-  // Small plant center
-  g.fillStyle(0x3a1a0a, 1); g.fillRoundedRect(x+4, y-8, 10, 8, 1);
-  g.fillStyle(0x1a4a1a, 1); g.fillCircle(x+9, y-13, 7);
-  g.fillStyle(0x286a28, 0.7); g.fillCircle(x+6, y-16, 4);
-  g.fillStyle(0x286a28, 0.7); g.fillCircle(x+13, y-16, 4);
-
-  // Projection screen on wall
-  g.fillStyle(0x08080e, 1);
-  g.fillRect(x+30, y-92, 58, 36);
-  g.lineStyle(1, 0x2a2848, 1);
-  g.strokeRect(x+30, y-92, 58, 36);
-  g.fillStyle(0x3d2a60, 0.5); g.fillRect(x+33, y-90, 52, 10);
-  g.fillStyle(0x1d4ed8, 0.4); g.fillRect(x+33, y-77, 26, 5);
-  g.fillStyle(0x1d4ed8, 0.3); g.fillRect(x+33, y-69, 38, 5);
-  g.fillStyle(0x1d4ed8, 0.25); g.fillRect(x+33, y-61, 20, 5);
-
-  g.setDepth(48);
+let tickLog=[]
+function renderTicker(){
+  const evs=tickLog.length>0?tickLog:[{color:'#4ade80',text:'Sistema iniciado — todos os agentes online',time:'--'},{color:'#e8622a',text:'CEO validando nova missão N2',time:'--'},{color:'#5b9bd5',text:'CFO revisando projeção financeira',time:'--'},{color:'#10b981',text:'CMO atualizando campanha Q3',time:'--'}]
+  document.getElementById('tinn').innerHTML=[...evs,...evs].map(e=>`<span class="tev"><span class="tdot" style="background:${e.color}"></span>${e.text}<span class="ttm">${e.time}</span></span>`).join('')
 }
 
-// ─── KITCHEN ─────────────────────────────────────────────────────
-function drawKitchen(ix, iy, cx, cy) {
-  var g = this.add.graphics();
-  var p = isoToScreen(ix, iy);
-  var x = cx+p.x, y = cy+p.y;
-
-  // L-counter back panels
-  g.fillStyle(0x1a1a22, 1);
-  g.fillRect(x-60, y-30, 98, 7);
-  g.fillRect(x+30, y-60, 8, 38);
-
-  // Counter surfaces
-  g.fillStyle(0x28282e, 1);
-  g.fillRect(x-60, y-24, 98, 20);
-  g.fillRect(x+30, y-62, 18, 40);
-
-  // Counter front face
-  g.fillStyle(0x1a1a20, 1);
-  g.fillRect(x-60, y-4, 98, 22);
-  g.fillRect(x+38, y-24, 10, 40);
-
-  // Open shelves above
-  g.fillStyle(0x1a1a20, 1);
-  g.fillRect(x-55, y-70, 80, 4);
-  g.fillRect(x-55, y-54, 80, 4);
-  // Shelf items: mugs, bottles
-  for (var si=0; si<5; si++) {
-    g.fillStyle([0x3a2210,0x1a2a3a,0x2a1a3a,0x3a1a10,0x1a3a2a][si], 1);
-    g.fillRoundedRect(x-52+si*16, y-68, 9, 12, 1);
-  }
-
-  // Coffee maker
-  g.fillStyle(0x1c1c1c, 1);
-  g.fillRoundedRect(x-55, y-56, 24, 32, 2);
-  g.fillStyle(0x0a0a0a, 1);
-  g.fillRect(x-53, y-42, 20, 16);
-  g.fillStyle(0xe8622a, 1);
-  g.fillCircle(x-43, y-52, 5);
-  g.fillStyle(0x3a1a00, 1);
-  g.fillRoundedRect(x-48, y-28, 12, 6, 1);
-
-  // Fridge
-  g.fillStyle(0x28283a, 1);
-  g.fillRoundedRect(x+18, y-76, 28, 72, 2);
-  g.fillStyle(0x18182a, 1);
-  g.fillRect(x+20, y-74, 24, 32);
-  g.fillRect(x+20, y-40, 24, 34);
-  g.fillStyle(0x3a3a4a, 1);
-  g.fillRect(x+20, y-58, 3, 10);
-  g.fillRect(x+20, y-22, 3, 10);
-
-  // Microwave
-  g.fillStyle(0x1e1e28, 1);
-  g.fillRoundedRect(x-22, y-58, 24, 18, 2);
-  g.fillStyle(0x06050e, 1);
-  g.fillRect(x-20, y-56, 16, 14);
-  g.fillStyle(0xe8622a, 0.9);
-  g.fillCircle(x+0, y-52, 3);
-  g.fillCircle(x+0, y-45, 3);
-
-  // Sink
-  g.fillStyle(0x2e2e3a, 1); g.fillRoundedRect(x-10, y-24, 26, 18, 2);
-  g.fillStyle(0x1e1e2a, 1); g.fillRect(x-8, y-22, 22, 14);
-  g.fillStyle(0x3a3a4a, 1); g.fillRect(x-1, y-28, 5, 6);
-
-  g.setDepth(50);
-
-  // Coffee maker LED pulse
-  var coffeeG = this.add.graphics();
-  coffeeG.setDepth(51);
-  this.tweens.add({
-    targets:{a:0}, a:1, duration:1300, yoyo:true, repeat:-1, ease:'Sine.easeInOut',
-    onUpdate: function(tw,tgt){
-      coffeeG.clear();
-      coffeeG.fillStyle(0xe8622a, 0.06+tgt.a*0.22);
-      coffeeG.fillCircle(x-43, y-52, 10+tgt.a*5);
-    }
-  });
+function simTick(){
+  const a=AGENTS[Math.floor(Math.random()*AGENTS.length)],s=['working','working','online','idle'][Math.floor(Math.random()*4)]
+  a.status=s
+  if(s==='working'){
+    const tl=TASKS[a.id]||['Em execução'];a.task=tl[Math.floor(Math.random()*tl.length)]
+    a.prog=Math.min(100,a.prog+5+Math.floor(Math.random()*15))
+    if(a.prog>=100){a.prog=0;a.hist.unshift(a.task);if(a.hist.length>3)a.hist.pop()}
+    const ml=SPEECH[a.id]||['Processando…'];addBubble(a,ml[Math.floor(Math.random()*ml.length)])
+    const time=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'})
+    tickLog.unshift({color:a.cloth,text:`[${a.id}] ${a.task}`,time});if(tickLog.length>10)tickLog.pop();renderTicker()
+  }else if(s==='idle'){a.task='';a.prog=0}
+  renderAll();setTimeout(simTick,4000+Math.random()*4000)
 }
 
-// ─── LOUNGE ──────────────────────────────────────────────────────
-function drawLounge(ix, iy, cx, cy) {
-  var g = this.add.graphics();
-  var p = isoToScreen(ix, iy);
-  var x = cx+p.x, y = cy+p.y;
-
-  // L-shaped dark sofa
-  // Main arm
-  g.fillStyle(0x1a1208, 1);
-  g.fillRect(x-72, y-20, 118, 32);
-  // Vertical arm of L
-  g.fillRect(x-72, y-56, 32, 38);
-
-  // Sofa backs
-  g.fillStyle(0x110e06, 1);
-  g.fillRect(x-72, y-56, 118, 10);
-  g.fillRect(x-72, y-56, 10, 36);
-
-  // Seat cushions with highlights
-  g.fillStyle(0x221a0c, 1);
-  g.fillRoundedRect(x-66, y-10, 28, 20, 2);
-  g.fillRoundedRect(x-34, y-10, 28, 20, 2);
-  g.fillRoundedRect(x-2,  y-10, 28, 20, 2);
-  g.fillRoundedRect(x+30, y-10, 18, 20, 2);
-
-  // Cushion sheen
-  g.fillStyle(0x2e2416, 0.5);
-  g.fillRect(x-64, y-8, 24, 6);
-  g.fillRect(x-32, y-8, 24, 6);
-  g.fillRect(x,    y-8, 24, 6);
-
-  // Coffee table
-  g.fillStyle(0x2e2210, 1);
-  g.fillRoundedRect(x-18, y-46, 48, 26, 3);
-  g.lineStyle(1, 0x4a3820, 0.8);
-  g.strokeRoundedRect(x-18, y-46, 48, 26, 3);
-  // Table legs
-  g.fillStyle(0x1a1208, 1);
-  g.fillRect(x-16, y-22, 5, 12);
-  g.fillRect(x+22, y-22, 5, 12);
-
-  // Table items: tablet + mug
-  g.fillStyle(0x1a1a22, 0.9); g.fillRoundedRect(x-12, y-44, 18, 13, 1);
-  g.fillStyle(0xe8622a, 0.4); g.fillRect(x-10, y-42, 14, 9);
-  g.fillStyle(0x3a2a1a, 1); g.fillCircle(x+16, y-36, 6);
-  g.fillStyle(0x1a0a00, 0.8); g.fillCircle(x+16, y-36, 4);
-
-  // TV on stand
-  var tvx = x+60, tvy = y;
-  g.fillStyle(0x0a0a0a, 1); g.fillRoundedRect(tvx-36, tvy-96, 72, 44, 3);
-  g.fillStyle(0x06050e, 1); g.fillRect(tvx-33, tvy-93, 66, 38);
-  // TV screen content
-  g.fillStyle(0x1a1a28, 1); g.fillRect(tvx-31, tvy-91, 62, 34);
-  g.fillStyle(0xe8622a, 0.35); g.fillRect(tvx-28, tvy-88, 22, 10);
-  g.fillStyle(0x4ade80, 0.35); g.fillRect(tvx+0, tvy-88, 16, 10);
-  g.fillStyle(0x5b9bd5, 0.3); g.fillRect(tvx-28, tvy-75, 60, 20);
-  // TV stand
-  g.fillStyle(0x1a1a1a, 1);
-  g.fillRect(tvx-4, tvy-52, 8, 16);
-  g.fillRect(tvx-16, tvy-36, 32, 6);
-
-  // Floor lamp with warm glow
-  var lampX = x-80, lampY = y-10;
-  g.fillStyle(0xc8882a, 0.10);
-  g.fillCircle(lampX, lampY+20, 64);
-  g.fillStyle(0xc8882a, 0.22);
-  g.fillCircle(lampX, lampY+20, 28);
-  g.fillStyle(0x1a1208, 1);
-  g.fillRect(lampX-3, lampY-48, 6, 56);
-  g.fillStyle(0xc8882a, 1);
-  g.fillEllipse(lampX, lampY-50, 22, 9);
-  g.fillStyle(0xffd06a, 0.7);
-  g.fillEllipse(lampX, lampY-50, 10, 4);
-
-  g.setDepth(48);
+function openModal(id){
+  const a=AGENTS.find(x=>x.id===id);if(!a)return
+  const av=document.getElementById('mavb');av.textContent=a.id;av.style.cssText=`background:${a.cloth}22;border:1px solid ${a.cloth}60;color:${a.cloth};width:56px;height:56px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;flex-shrink:0`
+  document.getElementById('mname').textContent=a.name;document.getElementById('mrole').textContent=a.role
+  document.getElementById('mtsk').textContent=a.task||'—'
+  document.getElementById('mpf').style.width=a.prog+'%';document.getElementById('mpf').style.background=a.cloth
+  document.getElementById('mhist').innerHTML=a.hist.map(h=>`<div class="mhi"><div class="mhidot"></div><span class="mhitxt">${h}</span></div>`).join('')
+  document.getElementById('modal').classList.add('open')
 }
-
-// ─── PING PONG TABLE ─────────────────────────────────────────────
-function drawPingPong(ix, iy, cx, cy) {
-  var g = this.add.graphics();
-  var p = isoToScreen(ix, iy);
-  var x = cx+p.x, y = cy+p.y;
-  var tW = 96, tH = 54, tD = 14;
-
-  // Table legs
-  g.fillStyle(0x101020, 1);
-  g.fillRect(x-tW/2+4, y+tH/2-4, 8, tD+6);
-  g.fillRect(x+tW/2-12, y+tH/2-4, 8, tD+6);
-  g.fillRect(x-tW/2+4, y-tH/2+4, 8, tD+6);
-  g.fillRect(x+tW/2-12, y-tH/2+4, 8, tD+6);
-
-  // Table face (front edge)
-  g.fillStyle(0x1a3a5a, 1);
-  g.fillRect(x-tW/2, y+tH/2-2, tW, tD);
-
-  // Table top surface
-  g.fillStyle(0x1a3a60, 1);
-  g.fillRect(x-tW/2, y-tH/2, tW, tH);
-  // White border lines
-  g.lineStyle(2, 0xffffff, 0.85);
-  g.strokeRect(x-tW/2+4, y-tH/2+4, tW-8, tH-8);
-  // Center line
-  g.lineStyle(1.5, 0xffffff, 0.7);
-  g.lineBetween(x, y-tH/2+4, x, y+tH/2-4);
-  // Net
-  g.lineStyle(3, 0xffffff, 0.9);
-  g.lineBetween(x, y-tH/2-6, x, y+tH/2+6);
-  // Net posts
-  g.fillStyle(0xdddddd, 1);
-  g.fillRect(x-2, y-tH/2-8, 4, 6);
-  g.fillRect(x-2, y+tH/2+2, 4, 6);
-  // Ball
-  g.fillStyle(0xffffff, 1);
-  g.fillCircle(x-20, y-8, 4);
-  // Paddles
-  g.fillStyle(0xe84040, 1);
-  g.fillEllipse(x-tW/2-14, y, 14, 22);
-  g.fillStyle(0xcc3030, 1);
-  g.fillRect(x-tW/2-10, y+10, 5, 14);
-  g.fillStyle(0x404040, 1);
-  g.fillEllipse(x+tW/2+14, y, 14, 22);
-  g.fillStyle(0x303030, 1);
-  g.fillRect(x+tW/2+8, y+10, 5, 14);
-
-  g.setDepth(49);
-}
-
-// ─── WALL DECORATIONS ────────────────────────────────────────────
-function drawAllWallDecor(cx, cy) {
-  drawWorldMap.call(this, 3, 0, cx, cy);
-  drawBookshelf.call(this, 5.5, 0, cx, cy);
-  drawKanban.call(this, 11.5, 0, cx, cy);
-  drawMoodboard.call(this, 3.5, 5, cx, cy);
-  drawFramesWall.call(this, 10, 5, cx, cy);
-}
-
-// ─── WORLD MAP ───────────────────────────────────────────────────
-function drawWorldMap(ix, iy, cx, cy) {
-  var g = this.add.graphics();
-  var p = isoToScreen(ix, iy);
-  var x = cx+p.x, y = cy+p.y-42;
-
-  // Frame
-  g.fillStyle(0x080814, 1);
-  g.fillRoundedRect(x-52, y-46, 104, 60, 3);
-  g.lineStyle(1.5, 0x1a1a30, 1);
-  g.strokeRoundedRect(x-52, y-46, 104, 60, 3);
-
-  // Grid
-  g.lineStyle(0.5, 0x16162a, 0.9);
-  for (var gi=0; gi<6; gi++) {
-    g.lineBetween(x-48+gi*19, y-44, x-48+gi*19, y+12);
-  }
-  for (var gj=0; gj<4; gj++) {
-    g.lineBetween(x-48, y-44+gj*18, x+48, y-44+gj*18);
-  }
-
-  // Continents (dark blue-teal blobs)
-  var conts = [
-    {x:x-40, y:y-38, w:26, h:18, c:0x0d2a3a},
-    {x:x-14, y:y-40, w:14, h:22, c:0x0d1e2a},
-    {x:x+2,  y:y-36, w:22, h:20, c:0x0a1e30},
-    {x:x+26, y:y-28, w:18, h:14, c:0x0d2218},
-    {x:x-48, y:y-20, w:10, h:8,  c:0x16162a},
-    {x:x-38, y:y-18, w:14, h:16, c:0x0d1a2a},
-  ];
-  conts.forEach(function(c){
-    g.fillStyle(c.c, 1);
-    g.fillRoundedRect(c.x, c.y, c.w, c.h, 4);
-    // Continent highlight
-    g.fillStyle(0x1a3a4a, 0.3);
-    g.fillRoundedRect(c.x+2, c.y+2, c.w-4, 4, 2);
-  });
-
-  // Location pins
-  g.fillStyle(0xe8622a, 1); g.fillCircle(x-22, y-24, 4);
-  g.fillStyle(0xe8622a, 0.3); g.fillCircle(x-22, y-24, 8);
-  g.fillStyle(0x4ade80, 1); g.fillCircle(x+18, y-14, 3);
-  g.fillStyle(0x4ade80, 0.3); g.fillCircle(x+18, y-14, 6);
-
-  // Pulsing ping
-  var pingG = this.add.graphics();
-  pingG.setDepth(81);
-  this.tweens.add({
-    targets:{r:4,a:0.7}, r:16, a:0,
-    duration:2200, repeat:-1, ease:'Sine.easeOut',
-    onUpdate:function(tw,tgt){
-      pingG.clear();
-      pingG.lineStyle(1.5, 0xe8622a, tgt.a);
-      pingG.strokeCircle(x-22, y-24, tgt.r);
-    }
-  });
-
-  this.add.text(x, y+16, 'WORLD PRESENCE', {
-    fontSize:'6px', fontFamily:'Courier New', fontStyle:'bold',
-    color:'#1a1a3a', letterSpacing:1
-  }).setOrigin(0.5,0).setDepth(201);
-
-  g.setDepth(80);
-}
-
-// ─── BOOKSHELF ────────────────────────────────────────────────────
-function drawBookshelf(ix, iy, cx, cy) {
-  var g = this.add.graphics();
-  var p = isoToScreen(ix, iy);
-  var x = cx+p.x, y = cy+p.y-42;
-
-  // Shelf backing
-  g.fillStyle(0x0e0c0a, 1);
-  g.fillRoundedRect(x-36, y-52, 72, 66, 2);
-  g.lineStyle(1, 0x201810, 1);
-  g.strokeRoundedRect(x-36, y-52, 72, 66, 2);
-
-  // Shelf boards
-  var colors = [
-    0x3d2a60, 0xfbbf24, 0xf472b6, 0x60a5fa, 0x4ade80, 0xfb923c,
-    0xa78bfa, 0xe8622a, 0x34d399, 0xf87171, 0x60a5fa, 0xfbbf24,
-    0x4ade80, 0xf472b6, 0x818cf8
-  ];
-  var shelves = 3;
-  for (var sh=0; sh<shelves; sh++) {
-    var shY = y-46 + sh*20;
-    // Shelf plank
-    g.fillStyle(0x1e1810, 1);
-    g.fillRect(x-33, shY+17, 66, 3);
-    // Books
-    var booksPerShelf = 5;
-    for (var bk=0; bk<booksPerShelf; bk++) {
-      var bkColor = colors[(sh*booksPerShelf+bk) % colors.length];
-      var bW = 9 + (bk%3)*2;
-      var bX = x-32 + bk*13;
-      g.fillStyle(bkColor, 0.85);
-      g.fillRect(bX, shY, bW, 16);
-      // Book spine highlight
-      g.fillStyle(bkColor, 0.4);
-      g.fillRect(bX+1, shY+1, 2, 14);
-      // Book top
-      g.fillStyle(bkColor, 0.5);
-      g.fillRect(bX, shY-1, bW, 2);
-    }
-  }
-
-  g.setDepth(80);
-}
-
-// ─── KANBAN BOARD (TECH ROOM) ─────────────────────────────────────
-function drawKanban(ix, iy, cx, cy) {
-  var g = this.add.graphics();
-  var p = isoToScreen(ix, iy);
-  var x = cx+p.x, y = cy+p.y-44;
-
-  // Board backing
-  g.fillStyle(0x080810, 1);
-  g.fillRoundedRect(x-50, y-58, 100, 72, 3);
-  g.lineStyle(1, 0x1a1a2a, 1);
-  g.strokeRoundedRect(x-50, y-58, 100, 72, 3);
-
-  // Header
-  this.add.text(x, y-54, 'KANBAN', {
-    fontSize:'7px', fontFamily:'Courier New', fontStyle:'bold',
-    color:'#4c4c6c', letterSpacing:3
-  }).setOrigin(0.5,0).setDepth(201);
-
-  // 4 columns of sticky notes
-  var colColors = [
-    [0xfbbf24, 0xf9a8d4, 0x60a5fa],  // TODO
-    [0x4ade80, 0xfbbf24, 0xfb923c],  // IN PROGRESS
-    [0xf472b6, 0xa78bfa, 0x60a5fa],  // REVIEW
-    [0x4ade80, 0x34d399, 0x4ade80],  // DONE
-  ];
-  var colLabels = ['TODO','WIP','REV','DONE'];
-  var colLabelColors = ['#e8622a','#fbbf24','#a78bfa','#4ade80'];
-
-  colColors.forEach(function(cards, ci){
-    var colX = x - 44 + ci*24;
-    // Column background
-    g.fillStyle(0x0d0d18, 1);
-    g.fillRect(colX, y-46, 20, 58);
-    // Column label
-    this.add.text(colX+10, y-44, colLabels[ci], {
-      fontSize:'5px', fontFamily:'Courier New', fontStyle:'bold',
-      color: colLabelColors[ci], letterSpacing:1
-    }).setOrigin(0.5,0).setDepth(202);
-    // Cards
-    cards.forEach(function(cardColor, ri){
-      g.fillStyle(cardColor, 0.90);
-      g.fillRoundedRect(colX+2, y-36+ri*16, 16, 12, 1);
-      // Lines on card
-      g.fillStyle(0x000000, 0.25);
-      g.fillRect(colX+4, y-34+ri*16, 10, 1.5);
-      g.fillRect(colX+4, y-31+ri*16, 7, 1.5);
-    });
-  }, this);
-
-  g.setDepth(80);
-}
-
-// ─── MOODBOARD / GALLERY (GROWTH ROOM) ───────────────────────────
-function drawMoodboard(ix, iy, cx, cy) {
-  var g = this.add.graphics();
-  var p = isoToScreen(ix, iy);
-  var x = cx+p.x, y = cy+p.y-44;
-
-  // Cork board
-  g.fillStyle(0x0c0a10, 1);
-  g.fillRoundedRect(x-48, y-56, 96, 70, 3);
-  g.lineStyle(1, 0x1e1828, 1);
-  g.strokeRoundedRect(x-48, y-56, 96, 70, 3);
-
-  // Cork texture
-  for (var di=0; di<20; di++) {
-    g.fillStyle(0x1a1812, 0.4);
-    g.fillCircle(x-44+(di%5)*20, y-52+Math.floor(di/5)*16, 1.5);
-  }
-
-  // Colorful framed pictures and post-its
-  var artItems = [
-    {x:x-44, y:y-54, w:26, h:18, c:0x1a2a3a, type:'photo'},
-    {x:x-16, y:y-54, w:20, h:16, c:0x2a1a3a, type:'photo'},
-    {x:x+6,  y:y-52, w:22, h:20, c:0x1a3a1a, type:'photo'},
-    {x:x+30, y:y-54, w:16, h:18, c:0x2a2a1a, type:'photo'},
-    {x:x-44, y:y-34, w:18, h:14, c:0xfbbf24, type:'note',  op:0.85},
-    {x:x-24, y:y-36, w:22, h:16, c:0xf472b6, type:'note',  op:0.80},
-    {x:x+0,  y:y-32, w:20, h:14, c:0x60a5fa, type:'note',  op:0.80},
-    {x:x+22, y:y-34, w:18, h:16, c:0x4ade80, type:'note',  op:0.80},
-    {x:x-44, y:y-18, w:26, h:16, c:0xfb923c, type:'note',  op:0.75},
-    {x:x-16, y:y-18, w:20, h:14, c:0xa78bfa, type:'note',  op:0.75},
-    {x:x+6,  y:y-16, w:22, h:16, c:0xe8622a, type:'note',  op:0.80},
-    {x:x+30, y:y-18, w:16, h:14, c:0xfbbf24, type:'note',  op:0.75},
-  ];
-
-  artItems.forEach(function(it){
-    var op = it.op !== undefined ? it.op : 0.9;
-    g.fillStyle(it.c, op);
-    g.fillRoundedRect(it.x, it.y, it.w, it.h, 1);
-    if (it.type === 'photo') {
-      // Fake photo content
-      g.fillStyle(0x000000, 0.2);
-      g.fillRect(it.x+3, it.y+4, it.w-6, 3);
-      g.fillRect(it.x+3, it.y+9, it.w*0.6, 3);
-    } else {
-      // Post-it lines
-      g.fillStyle(0x000000, 0.2);
-      g.fillRect(it.x+3, it.y+4, it.w-6, 2);
-      g.fillRect(it.x+3, it.y+8, it.w-8, 2);
-    }
-    // Thumbtack
-    g.fillStyle(0xffffff, 0.9);
-    g.fillCircle(it.x+it.w/2, it.y+2, 2.5);
-    g.fillStyle(0xcccccc, 1);
-    g.fillCircle(it.x+it.w/2, it.y+2, 1.5);
-  });
-
-  // Red string connections
-  g.lineStyle(0.8, 0xc84040, 0.4);
-  g.lineBetween(x-32, y-46, x-14, y-30);
-  g.lineBetween(x+10, y-44, x+20, y-26);
-  g.lineBetween(x-8,  y-38, x-2,  y-20);
-  g.lineBetween(x+16, y-36, x+38, y-22);
-
-  this.add.text(x, y+16, 'CREATIVE BOARD', {
-    fontSize:'6px', fontFamily:'Courier New', fontStyle:'bold',
-    color:'#1e1a28', letterSpacing:2
-  }).setOrigin(0.5,0).setDepth(201);
-
-  g.setDepth(80);
-}
-
-// ─── FRAMES WALL (MEETING ROOM) ───────────────────────────────────
-function drawFramesWall(ix, iy, cx, cy) {
-  var g = this.add.graphics();
-  var p = isoToScreen(ix, iy);
-  var x = cx+p.x, y = cy+p.y-44;
-
-  var frames = [
-    {x:x-30, y:y-54, w:22, h:16, c:0x3d2a60},
-    {x:x-6,  y:y-52, w:26, h:20, c:0x1d4ed8},
-    {x:x+22, y:y-54, w:20, h:16, c:0x0a2a1a},
-    {x:x-30, y:y-36, w:18, h:18, c:0x2a1a3a},
-    {x:x-10, y:y-30, w:24, h:18, c:0x1a2a1a},
-    {x:x+16, y:y-34, w:22, h:20, c:0x3a1a10},
-  ];
-  frames.forEach(function(fr){
-    // Frame border
-    g.fillStyle(0x2a2810, 1);
-    g.fillRect(fr.x-2, fr.y-2, fr.w+4, fr.h+4);
-    // Content
-    g.fillStyle(fr.c, 0.75);
-    g.fillRect(fr.x, fr.y, fr.w, fr.h);
-    // Abstract art lines
-    g.fillStyle(0xffffff, 0.15);
-    g.fillRect(fr.x+3, fr.y+3, fr.w-6, 2);
-    g.fillRect(fr.x+3, fr.y+7, fr.w*0.6, 2);
-    g.fillRect(fr.x+3, fr.y+11, fr.w*0.4, 2);
-  });
-  g.setDepth(80);
-}
-
-// ─── PLANTS ──────────────────────────────────────────────────────
-function drawAllPlants(cx, cy) {
-  var g = this.add.graphics();
-  g.setDepth(55);
-  var plantPos = [
-    {ix:0, iy:0}, {ix:7, iy:0}, {ix:13, iy:2}, {ix:14, iy:9},
-    {ix:-3, iy:4}, {ix:0, iy:10}, {ix:11, iy:10},
-    {ix:6, iy:14}, {ix:19, iy:2},
-  ];
-  plantPos.forEach(function(pp){
-    drawPlant(g, pp.ix, pp.iy, cx, cy);
-  });
-}
-
-function drawPlant(g, ix, iy, cx, cy) {
-  var p = isoToScreen(ix, iy);
-  var x = cx+p.x, y = cy+p.y;
-
-  g.fillStyle(0x2a1208, 1); g.fillRoundedRect(x-8, y-4, 16, 16, 2);
-  g.fillStyle(0x1a0a06, 1); g.fillRect(x-9, y+4, 18, 8);
-  g.fillStyle(0x3a1a0a, 1); g.fillRect(x-7, y-2, 14, 6);
-  g.fillStyle(0x1a0e06, 1); g.fillEllipse(x, y-3, 14, 6);
-
-  g.fillStyle(0x1a4a1a, 1); g.fillCircle(x, y-20, 13);
-  g.fillStyle(0x0e3a0e, 1); g.fillCircle(x-10, y-13, 8);
-  g.fillStyle(0x0e3a0e, 1); g.fillCircle(x+10, y-13, 8);
-  g.fillStyle(0x286a28, 0.8); g.fillCircle(x, y-28, 9);
-  g.fillStyle(0x286a28, 0.6); g.fillCircle(x-7, y-26, 5);
-  g.fillStyle(0x286a28, 0.6); g.fillCircle(x+7, y-26, 5);
-  g.fillStyle(0x3a8a3a, 0.3); g.fillCircle(x-4, y-24, 5);
-}
-
-// ─── LAMPS (floor standing + warm glow circles) ───────────────────
-function drawAllLamps(cx, cy) {
-  var lampDefs = [
-    // Strategy room
-    {ix:1,   iy:1,   glow:80},
-    {ix:4.5, iy:3.5, glow:80},
-    // Tech room
-    {ix:12,  iy:1,   glow:70},
-    // Growth room
-    {ix:1,   iy:6,   glow:70},
-    {ix:5.5, iy:9,   glow:70},
-    // Reception
-    {ix:-2,  iy:5,   glow:60},
-    // Lounge
-    {ix:1,   iy:14,  glow:80},
-    // Meeting room lamp (done via table)
-  ];
-
-  var g = this.add.graphics();
-  g.setDepth(45);
-
-  lampDefs.forEach(function(lamp){
-    var lp = isoToScreen(lamp.ix, lamp.iy);
-    var lx = cx + lp.x;
-    var ly = cy + lp.y;
-
-    // Large soft floor glow circle (on floor level)
-    g.fillStyle(0xc8882a, 0.10);
-    g.fillCircle(lx, ly+8, lamp.glow);
-    g.fillStyle(0xc8882a, 0.20);
-    g.fillCircle(lx, ly+8, lamp.glow*0.4);
-    g.fillStyle(0xc8882a, 0.30);
-    g.fillCircle(lx, ly+8, lamp.glow*0.15);
-
-    // Lamp post
-    g.fillStyle(0x1e1610, 1);
-    g.fillRect(lx-3, ly-54, 6, 54);
-
-    // Lamp base
-    g.fillStyle(0x2a2010, 1);
-    g.fillEllipse(lx, ly+2, 18, 7);
-
-    // Lamp head / shade
-    g.fillStyle(0x362a10, 1);
-    g.fillEllipse(lx, ly-52, 28, 14);
-    g.fillStyle(0xc8882a, 1);
-    g.fillEllipse(lx, ly-56, 22, 9);
-    g.fillStyle(0xffd06a, 0.7);
-    g.fillEllipse(lx, ly-56, 10, 4);
-
-    // Animated point light for dynamic glow
-    var pl = phaserScene.add.pointlight(lx, ly-50, 0xc8882a, lamp.glow*1.4, 0.4, 0.04);
-    pl.setDepth(46);
-  });
-}
-
-// ─── DRAW CHARACTER FRAME ─────────────────────────────────────────
-function drawCharacterFrame(g, agentDef, frameType, frameIndex) {
-  var S = 2.5;
-  var W = Math.round(9*S);
-  var H = Math.round(22*S);
-
-  var bobY = (frameType==='idle' && frameIndex%2===1) ? 1 : 0;
-  var armFwd = (frameType==='type') ? 2.5 : 0;
-  var leftLegY  = (frameType==='walk') ? (frameIndex%2===0 ? -2.5 : 2.5) : 0;
-  var rightLegY = (frameType==='walk') ? (frameIndex%2===0 ? 2.5 : -2.5) : 0;
-
-  g.clear();
-
-  // Shadow
-  g.fillStyle(0x000000, 0.22);
-  g.fillEllipse(W/2, H+4, W*1.3, 5);
-
-  // Shoes
-  g.fillStyle(0x0a0a0a, 1);
-  g.fillRoundedRect(W/2-3.5*S, H-1.5*S+bobY+leftLegY,  3.5*S, 2*S, 1);
-  g.fillRoundedRect(W/2+0.2*S, H-1.5*S+bobY+rightLegY, 3.5*S, 2*S, 1);
-
-  // Legs
-  g.fillStyle(0x111111, 1);
-  g.fillRect(W/2-3*S,   H-6*S+bobY, 2.5*S, 5*S+leftLegY);
-  g.fillRect(W/2+0.5*S, H-6*S+bobY, 2.5*S, 5*S+rightLegY);
-
-  // Body
-  g.fillStyle(agentDef.clothColor, 1);
-  g.fillRoundedRect(W/2-3.5*S, H-14*S+bobY, 7*S, 8.5*S, 1);
-
-  // Shirt collar
-  var lighter = Phaser.Display.Color.IntegerToColor(agentDef.clothColor).lighten(22).color;
-  g.fillStyle(lighter, 1);
-  g.fillRect(W/2-1*S, H-14*S+bobY, 2*S, 5*S);
-
-  // Left arm
-  g.fillStyle(agentDef.clothColor, 1);
-  g.fillRoundedRect(W/2-5.8*S, H-13.5*S+bobY, 2.5*S, 5.5*S+armFwd, 1);
-  // Right arm
-  g.fillRoundedRect(W/2+3.2*S, H-13.5*S+bobY, 2.5*S, 5.5*S+armFwd, 1);
-
-  // Hands
-  g.fillStyle(agentDef.skinColor, 1);
-  g.fillRect(W/2-5.5*S, H-7.5*S+bobY+armFwd, 2.2*S, 1.8*S);
-  g.fillRect(W/2+3.4*S, H-7.5*S+bobY+armFwd, 2.2*S, 1.8*S);
-
-  // Neck
-  g.fillStyle(agentDef.skinColor, 1);
-  g.fillRect(W/2-1.2*S, H-15.5*S+bobY, 2.4*S, 2*S);
-
-  // Head
-  g.fillStyle(agentDef.skinColor, 1);
-  g.fillRoundedRect(W/2-3.5*S, H-23.5*S+bobY, 7*S, 8.5*S, 2);
-
-  // Eyes white
-  g.fillStyle(0xffffff, 1);
-  g.fillRect(W/2-2.5*S, H-20*S+bobY, 2*S, 1.6*S);
-  g.fillRect(W/2+0.5*S, H-20*S+bobY, 2*S, 1.6*S);
-  // Pupils
-  g.fillStyle(0x111111, 1);
-  g.fillRect(W/2-1.8*S, H-20*S+bobY, 1*S, 1.6*S);
-  g.fillRect(W/2+1.0*S, H-20*S+bobY, 1*S, 1.6*S);
-  // Mouth
-  g.fillStyle(0x6a3a1a, 0.55);
-  g.fillRect(W/2-1.1*S, H-17.5*S+bobY, 2.2*S, 0.9*S);
-
-  // Hair
-  g.fillStyle(agentDef.hairColor, 1);
-  var hs = agentDef.hairStyle;
-  if (hs==='straight'||hs==='wavy') {
-    g.fillRoundedRect(W/2-3.5*S, H-25*S+bobY, 7*S, 4*S, 2);
-    g.fillRect(W/2-3.5*S, H-22.5*S+bobY, 1.5*S, 2.5*S);
-    g.fillRect(W/2+2*S, H-22.5*S+bobY, 1.5*S, 2.5*S);
-    if (hs==='wavy') {
-      g.fillCircle(W/2-1.5*S, H-25.5*S+bobY, 1.6*S);
-      g.fillCircle(W/2+1.5*S, H-25.5*S+bobY, 1.6*S);
-    }
-  } else if (hs==='afro') {
-    g.fillCircle(W/2, H-23*S+bobY, 5*S);
-    g.fillCircle(W/2-4*S, H-22*S+bobY, 3.2*S);
-    g.fillCircle(W/2+4*S, H-22*S+bobY, 3.2*S);
-    g.fillCircle(W/2, H-27*S+bobY, 3.2*S);
-  } else if (hs==='afro-short') {
-    g.fillRoundedRect(W/2-3.8*S, H-25.5*S+bobY, 7.6*S, 5.5*S, 2.5);
-    g.fillCircle(W/2-3*S, H-23.5*S+bobY, 2.2*S);
-    g.fillCircle(W/2+3*S, H-23.5*S+bobY, 2.2*S);
-    g.fillCircle(W/2, H-26.5*S+bobY, 2.5*S);
-  } else if (hs==='messy') {
-    g.fillRect(W/2-3.5*S, H-24.5*S+bobY, 7*S, 3.8*S);
-    for (var sp=0; sp<5; sp++) {
-      g.fillTriangle(
-        W/2-3*S+sp*1.5*S, H-24.5*S+bobY,
-        W/2-2.5*S+sp*1.5*S, H-27.5*S+bobY,
-        W/2-2*S+sp*1.5*S, H-24.5*S+bobY
-      );
-    }
-    g.fillCircle(W/2-3.5*S, H-23*S+bobY, 1.5*S);
-  } else if (hs==='long') {
-    g.fillRoundedRect(W/2-3.5*S, H-25.5*S+bobY, 7*S, 4.5*S, 2);
-    g.fillRoundedRect(W/2-5.2*S, H-24*S+bobY, 2.2*S, 12*S, 1);
-    g.fillRoundedRect(W/2+3*S, H-24*S+bobY, 2.2*S, 12*S, 1);
-    g.fillCircle(W/2-4.2*S, H-13*S+bobY, 2*S);
-    g.fillCircle(W/2+4.2*S, H-13*S+bobY, 2*S);
-  } else if (hs==='bald') {
-    g.fillStyle(agentDef.hairColor, 0.45);
-    g.fillRoundedRect(W/2-3*S, H-25*S+bobY, 6*S, 2*S, 1);
-  }
-
-  // Status dot
-  var dotColor = agentDef.status==='working' ? 0xe8622a : (agentDef.status==='online' ? 0x4ade80 : 0x3f3f5f);
-  g.fillStyle(dotColor, 1);
-  g.fillCircle(W/2, H-27*S+bobY, 2.5);
-}
-
-// ─── CREATE AGENT SPRITES ─────────────────────────────────────────
-function createAgentSprites(cx, cy) {
-  var self = this;
-  AGENTS.forEach(function(agentDef){
-    var deskPos = (DESK_POSITIONS[agentDef.room]||[])[agentDef.deskIndex] || {ix:5,iy:5};
-    var sp = isoToScreen(deskPos.ix, deskPos.iy);
-    var startX = cx+sp.x, startY = cy+sp.y-28;
-
-    var charG = self.add.graphics();
-    drawCharacterFrame(charG, agentDef, 'idle', 0);
-
-    var nameLabel = self.add.text(0, 0, agentDef.id, {
-      fontSize:'8px', fontFamily:'Courier New', fontStyle:'bold',
-      color:'#'+agentDef.clothColor.toString(16).padStart(6,'0'),
-      stroke:'#000000', strokeThickness:3,
-    }).setOrigin(0.5, 1);
-
-    var S = 2.5;
-    var halfW = Math.round(9*S)/2;
-    var charH  = Math.round(22*S);
-    charG.setPosition(-halfW, -charH);
-    nameLabel.setPosition(0, -charH-4);
-
-    var container = self.add.container(startX, startY, [charG, nameLabel]);
-    container.setDepth(200);
-
-    agentSprites[agentDef.id] = container;
-    agentStates[agentDef.id] = {
-      agentDef:   agentDef,
-      container:  container,
-      charG:      charG,
-      nameLabel:  nameLabel,
-      frameIndex: 0,
-      homeX:      startX,
-      homeY:      startY,
-      isAtHome:   true,
-      walkTween:  null,
-    };
-
-    startIdleAnim.call(self, agentDef.id);
-
-    // Click to open modal
-    container.setInteractive(new Phaser.Geom.Rectangle(-halfW, -charH-4, halfW*2, charH+4), Phaser.Geom.Rectangle.Contains);
-    container.on('pointerdown', function(){ openModal(agentDef.id); });
-    container.on('pointerover', function(){ container.setScale(1.08); });
-    container.on('pointerout',  function(){ container.setScale(1); });
-  });
-}
-
-function startIdleAnim(agentId) {
-  var state = agentStates[agentId];
-  if (!state) return;
-  var bobAmt = (state.agentDef.status==='working') ? 1.5 : 0.7;
-  var bobDur = (state.agentDef.status==='working') ? 280 : 2500;
-  this.tweens.add({
-    targets: state.container,
-    y: state.container.y + bobAmt,
-    duration: bobDur, yoyo:true, repeat:-1, ease:'Sine.easeInOut'
-  });
-}
-
-// ─── BEHAVIORS ────────────────────────────────────────────────────
-function setupBehaviors() {
-  var self = this;
-
-  // Redraw character frames at ~5fps
-  self.time.addEvent({
-    delay: 200,
-    callback: function(){
-      AGENTS.forEach(function(a){
-        var state = agentStates[a.id];
-        if (!state) return;
-        state.frameIndex = (state.frameIndex+1) % 4;
-        var ft = (a.status==='working') ? 'type' : (state.walkTween ? 'walk' : 'idle');
-        drawCharacterFrame(state.charG, state.agentDef, ft, state.frameIndex);
-      });
-    },
-    loop: true
-  });
-
-  // Idle agents occasionally walk to kitchen/lounge
-  self.time.addEvent({
-    delay: 10000,
-    callback: function(){
-      AGENTS.forEach(function(a){
-        var state = agentStates[a.id];
-        if (!state || a.status!=='idle' || !state.isAtHome) return;
-        if (Math.random() < 0.3) walkToPoint.call(self, a.id);
-      });
-    },
-    loop: true
-  });
-}
-
-function walkToPoint(agentId) {
-  var state = agentStates[agentId];
-  if (!state || state.walkTween) return;
-
-  var W = phaserScene.scale.width, H = phaserScene.scale.height;
-  var cx = W/2-20, cy = H/2-60;
-  var destinations = [{ix:16,iy:4},{ix:3,iy:12},{ix:15,iy:4}];
-  var dest = destinations[Math.floor(Math.random()*destinations.length)];
-  var dp = isoToScreen(dest.ix, dest.iy);
-  var tx = cx+dp.x, ty = cy+dp.y-28;
-
-  state.isAtHome = false;
-  var self = phaserScene;
-  state.walkTween = self.tweens.add({
-    targets: state.container, x:tx, y:ty,
-    duration: 2800+Math.random()*1000, ease:'Linear',
-    onComplete: function(){
-      self.time.delayedCall(2500+Math.random()*2500, function(){
-        if (!state.container.active) return;
-        state.walkTween = self.tweens.add({
-          targets: state.container, x:state.homeX, y:state.homeY,
-          duration: 2800, ease:'Linear',
-          onComplete: function(){ state.isAtHome=true; state.walkTween=null; }
-        });
-      });
-    }
-  });
-}
-
-// ─── SPEECH BUBBLES ───────────────────────────────────────────────
-function showSpeechBubble(agentId, text) {
-  var state = agentStates[agentId];
-  if (!state) return;
-
-  // Remove existing bubble for this agent
-  bubbleList = bubbleList.filter(function(b){
-    if (b.agentId===agentId) { if(b.bubble&&b.bubble.active) b.bubble.destroy(); return false; }
-    return true;
-  });
-
-  var truncated = text.length>32 ? text.slice(0,32)+'…' : text;
-  var bW = Math.max(78, truncated.length*5.6+18);
-  var bH = 26;
-
-  var bg = phaserScene.add.graphics();
-  bg.fillStyle(0x1a1828, 0.96);
-  bg.fillRoundedRect(-bW/2, -bH, bW, bH, 4);
-  bg.lineStyle(1, 0x3a3860, 0.9);
-  bg.strokeRoundedRect(-bW/2, -bH, bW, bH, 4);
-  bg.fillStyle(0x1a1828, 0.96);
-  bg.fillTriangle(-5,0, 5,0, 0,9);
-
-  var txt = phaserScene.add.text(0, -bH/2-1, truncated, {
-    fontSize:'8px', fontFamily:'Courier New', color:'#e0e0f0', align:'center'
-  }).setOrigin(0.5, 0.5);
-
-  var S = 2.5;
-  var charH = Math.round(22*S);
-  var bub = phaserScene.add.container(state.container.x, state.container.y-70, [bg, txt]);
-  bub.setDepth(500);
-
-  // Fade in
-  bub.setAlpha(0);
-  phaserScene.tweens.add({ targets:bub, alpha:1, duration:180, ease:'Linear' });
-
-  // Auto destroy after 3.5s
-  phaserScene.time.delayedCall(3500, function(){
-    if (!bub.active) return;
-    phaserScene.tweens.add({
-      targets:bub, alpha:0, duration:300, ease:'Linear',
-      onComplete: function(){ if(bub.active) bub.destroy(); }
-    });
-    bubbleList = bubbleList.filter(function(b){ return b.agentId!==agentId; });
-  });
-
-  bubbleList.push({ agentId:agentId, sprite:state.container, bubble:bub });
-}
-
-// ─── SIMULATION ───────────────────────────────────────────────────
-function startSimulation() {
-  var self = this;
-
-  // Occasional speech bubbles
-  self.time.addEvent({
-    delay: 4500,
-    callback: function(){
-      var a = AGENTS[Math.floor(Math.random()*AGENTS.length)];
-      var lines = SPEECH[a.id];
-      if (lines && lines.length) {
-        showSpeechBubble(a.id, lines[Math.floor(Math.random()*lines.length)]);
-      }
-    },
-    loop: true
-  });
-
-  // Cycle task text every 20s
-  self.time.addEvent({
-    delay: 20000,
-    callback: function(){
-      AGENTS.forEach(function(a){
-        if (a.status==='working') {
-          var tasks = TASKS[a.id];
-          if (tasks && tasks.length) {
-            a.task = tasks[Math.floor(Math.random()*tasks.length)];
-          }
-          a.progress = Math.min(100, a.progress + Math.floor(Math.random()*8));
-        }
-      });
-      renderAgentList();
-    },
-    loop: true
-  });
-}
-
+function closeModal(){document.getElementById('modal').classList.remove('open')}
+document.getElementById('modal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal()})
+setInterval(()=>document.getElementById('clock').textContent=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'}),1000)
+document.getElementById('clock').textContent=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'})
+renderAll();renderTicker();requestAnimationFrame(render);setTimeout(simTick,3000)
 </script>
 </body>
 </html>
