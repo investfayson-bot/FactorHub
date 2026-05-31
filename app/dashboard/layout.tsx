@@ -37,9 +37,9 @@ const NAV: { label: string; items: NavItem[] }[] = [
 const TITLES: Record<string, string> = {
   '/dashboard': 'Dashboard',
   '/dashboard/agentes': 'Agentes IA',
-  '/dashboard/chat': 'Chat com Agentes',
   '/dashboard/tarefas': 'Tarefas',
-  '/dashboard/cerebro': 'Cerebro — Rede Neural',
+  '/dashboard/cerebro': 'Cerebro — Identidade da Empresa',
+  '/dashboard/chat': 'Chat com Agentes',
   '/dashboard/uso': 'Consumo',
   '/dashboard/projetos': 'Projetos',
   '/dashboard/ideias': 'Ideias',
