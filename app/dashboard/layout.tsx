@@ -10,6 +10,7 @@ import dynamic from 'next/dynamic'
 import { MissionProvider, useMission } from './mission-context'
 
 const TerminalModal = dynamic(() => import('@/components/layout/TerminalModal'), { ssr: false })
+const LiveMonitor = dynamic(() => import('@/components/layout/LiveMonitor'), { ssr: false })
 
 type NavItem = {
   href: string
@@ -78,6 +79,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [terminalOpen, setTerminalOpen] = useState(false)
+  const [liveOpen, setLiveOpen] = useState(false)
   const [cerebroPct, setCerebroPct] = useState(0)
 
   useEffect(() => {
@@ -229,7 +231,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
               padding: '5px 12px', borderRadius: 6,
-              background: 'var(--accent)', color: '#fff',
+              background: 'var(--accent)', color: 'var(--bg)',
               textDecoration: 'none', fontSize: 11, fontWeight: 700,
               letterSpacing: '0.03em',
             }}
@@ -252,7 +254,13 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
             <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 4px', borderRadius: 3, background: 'var(--surface-3)', color: 'var(--text-dim)' }}>⌘K</span>
           </button>
 
-          <div className="live-badge"><div className="live-dot" />LIVE</div>
+          <button
+            onClick={() => setLiveOpen(v => !v)}
+            className="live-badge"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}
+          >
+            <div className="live-dot" />LIVE
+          </button>
           <div className="topbar-av" onClick={sair} title="Sair">{initials}</div>
         </div>
 
@@ -278,12 +286,13 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
       </div>
 
       <TerminalModal open={terminalOpen} onClose={() => setTerminalOpen(false)} />
-      <MissionFloatingBar pathname={pathname} />
+      <LiveMonitor open={liveOpen} onClose={() => setLiveOpen(false)} />
+      <MissionFloatingBar pathname={pathname} onOpenLive={() => setLiveOpen(true)} />
     </div>
   )
 }
 
-function MissionFloatingBar({ pathname }: { pathname: string }) {
+function MissionFloatingBar({ pathname, onOpenLive }: { pathname: string; onOpenLive: () => void }) {
   const { state, currentAgentId, phases, selectedLevel } = useMission()
   if (state !== 'running' || pathname === '/dashboard/missoes') return null
 
@@ -292,27 +301,28 @@ function MissionFloatingBar({ pathname }: { pathname: string }) {
   const total = phases.flatMap(p => p.agents).length
 
   return (
-    <Link href="/dashboard/missoes" style={{ textDecoration: 'none' }}>
-      <div style={{
-        position: 'fixed', bottom: 20, right: 20, zIndex: 999,
-        background: 'var(--surface)', border: '1px solid var(--accent)',
+    <div
+      onClick={onOpenLive}
+      style={{
+        position: 'fixed', bottom: 20, right: 20, zIndex: 900,
+        background: 'var(--surface)', border: '1px solid var(--border-light)',
         borderRadius: 12, padding: '10px 16px',
         display: 'flex', alignItems: 'center', gap: 10,
-        boxShadow: '0 4px 24px rgba(232,98,42,.25)',
+        boxShadow: '0 4px 32px rgba(0,0,0,.6)',
         cursor: 'pointer', minWidth: 240,
-      }}>
-        <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', animation: 'pulse 1s infinite' }} />
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)' }}>
-            Missão {selectedLevel} em andamento
-          </div>
-          <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 2 }}>
-            {runningAgent ? `${runningAgent.agentName} pensando…` : 'Inicializando…'} · {done}/{total} agentes
-          </div>
+      }}
+    >
+      <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', animation: 'pulse 1s infinite' }} />
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text)' }}>
+          Missão {selectedLevel} em andamento
         </div>
-        <i className="fa-solid fa-arrow-right" style={{ fontSize: 10, color: 'var(--muted)' }} />
+        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>
+          {runningAgent ? `${runningAgent.agentName} pensando…` : 'Inicializando…'} · {done}/{total} agentes
+        </div>
       </div>
-    </Link>
+      <i className="fa-solid fa-arrow-up-right-from-square" style={{ fontSize: 10, color: 'var(--text-muted)' }} />
+    </div>
   )
 }
 
