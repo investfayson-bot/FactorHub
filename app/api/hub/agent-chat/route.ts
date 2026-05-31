@@ -30,6 +30,10 @@ export async function POST(req: NextRequest) {
     agent.systemPrompt,
   ].filter(Boolean).join('\n\n')
 
+  const model = agent.layer === 'C1'
+    ? (process.env.MODEL_C1 || 'anthropic/claude-sonnet-4-5')
+    : (process.env.MODEL_DEFAULT || 'anthropic/claude-haiku-4-5')
+
   const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -39,7 +43,7 @@ export async function POST(req: NextRequest) {
       'X-Title': 'FactorHub OS',
     },
     body: JSON.stringify({
-      model: process.env.OPENROUTER_MODEL || 'openai/gpt-4o-mini',
+      model,
       stream: true,
       max_tokens: agent.maxTokens,
       messages: [{ role: 'system', content: systemPrompt }, ...messages],

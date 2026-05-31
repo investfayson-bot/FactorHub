@@ -36,9 +36,17 @@ const DEFAULTS: Settings = {
 const MODELS = [
   { value: 'openai/gpt-4o-mini', label: 'GPT-4o Mini — Rápido e econômico' },
   { value: 'openai/gpt-4o', label: 'GPT-4o — Mais capaz' },
+  { value: 'anthropic/claude-haiku-4-5', label: 'Claude Haiku 4.5 — Ultra-rápido, baixo custo' },
+  { value: 'anthropic/claude-sonnet-4-5', label: 'Claude Sonnet 4.5 — Análises complexas' },
   { value: 'anthropic/claude-sonnet-4-6', label: 'Claude Sonnet 4.6 — Análises complexas' },
   { value: 'anthropic/claude-opus-4-6', label: 'Claude Opus 4.6 — Máxima capacidade' },
 ]
+
+const SAVINGS_ESTIMATE = {
+  cache: '30–40%',
+  layerModel: '50–60%',
+  historyCompression: '20–30%',
+}
 
 function Toggle({ value, onChange, disabled }: { value: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   return (
@@ -206,6 +214,44 @@ export default function ConfiguracoesPage() {
               <option key={m.value} value={m.value}>{m.label}</option>
             ))}
           </select>
+        </Row>
+      </Section>
+
+      {/* Redução de Custo */}
+      <Section title="Redução de Custo de IA">
+        <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)' }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>Estratégias Ativas</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {[
+              { label: 'Cache de respostas (24h)', desc: `Economia estimada: ${SAVINGS_ESTIMATE.cache}`, active: true, color: '#22c55e' },
+              { label: 'Modelo por camada', desc: `C1 → Sonnet · C2/C3/C4/CA → Haiku · Economia: ${SAVINGS_ESTIMATE.layerModel}`, active: true, color: '#22c55e' },
+              { label: 'Histórico comprimido', desc: `Últimas 5 mensagens no contexto · Economia: ${SAVINGS_ESTIMATE.historyCompression}`, active: true, color: '#22c55e' },
+            ].map(s => (
+              <div key={s.label} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                <div style={{ width: 18, height: 18, borderRadius: '50%', background: `${s.color}15`, border: `1px solid ${s.color}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+                  <i className="fa-solid fa-check" style={{ fontSize: 7, color: s.color }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>{s.label}</div>
+                  <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 1 }}>{s.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <Row label="Modelo C1 — Conselho" description="CEO, COO, CFO, CMO — decisões estratégicas">
+          <select
+            value={settings.defaultModel}
+            onChange={e => update('defaultModel', e.target.value)}
+            style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 6, padding: '5px 10px', color: 'var(--text)', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer', outline: 'none', maxWidth: 240 }}
+          >
+            {MODELS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+          </select>
+        </Row>
+        <Row label="Modelo Padrão — C2/C3/C4" description="Pesquisa, Diretores, Especialistas">
+          <div style={{ padding: '4px 10px', borderRadius: 6, background: 'var(--surface-3)', fontSize: 12, color: 'var(--text-muted)' }}>
+            Claude Haiku 4.5 (configurado no servidor)
+          </div>
         </Row>
       </Section>
 

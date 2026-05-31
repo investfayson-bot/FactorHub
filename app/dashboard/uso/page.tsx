@@ -32,9 +32,23 @@ async function getToken() {
   return sess.session?.access_token ?? ''
 }
 
+type DayStat = { day: string; cost: number; missions: number }
+type ThresholdCfg = { alerts: boolean; value: number }
+
 export default function UsoPage() {
   const [missions, setMissions] = useState<Mission[]>([])
   const [loading, setLoading] = useState(true)
+  const [threshold, setThreshold] = useState<ThresholdCfg>({ alerts: false, value: 10 })
+
+  useEffect(() => {
+    const stored = localStorage.getItem('fh_settings')
+    if (stored) {
+      try {
+        const s = JSON.parse(stored) as { costAlerts?: boolean; costThreshold?: number }
+        setThreshold({ alerts: s.costAlerts ?? false, value: s.costThreshold ?? 10 })
+      } catch { /* ignore */ }
+    }
+  }, [])
 
   useEffect(() => {
     void (async () => {
@@ -82,8 +96,46 @@ export default function UsoPage() {
 
   const maxMissions = Math.max(...agentStats.map(s => s.missions), 1)
 
+  // Monthly projection
+  const today = new Date()
+  const dayOfMonth = today.getDate()
+  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate()
+  const thisMonthMissions = missions.filter(m => {
+    const d = new Date(m.created_at)
+    return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear()
+  })
+  const thisMonthCost = thisMonthMissions.reduce((s, m) => s + Number(m.cost_usd ?? 0), 0)
+  const projectedMonthly = dayOfMonth > 0 ? (thisMonthCost / dayOfMonth) * daysInMonth : 0
+  const todayCost = missions.filter(m => {
+    const d = new Date(m.created_at)
+    return d.toDateString() === today.toDateString()
+  }).reduce((s, m) => s + Number(m.cost_usd ?? 0), 0)
+
+  // Daily stats for last 14 days
+  const dayStats: DayStat[] = Array.from({ length: 14 }, (_, i) => {
+    const d = new Date(); d.setDate(d.getDate() - (13 - i))
+    const key = d.toDateString()
+    const dm = missions.filter(m => new Date(m.created_at).toDateString() === key)
+    return { day: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }), cost: dm.reduce((s, m) => s + Number(m.cost_usd ?? 0), 0), missions: dm.length }
+  })
+  const maxDayCost = Math.max(...dayStats.map(d => d.cost), 0.0001)
+
+  const thresholdExceeded = threshold.alerts && todayCost > threshold.value
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+      {/* Threshold alert */}
+      {thresholdExceeded && (
+        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+          style={{ padding: '10px 16px', borderRadius: 10, background: 'rgba(239,68,68,.08)', border: '1px solid rgba(239,68,68,.25)', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <i className="fa-solid fa-triangle-exclamation" style={{ color: '#ef4444', fontSize: 13 }} />
+          <span style={{ fontSize: 12, color: '#ef4444', fontWeight: 600 }}>
+            Alerta de custo: ${todayCost.toFixed(4)} hoje (limite: ${threshold.value})
+          </span>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 'auto' }}>Verifique Configurações → Alertas</span>
+        </motion.div>
+      )}
 
       {/* KPIs */}
       <motion.div
@@ -110,6 +162,51 @@ export default function UsoPage() {
           </motion.div>
         ))}
       </motion.div>
+
+      {/* Monthly projection + daily chart */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 12 }}>
+        {/* Projection card */}
+        <motion.div className="card" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} style={{ padding: '16px 18px' }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 12 }}>Projeção Mensal</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {[
+              { label: 'Hoje', value: `$${todayCost.toFixed(4)}`, color: todayCost > 0 ? '#f59e0b' : 'var(--text-muted)' },
+              { label: `Este mês (${dayOfMonth}d)`, value: `$${thisMonthCost.toFixed(4)}`, color: 'var(--text)' },
+              { label: `Projeção (${daysInMonth}d)`, value: `$${projectedMonthly.toFixed(4)}`, color: projectedMonthly > threshold.value ? '#ef4444' : '#22c55e' },
+            ].map(r => (
+              <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{r.label}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: r.color, fontFamily: "'DM Mono',monospace" }}>{r.value}</span>
+              </div>
+            ))}
+            <div style={{ marginTop: 4, height: 3, borderRadius: 2, background: 'var(--surface-3)', overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${Math.min((dayOfMonth / daysInMonth) * 100, 100)}%`, background: 'var(--accent)', borderRadius: 2 }} />
+            </div>
+            <div style={{ fontSize: 9, color: 'var(--text-dim)', textAlign: 'right' }}>{Math.round((dayOfMonth / daysInMonth) * 100)}% do mês</div>
+          </div>
+        </motion.div>
+
+        {/* Daily cost chart */}
+        <motion.div className="card" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} style={{ padding: '16px 18px' }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 12 }}>Custo por Dia — últimos 14 dias</div>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 64 }}>
+            {dayStats.map((d, i) => {
+              const pct = (d.cost / maxDayCost) * 100
+              const isToday = i === 13
+              return (
+                <div key={d.day} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, height: '100%', justifyContent: 'flex-end' }}
+                  title={`${d.day}: $${d.cost.toFixed(4)} · ${d.missions} missão${d.missions !== 1 ? 'ões' : ''}`}>
+                  <div style={{ width: '100%', height: `${Math.max(pct, 2)}%`, background: isToday ? '#e8622a' : d.cost > 0 ? 'var(--accent)' : 'var(--surface-3)', borderRadius: '3px 3px 0 0', opacity: isToday ? 1 : 0.7, transition: 'height .3s', minHeight: d.cost > 0 ? 3 : 0 }} />
+                </div>
+              )
+            })}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 5 }}>
+            <span style={{ fontSize: 9, color: 'var(--text-dim)' }}>{dayStats[0].day}</span>
+            <span style={{ fontSize: 9, color: '#e8622a', fontWeight: 700 }}>hoje</span>
+          </div>
+        </motion.div>
+      </div>
 
       {/* Usage by Level */}
       {levelStats.length > 0 && (

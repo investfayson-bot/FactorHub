@@ -3,7 +3,10 @@ import { getSupabaseUser } from '@/lib/supabase-route'
 import { AGENTS_V2, MISSION_LEVELS, getAgentV2 } from '@/lib/agents-v2'
 import { getCerebroContext, buildSystemPrompt, buildHandoffContext } from '@/lib/cerebro'
 
-const MODEL = process.env.OPENROUTER_MODEL || 'openai/gpt-4o-mini'
+function getModelForLayer(layer: string): string {
+  if (layer === 'C1') return process.env.MODEL_C1 || 'anthropic/claude-sonnet-4-5'
+  return process.env.MODEL_DEFAULT || 'anthropic/claude-haiku-4-5'
+}
 
 export const runtime = 'nodejs'
 export const maxDuration = 300
@@ -21,6 +24,7 @@ async function callOpenRouter(
   systemPrompt: string,
   userMessage: string,
   maxTokens: number,
+  model: string,
   onToken: (t: string) => void
 ): Promise<{ text: string; tokens: number }> {
   const apiKey = process.env.OPENROUTER_API_KEY
@@ -35,7 +39,7 @@ async function callOpenRouter(
       'HTTP-Referer': 'https://factor-hub.vercel.app',
     },
     body: JSON.stringify({
-      model: MODEL,
+      model,
       max_tokens: maxTokens,
       stream: true,
       messages: [
@@ -188,6 +192,7 @@ export async function POST(req: NextRequest) {
               systemPrompt,
               userMessage,
               agent.maxTokens,
+              getModelForLayer(agent.layer),
               (token) => {
                 agentOutput += token
                 send(controller, 'token', { agentId, token })
