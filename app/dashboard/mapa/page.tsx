@@ -1,405 +1,467 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import { motion } from 'framer-motion'
-import { PixelAgent, PixelMonitor } from '@/components/ui/pixel-agent'
-import { AGENTES } from '@/lib/hub-agentes'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { AGENTES, type Agente } from '@/lib/hub-agentes'
 
-// ─────────────────────────────────────────────────────────
-// Floor plan layout  (container: 760 × 390 px)
-// ─────────────────────────────────────────────────────────
+// ─── Static data ──────────────────────────────────────────────────
 
-type RoomKey = 'ceo' | 'pm' | 'cmo' | 'copy' | 'analista' | 'dev' | 'content' | 'chief' | 'meeting'
-
-const ROOM_W = 190
-const ROOM_H = 160
-const HALL_Y = ROOM_H          // 160
-const HALL_H = 70
-const BOTTOM_Y = HALL_Y + HALL_H  // 230
-const FLOOR_W = ROOM_W * 4    // 760
-const FLOOR_H = BOTTOM_Y + ROOM_H // 390
-
-const ROOMS: Record<RoomKey, { label: string; x: number; y: number; w: number; h: number }> = {
-  ceo:      { label: 'CEO',       x:          0, y:         0, w: ROOM_W, h: ROOM_H },
-  pm:       { label: 'PM',        x:     ROOM_W, y:         0, w: ROOM_W, h: ROOM_H },
-  cmo:      { label: 'CMO',       x: ROOM_W * 2, y:         0, w: ROOM_W, h: ROOM_H },
-  copy:     { label: 'Copy',      x: ROOM_W * 3, y:         0, w: ROOM_W, h: ROOM_H },
-  meeting:  { label: 'Reunião',   x:      ROOM_W, y: HALL_Y + 8, w: ROOM_W * 2, h: HALL_H - 16 },
-  analista: { label: 'Análise',   x:          0, y: BOTTOM_Y, w: ROOM_W, h: ROOM_H },
-  dev:      { label: 'Dev/CTO',   x:     ROOM_W, y: BOTTOM_Y, w: ROOM_W, h: ROOM_H },
-  content:  { label: 'Conteúdo',  x: ROOM_W * 2, y: BOTTOM_Y, w: ROOM_W, h: ROOM_H },
-  chief:    { label: 'Chief',     x: ROOM_W * 3, y: BOTTOM_Y, w: ROOM_W, h: ROOM_H },
+const ICONS: Record<string, string> = {
+  ceo: 'fa-chess-king', pm: 'fa-diagram-project', cmo: 'fa-rocket',
+  copywriter: 'fa-pen-fancy', analista: 'fa-chart-mixed',
+  dev: 'fa-code', conteudo: 'fa-clapperboard', chief: 'fa-sitemap',
 }
 
-const HOME: Record<string, RoomKey> = {
-  ceo: 'ceo', pm: 'pm', cmo: 'cmo', copywriter: 'copy',
-  analista: 'analista', dev: 'dev', conteudo: 'content', chief: 'chief',
+const DEPT: Record<string, string> = {
+  ceo: 'Estratégia', pm: 'Produto', cmo: 'Growth',
+  copywriter: 'Copy & Funis', analista: 'Inteligência',
+  dev: 'Tecnologia', conteudo: 'Conteúdo', chief: 'Operações',
 }
 
-const OWNER: Partial<Record<RoomKey, string>> = {
-  ceo: 'ceo', pm: 'pm', cmo: 'cmo', copy: 'copywriter',
-  analista: 'analista', dev: 'dev', content: 'conteudo', chief: 'chief',
+const ACTIVITIES: Record<string, string[]> = {
+  ceo:        ['Analisando portfólio', 'Validando oportunidade', 'Decisão tomada ✓', 'Avaliando risco'],
+  pm:         ['Atualizando roadmap', 'Priorizando backlog', 'Sprint planejado ✓', 'Review de OKRs'],
+  cmo:        ['Criando funil de vendas', 'Analisando CAC', 'Campanha no ar', 'Segmentando público'],
+  copywriter: ['Escrevendo headline', 'Testando copy A/B', 'Email finalizado ✓', 'Hook criado ✓'],
+  analista:   ['Calculando TAM/SAM', 'Análise de mercado', 'Relatório pronto ✓', 'SWOT em andamento'],
+  dev:        ['Revisando pull request', 'Deploy em andamento', 'Bug corrigido ✓', 'Arquitetura ok ✓'],
+  conteudo:   ['Roteiro de Reels', 'Carrossel criado ✓', 'Post programado', 'Script gravado ✓'],
+  chief:      ['Coordenando equipe', 'Briefing enviado ✓', 'Prioridades definidas', 'Status sincronizado ✓'],
 }
 
-const WALKABLE: RoomKey[] = ['ceo', 'pm', 'cmo', 'copy', 'analista', 'dev', 'content', 'chief', 'meeting']
+// ─── Task chip ────────────────────────────────────────────────────
 
-// Agent pixel position: near the desk in their room
-function agentPos(key: RoomKey): { x: number; y: number } {
-  const r = ROOMS[key]
-  if (key === 'meeting') {
-    return { x: r.x + r.w / 2 - 12, y: r.y + 4 }
-  }
-  // Place agent near the desk (close to bottom of room)
-  return { x: r.x + r.w / 2 - 12, y: r.y + r.h - 60 }
+function TaskChip({ text, cor, meeting }: { text: string; cor: string; meeting?: boolean }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 5 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -5 }}
+      transition={{ duration: 0.22 }}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        padding: '5px 10px', borderRadius: 20,
+        background: meeting ? `${cor}18` : `${cor}0e`,
+        border: `0.5px solid ${cor}${meeting ? '50' : '28'}`,
+        maxWidth: '100%',
+      }}
+    >
+      <motion.div
+        animate={{ opacity: [1, 0.25, 1] }}
+        transition={{ repeat: Infinity, duration: meeting ? 0.9 : 1.6, ease: 'easeInOut' }}
+        style={{ width: 5, height: 5, borderRadius: '50%', background: cor, flexShrink: 0 }}
+      />
+      <span style={{
+        fontSize: 9.5, fontWeight: 600, color: meeting ? cor : 'rgba(255,255,255,0.65)',
+        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+      }}>
+        {text}
+      </span>
+    </motion.div>
+  )
 }
 
-// ─────────────────────────────────────────────────────────
-// State types
-// ─────────────────────────────────────────────────────────
+// ─── Workstation card ─────────────────────────────────────────────
 
-type AgentState = {
-  id: string
-  cor: string
-  inicial: string
-  nome: string
-  x: number
-  y: number
-  walking: boolean
-  room: RoomKey
+interface CardProps {
+  agente: Agente
+  index: number
+  onMeetingChange: (id: string, inMeeting: boolean) => void
 }
 
-function initAgents(): AgentState[] {
-  return AGENTES.map(a => {
-    const room = (HOME[a.id] ?? 'meeting') as RoomKey
-    const pos = agentPos(room)
-    return { id: a.id, cor: a.cor, inicial: a.inicial, nome: a.nome, ...pos, walking: false, room }
-  })
-}
-
-// ─────────────────────────────────────────────────────────
-// Page
-// ─────────────────────────────────────────────────────────
-
-export default function MapaPage() {
-  const [agents, setAgents] = useState<AgentState[]>(initAgents)
+function WorkstationCard({ agente, index, onMeetingChange }: CardProps) {
+  const acts = ACTIVITIES[agente.id] ?? ['Trabalhando...']
+  const [actIdx, setActIdx] = useState(() => Math.floor(Math.random() * acts.length))
+  const [inMeeting, setInMeeting] = useState(false)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const aliveRef = useRef(true)
-  const agentsRef = useRef(agents)
 
-  useEffect(() => { agentsRef.current = agents }, [agents])
+  // Stats generated once on mount
+  const [stats] = useState(() => ({
+    tasks: Math.floor(Math.random() * 14) + 4,
+    tokens: (Math.random() * 7 + 1.2).toFixed(1),
+  }))
 
+  // Cycle task activities
+  useEffect(() => {
+    const ms = 3600 + index * 250
+    intervalRef.current = setInterval(() => {
+      setActIdx(prev => (prev + 1) % acts.length)
+    }, ms)
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
+  }, [acts.length, index])
+
+  // Random meeting visits
   useEffect(() => {
     aliveRef.current = true
 
-    function doWalk() {
-      if (!aliveRef.current) return
+    function scheduleMeeting() {
+      const delay = 10000 + Math.random() * 14000 + index * 800
+      timerRef.current = setTimeout(() => {
+        if (!aliveRef.current) return
+        setInMeeting(true)
+        onMeetingChange(agente.id, true)
 
-      const current = agentsRef.current
-      const idle = current.filter(a => !a.walking)
-      if (idle.length > 0) {
-        const agent = idle[Math.floor(Math.random() * idle.length)]
-        const choices = WALKABLE.filter(r => r !== agent.room)
-        const target = choices[Math.floor(Math.random() * choices.length)]
-        const pos = agentPos(target)
-        const agentId = agent.id
-
-        setAgents(prev => prev.map(a =>
-          a.id === agentId ? { ...a, ...pos, walking: true, room: target } : a
-        ))
-
-        // Arrive at destination
-        setTimeout(() => {
+        const duration = 5000 + Math.random() * 8000
+        timerRef.current = setTimeout(() => {
           if (!aliveRef.current) return
-          setAgents(prev => prev.map(a => a.id === agentId ? { ...a, walking: false } : a))
-
-          // Pause, then return home
-          const pause = 1500 + Math.random() * 2000
-          setTimeout(() => {
-            if (!aliveRef.current) return
-            const cur = agentsRef.current.find(a => a.id === agentId)
-            const homeKey = (HOME[agentId] ?? 'meeting') as RoomKey
-            if (cur && cur.room !== homeKey) {
-              const homePos = agentPos(homeKey)
-              setAgents(prev => prev.map(a =>
-                a.id === agentId ? { ...a, ...homePos, walking: true, room: homeKey } : a
-              ))
-              setTimeout(() => {
-                if (!aliveRef.current) return
-                setAgents(prev => prev.map(a => a.id === agentId ? { ...a, walking: false } : a))
-              }, 2100)
-            }
-          }, pause)
-        }, 2100)
-      }
-
-      // Re-schedule next walk
-      const nextDelay = 2200 + Math.random() * 3000
-      setTimeout(doWalk, nextDelay)
+          setInMeeting(false)
+          onMeetingChange(agente.id, false)
+          scheduleMeeting()
+        }, duration)
+      }, delay)
     }
 
-    const initDelay = setTimeout(doWalk, 1200)
+    scheduleMeeting()
     return () => {
       aliveRef.current = false
-      clearTimeout(initDelay)
+      if (timerRef.current) clearTimeout(timerRef.current)
     }
+  }, [agente.id, index, onMeetingChange])
+
+  const cor = agente.cor
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.08, duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] }}
+      whileHover={{ y: -3, boxShadow: `0 12px 40px ${cor}18` }}
+      style={{
+        borderRadius: 14,
+        background: 'var(--surface)',
+        border: `0.5px solid ${inMeeting ? cor + '55' : cor + '22'}`,
+        overflow: 'hidden',
+        position: 'relative',
+        transition: 'border-color 0.4s ease',
+        cursor: 'default',
+      }}
+    >
+      {/* Corner glow */}
+      <motion.div
+        animate={{ opacity: inMeeting ? [0.5, 1, 0.5] : [0.2, 0.5, 0.2] }}
+        transition={{ repeat: Infinity, duration: 3, ease: 'easeInOut' }}
+        style={{
+          position: 'absolute', top: -30, right: -30, width: 120, height: 120,
+          background: `radial-gradient(circle, ${cor}22 0%, transparent 70%)`,
+          pointerEvents: 'none',
+        }}
+      />
+
+      {/* Dept header */}
+      <div style={{
+        padding: '12px 14px 10px',
+        borderBottom: `0.5px solid ${cor}14`,
+        display: 'flex', alignItems: 'center', gap: 7,
+      }}>
+        <div style={{
+          width: 24, height: 24, borderRadius: 6, flexShrink: 0,
+          background: `${cor}18`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <i className={`fa-solid ${ICONS[agente.id] ?? 'fa-circle'}`} style={{ fontSize: 10, color: cor }} />
+        </div>
+        <span style={{
+          fontSize: 9, fontWeight: 700, color: `${cor}cc`,
+          textTransform: 'uppercase', letterSpacing: '0.1em', flex: 1,
+        }}>
+          {DEPT[agente.id]}
+        </span>
+        <motion.div
+          animate={{ opacity: [1, 0.3, 1], scale: [1, 1.3, 1] }}
+          transition={{ repeat: Infinity, duration: inMeeting ? 1 : 2.5, ease: 'easeInOut' }}
+          style={{
+            width: 6, height: 6, borderRadius: '50%',
+            background: inMeeting ? cor : '#22C55E',
+            boxShadow: `0 0 6px ${inMeeting ? cor : '#22C55E'}88`,
+          }}
+        />
+      </div>
+
+      {/* Agent body */}
+      <div style={{ padding: '14px 14px 12px' }}>
+
+        {/* Avatar + identity */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 14 }}>
+          <div style={{ position: 'relative', flexShrink: 0 }}>
+            <div style={{
+              width: 44, height: 44, borderRadius: 12,
+              background: `linear-gradient(135deg, ${cor}, ${cor}99)`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 13, fontWeight: 800, color: '#fff',
+              boxShadow: `0 4px 20px ${cor}30, inset 0 1px 0 rgba(255,255,255,0.1)`,
+            }}>
+              {agente.inicial}
+            </div>
+            {/* Status dot */}
+            <div style={{
+              position: 'absolute', bottom: -1, right: -1,
+              width: 11, height: 11, borderRadius: '50%',
+              background: inMeeting ? cor : '#22C55E',
+              border: '2px solid var(--surface)',
+              transition: 'background 0.3s ease',
+            }} />
+          </div>
+
+          <div style={{ minWidth: 0 }}>
+            <div style={{
+              fontSize: 12.5, fontWeight: 700, color: 'var(--text)',
+              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 2,
+            }}>
+              {agente.nome}
+            </div>
+            <div style={{ fontSize: 9.5, color: 'var(--text-muted)', lineHeight: 1.3 }}>
+              {agente.especialidade.split(',')[0]}
+            </div>
+          </div>
+        </div>
+
+        {/* Task section */}
+        <div style={{ marginBottom: 12 }}>
+          <div style={{
+            fontSize: 7.5, fontWeight: 700, color: 'var(--text-dim)',
+            textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6,
+          }}>
+            Tarefa atual
+          </div>
+          <AnimatePresence mode="wait">
+            {inMeeting ? (
+              <TaskChip key="meeting" text="Em reunião estratégica" cor={cor} meeting />
+            ) : (
+              <TaskChip key={actIdx} text={acts[actIdx]} cor={cor} />
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+
+      {/* Stats footer */}
+      <div style={{
+        padding: '8px 14px 12px',
+        borderTop: `0.5px solid ${cor}10`,
+        display: 'flex', gap: 16,
+      }}>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text)', fontFamily: "'DM Mono', monospace" }}>
+            {stats.tasks}
+          </div>
+          <div style={{ fontSize: 8.5, color: 'var(--text-dim)', marginTop: 1 }}>tarefas hoje</div>
+        </div>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text)', fontFamily: "'DM Mono', monospace" }}>
+            {stats.tokens}k
+          </div>
+          <div style={{ fontSize: 8.5, color: 'var(--text-dim)', marginTop: 1 }}>tokens</div>
+        </div>
+        <div style={{ flex: 1 }} />
+        <div style={{
+          fontSize: 8, fontWeight: 600, color: inMeeting ? cor : '#22C55E',
+          display: 'flex', alignItems: 'center', gap: 4, transition: 'color 0.3s',
+        }}>
+          {inMeeting ? 'Em reunião' : 'Online'}
+        </div>
+      </div>
+
+      {/* Meeting overlay shimmer */}
+      <AnimatePresence>
+        {inMeeting && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: 'absolute', inset: 0,
+              background: `linear-gradient(135deg, ${cor}06 0%, transparent 60%)`,
+              pointerEvents: 'none',
+            }}
+          />
+        )}
+      </AnimatePresence>
+    </motion.div>
+  )
+}
+
+// ─── Meeting room bar ─────────────────────────────────────────────
+
+function MeetingBar({ agentIds }: { agentIds: string[] }) {
+  const agents = agentIds.map(id => AGENTES.find(a => a.id === id)).filter(Boolean) as Agente[]
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: 'auto' }}
+      exit={{ opacity: 0, height: 0 }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+      style={{ overflow: 'hidden' }}
+    >
+      <div style={{
+        padding: '12px 16px',
+        borderRadius: 12,
+        background: 'rgba(232,98,42,0.06)',
+        border: '0.5px solid rgba(232,98,42,0.25)',
+        display: 'flex', alignItems: 'center', gap: 12,
+      }}>
+        {/* Icon + label */}
+        <div style={{
+          width: 32, height: 32, borderRadius: 8,
+          background: 'rgba(232,98,42,0.15)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        }}>
+          <i className="fa-solid fa-users" style={{ fontSize: 12, color: '#e8622a' }} />
+        </div>
+        <div>
+          <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text)' }}>Sala de Reunião</div>
+          <div style={{ fontSize: 9.5, color: 'var(--text-muted)', marginTop: 1 }}>
+            {agents.length} agente{agents.length !== 1 ? 's' : ''} em sessão estratégica
+          </div>
+        </div>
+
+        {/* Agent avatars */}
+        <div style={{ display: 'flex', gap: 6, marginLeft: 'auto', alignItems: 'center' }}>
+          <AnimatePresence>
+            {agents.map(a => (
+              <motion.div
+                key={a.id}
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0, opacity: 0 }}
+                transition={{ type: 'spring', stiffness: 380, damping: 22 }}
+                title={a.nome}
+                style={{
+                  width: 28, height: 28, borderRadius: 8,
+                  background: `linear-gradient(135deg, ${a.cor}, ${a.cor}99)`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 9, fontWeight: 800, color: '#fff',
+                  boxShadow: `0 2px 8px ${a.cor}40`,
+                  border: '1.5px solid var(--bg)',
+                  marginLeft: -4,
+                }}
+              >
+                {a.inicial}
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
+
+        {/* Live pulse */}
+        <motion.div
+          animate={{ opacity: [1, 0.3, 1] }}
+          transition={{ repeat: Infinity, duration: 1.2 }}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 5,
+            padding: '4px 10px', borderRadius: 20,
+            background: 'rgba(232,98,42,0.12)',
+            border: '0.5px solid rgba(232,98,42,0.3)',
+            flexShrink: 0,
+          }}
+        >
+          <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#e8622a' }} />
+          <span style={{ fontSize: 8.5, fontWeight: 700, color: '#e8622a', letterSpacing: '0.08em' }}>AO VIVO</span>
+        </motion.div>
+      </div>
+    </motion.div>
+  )
+}
+
+// ─── Page ─────────────────────────────────────────────────────────
+
+export default function MapaPage() {
+  const [meetingSet, setMeetingSet] = useState<Set<string>>(new Set())
+
+  const handleMeetingChange = useCallback((id: string, inMeeting: boolean) => {
+    setMeetingSet(prev => {
+      const next = new Set(prev)
+      if (inMeeting) next.add(id)
+      else next.delete(id)
+      return next
+    })
   }, [])
 
-  const walkingCount = agents.filter(a => a.walking).length
+  const meetingIds = Array.from(meetingSet)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
         <div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>FactorHub HQ — Ao Vivo</div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+          <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', letterSpacing: -0.5 }}>
+            FactorHub <span style={{ color: '#e8622a' }}>HQ</span>
+          </div>
+          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 3 }}>
             8 departamentos ·{' '}
-            {walkingCount > 0
-              ? <span style={{ color: '#e8622a' }}>{walkingCount} agente{walkingCount > 1 ? 's' : ''} em trânsito</span>
-              : 'todos em suas salas'
+            {meetingIds.length > 0
+              ? <span style={{ color: '#e8622a' }}>{meetingIds.length} em reunião</span>
+              : <span>todos operacionais</span>
             }
           </div>
         </div>
+
         <motion.div
-          animate={{ opacity: [1, 0.3, 1] }}
-          transition={{ repeat: Infinity, duration: 1.6 }}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 9.5, color: '#3a3a3a', fontWeight: 700, letterSpacing: '0.1em' }}
+          animate={{ opacity: [1, 0.35, 1] }}
+          transition={{ repeat: Infinity, duration: 1.8 }}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '5px 12px', borderRadius: 20,
+            background: 'rgba(34,197,94,0.08)',
+            border: '0.5px solid rgba(34,197,94,0.2)',
+          }}
         >
-          <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#22C55E' }} />
-          LIVE
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22C55E' }} />
+          <span style={{ fontSize: 9.5, fontWeight: 700, color: '#22C55E', letterSpacing: '0.1em' }}>LIVE</span>
         </motion.div>
       </div>
 
-      {/* Map card */}
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-        {/* Floor container */}
-        <div
-          style={{
-            position: 'relative',
-            width: FLOOR_W,
-            height: FLOOR_H,
-            maxWidth: '100%',
-            background: '#090909',
-            overflow: 'hidden',
-          }}
-        >
-          {/* Grid pattern */}
-          <div style={{
-            position: 'absolute', inset: 0,
-            backgroundImage: [
-              'linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px)',
-              'linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px)',
-            ].join(','),
-            backgroundSize: '16px 16px',
-            pointerEvents: 'none',
-          }} />
+      {/* Meeting bar */}
+      <AnimatePresence>
+        {meetingIds.length > 0 && (
+          <MeetingBar key="meeting-bar" agentIds={meetingIds} />
+        )}
+      </AnimatePresence>
 
-          {/* Corridor / hall */}
-          <div style={{
-            position: 'absolute',
-            left: 0, top: HALL_Y,
-            width: FLOOR_W, height: HALL_H,
-            background: 'rgba(255,255,255,0.012)',
-            borderTop: '0.5px solid #1f1f1f',
-            borderBottom: '0.5px solid #1f1f1f',
-          }} />
-
-          {/* Rooms */}
-          {(Object.entries(ROOMS) as [RoomKey, (typeof ROOMS)[RoomKey]][]).map(([key, room]) => {
-            const ownerId = OWNER[key]
-            const owner = ownerId ? AGENTES.find(a => a.id === ownerId) : null
-            const roomColor = owner?.cor ?? '#e8622a'
-            const isMeeting = key === 'meeting'
-
-            return (
-              <div
-                key={key}
-                style={{
-                  position: 'absolute',
-                  left: room.x, top: room.y,
-                  width: room.w, height: room.h,
-                  background: `${roomColor}${isMeeting ? '06' : '08'}`,
-                  border: `0.5px solid ${roomColor}${isMeeting ? '20' : '28'}`,
-                  borderRadius: isMeeting ? 4 : 0,
-                  overflow: 'hidden',
-                  boxSizing: 'border-box',
-                }}
-              >
-                {/* Room label */}
-                <div style={{
-                  position: 'absolute', top: 6, left: 8,
-                  fontSize: 7, fontWeight: 700,
-                  color: `${roomColor}${isMeeting ? 'aa' : '88'}`,
-                  letterSpacing: '0.1em', textTransform: 'uppercase',
-                }}>
-                  {room.label}
-                </div>
-
-                {/* Meeting room table */}
-                {isMeeting && (
-                  <div style={{
-                    position: 'absolute', top: '50%', left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    width: 80, height: 12,
-                    background: '#1a1810',
-                    border: '0.5px solid #2a2818',
-                    borderRadius: 3,
-                  }} />
-                )}
-
-                {/* Desk + monitor for regular rooms */}
-                {!isMeeting && (
-                  <>
-                    <div style={{
-                      position: 'absolute', bottom: 18, left: '50%', transform: 'translateX(-50%)',
-                      width: 54, height: 7,
-                      background: '#191916',
-                      border: '0.5px solid #252520',
-                      borderRadius: 2,
-                    }} />
-                    <div style={{
-                      position: 'absolute', bottom: 25, left: '50%', transform: 'translateX(-50%)',
-                    }}>
-                      <PixelMonitor color={roomColor} scale={2} />
-                    </div>
-                  </>
-                )}
-
-                {/* Room walls (corner accents) */}
-                <div style={{
-                  position: 'absolute', top: 0, left: 0,
-                  width: 3, height: 3,
-                  background: `${roomColor}40`,
-                }} />
-                <div style={{
-                  position: 'absolute', top: 0, right: 0,
-                  width: 3, height: 3,
-                  background: `${roomColor}40`,
-                }} />
-                <div style={{
-                  position: 'absolute', bottom: 0, left: 0,
-                  width: 3, height: 3,
-                  background: `${roomColor}40`,
-                }} />
-                <div style={{
-                  position: 'absolute', bottom: 0, right: 0,
-                  width: 3, height: 3,
-                  background: `${roomColor}40`,
-                }} />
-              </div>
-            )
-          })}
-
-          {/* Agent sprites — float above rooms */}
-          {agents.map(agent => (
-            <motion.div
-              key={agent.id}
-              animate={{ x: agent.x, y: agent.y }}
-              transition={{
-                type: 'tween',
-                duration: agent.walking ? 2.0 : 0,
-                ease: 'easeInOut',
-              }}
-              style={{
-                position: 'absolute',
-                left: 0, top: 0,
-                zIndex: 10,
-                filter: agent.walking ? `drop-shadow(0 0 4px ${agent.cor})` : 'none',
-                transition: 'filter 0.3s',
-              }}
-            >
-              <PixelAgent
-                agentColor={agent.cor}
-                scale={3}
-                animate={agent.walking}
-                seated={!agent.walking}
-              />
-              {/* Name chip */}
-              <div style={{
-                fontSize: 6, fontWeight: 800, color: agent.cor,
-                textAlign: 'center', letterSpacing: '0.04em',
-                marginTop: 1, lineHeight: 1,
-                fontFamily: "'DM Mono', monospace",
-                textShadow: `0 0 6px ${agent.cor}60`,
-              }}>
-                {agent.inicial}
-              </div>
-            </motion.div>
-          ))}
-
-          {/* Scanline overlay */}
-          <div style={{
-            position: 'absolute', inset: 0,
-            background: 'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.15) 3px, rgba(0,0,0,0.15) 4px)',
-            pointerEvents: 'none', zIndex: 20,
-          }} />
-        </div>
-
-        {/* Legend */}
-        <div style={{
-          padding: '10px 16px 12px',
-          borderTop: '0.5px solid var(--border)',
-          display: 'flex', flexWrap: 'wrap', gap: 14, alignItems: 'center',
-        }}>
-          {agents.map(agent => {
-            const roomLabel = ROOMS[agent.room]?.label ?? agent.room
-            return (
-              <div key={agent.id} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <motion.div
-                  animate={agent.walking ? { opacity: [1, 0.4, 1] } : { opacity: 1 }}
-                  transition={agent.walking ? { repeat: Infinity, duration: 0.5 } : {}}
-                  style={{
-                    width: 6, height: 6, borderRadius: '50%',
-                    background: agent.cor,
-                    boxShadow: agent.walking ? `0 0 5px ${agent.cor}` : 'none',
-                  }}
-                />
-                <span style={{ fontSize: 10, color: agent.walking ? 'var(--text)' : 'var(--text-muted)' }}>
-                  {agent.inicial}
-                </span>
-                {agent.walking && (
-                  <span style={{ fontSize: 9, color: 'var(--text-dim)' }}>→ {roomLabel}</span>
-                )}
-              </div>
-            )
-          })}
-          <div style={{ flex: 1 }} />
-          <span style={{ fontSize: 9, color: 'var(--text-dim)', letterSpacing: '0.05em' }}>
-            Agentes movendo em tempo real
-          </span>
-        </div>
+      {/* 4×2 workstation grid */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(4, 1fr)',
+        gap: 12,
+      }}>
+        {AGENTES.map((a, i) => (
+          <WorkstationCard
+            key={a.id}
+            agente={a}
+            index={i}
+            onMeetingChange={handleMeetingChange}
+          />
+        ))}
       </div>
 
-      {/* Department roster */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
-        {AGENTES.map(a => {
-          const state = agents.find(ag => ag.id === a.id)!
-          const atHome = state.room === HOME[a.id]
-          return (
-            <motion.div
-              key={a.id}
-              className="card"
-              style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 9 }}
-              animate={state.walking ? { borderColor: `${a.cor}50` } : { borderColor: 'var(--border)' }}
-            >
-              <div style={{
-                width: 28, height: 28, borderRadius: 6, background: a.cor,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 9, fontWeight: 800, color: '#fff', flexShrink: 0,
-              }}>
-                {a.inicial}
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {a.nome.split(' ')[0]}
-                </div>
-                <div style={{ fontSize: 9, color: state.walking ? '#e8622a' : atHome ? 'var(--text-dim)' : '#22C55E', marginTop: 1 }}>
-                  {state.walking ? `→ ${ROOMS[state.room]?.label}` : atHome ? ROOMS[state.room]?.label : `em ${ROOMS[state.room]?.label}`}
-                </div>
-              </div>
-            </motion.div>
-          )
-        })}
+      {/* Status footer */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+        padding: '11px 16px',
+        background: 'var(--surface)',
+        borderRadius: 12,
+        border: '0.5px solid var(--border)',
+      }}>
+        {AGENTES.map(a => (
+          <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <div style={{
+              width: 18, height: 18, borderRadius: 5,
+              background: `linear-gradient(135deg, ${a.cor}, ${a.cor}88)`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 7, fontWeight: 800, color: '#fff',
+            }}>
+              {a.inicial}
+            </div>
+            <span style={{ fontSize: 10, color: 'var(--text-dim)', fontWeight: 500 }}>
+              {a.nome.split(' ')[0]}
+            </span>
+          </div>
+        ))}
+        <div style={{ flex: 1 }} />
+        <span style={{ fontSize: 9.5, color: 'var(--text-dim)' }}>
+          FactorHub OS · v2 · Todos os agentes operacionais
+        </span>
       </div>
     </div>
   )

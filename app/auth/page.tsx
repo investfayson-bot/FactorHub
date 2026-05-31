@@ -1,68 +1,193 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
-import { PixelAgent, PixelMonitor } from '@/components/ui/pixel-agent'
-import { AGENTES } from '@/lib/hub-agentes'
+import { AGENTES, type Agente } from '@/lib/hub-agentes'
 
-const DEPT: Record<string, string> = {
-  ceo: 'Estratégia', pm: 'Produto', cmo: 'Growth', copywriter: 'Copy',
-  analista: 'Análise', dev: 'Dev / CTO', conteudo: 'Conteúdo', chief: 'Operações',
+const ICONS: Record<string, string> = {
+  ceo: 'fa-chess-king',
+  pm: 'fa-diagram-project',
+  cmo: 'fa-rocket',
+  copywriter: 'fa-pen-fancy',
+  analista: 'fa-chart-mixed',
+  dev: 'fa-code',
+  conteudo: 'fa-clapperboard',
+  chief: 'fa-sitemap',
 }
 
-function Workstation({ agente, index }: { agente: (typeof AGENTES)[0]; index: number }) {
+const DEPT: Record<string, string> = {
+  ceo: 'Estratégia',
+  pm: 'Produto',
+  cmo: 'Growth',
+  copywriter: 'Copy & Funis',
+  analista: 'Inteligência',
+  dev: 'Tecnologia',
+  conteudo: 'Conteúdo',
+  chief: 'Operações',
+}
+
+const ACTIVITIES: Record<string, string[]> = {
+  ceo: ['Analisando portfólio', 'Validando oportunidade', 'Decisão tomada ✓', 'Avaliando risco'],
+  pm: ['Atualizando roadmap', 'Priorizando backlog', 'Sprint planejado ✓', 'Review de OKRs'],
+  cmo: ['Criando funil de vendas', 'Analisando CAC', 'Campanha no ar', 'Segmentando público'],
+  copywriter: ['Escrevendo headline', 'Testando copy', 'Email finalizado ✓', 'Hook criado ✓'],
+  analista: ['Calculando TAM/SAM', 'Análise de mercado', 'Relatório pronto ✓', 'SWOT em andamento'],
+  dev: ['Revisando pull request', 'Deploy em andamento', 'Bug corrigido ✓', 'Arquitetura ok ✓'],
+  conteudo: ['Roteiro de Reels', 'Carrossel criado ✓', 'Post programado', 'Script gravado ✓'],
+  chief: ['Coordenando equipe', 'Briefing enviado ✓', 'Prioridades definidas', 'Status sincronizado ✓'],
+}
+
+function AgentCard({ agente, index }: { agente: Agente; index: number }) {
+  const acts = ACTIVITIES[agente.id] ?? ['Trabalhando...']
+  const [actIdx, setActIdx] = useState(() => Math.floor(Math.random() * acts.length))
+
+  useEffect(() => {
+    const interval = 3500 + index * 200
+    const id = setInterval(() => {
+      setActIdx(prev => (prev + 1) % acts.length)
+    }, interval)
+    return () => clearInterval(id)
+  }, [acts.length, index])
+
+  const cor = agente.cor
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.35 + index * 0.08, duration: 0.45, ease: 'easeOut' }}
+      transition={{ delay: 0.4 + index * 0.07, duration: 0.4, ease: 'easeOut' }}
       style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-        padding: '10px 6px 8px',
-        borderRadius: 6,
-        background: `${agente.cor}0c`,
-        border: `0.5px solid ${agente.cor}28`,
+        padding: 14,
+        borderRadius: 12,
+        background: 'rgba(255,255,255,0.03)',
+        border: `0.5px solid ${cor}28`,
+        overflow: 'hidden',
         position: 'relative',
-        boxShadow: `0 0 22px ${agente.cor}10, inset 0 0 16px ${agente.cor}06`,
       }}
     >
-      {/* Dept label */}
+      {/* Corner glow */}
       <div style={{
-        fontSize: 6.5, fontWeight: 700, color: agente.cor,
-        letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 3,
-        opacity: 0.9,
-      }}>
-        {DEPT[agente.id] ?? agente.id}
-      </div>
-
-      {/* Monitor */}
-      <PixelMonitor color={agente.cor} scale={2} />
-
-      {/* Desk surface */}
-      <div style={{
-        width: 32, height: 3,
-        background: `linear-gradient(90deg, #1a1a1a, #252520, #1a1a1a)`,
-        border: '0.5px solid #2a2a20',
-        borderRadius: 1,
-        margin: '1px 0',
+        position: 'absolute',
+        top: -20,
+        right: -20,
+        width: 70,
+        height: 70,
+        background: `radial-gradient(circle, ${cor}22 0%, transparent 70%)`,
+        pointerEvents: 'none',
       }} />
 
-      {/* Agent seated */}
-      <PixelAgent agentColor={agente.cor} scale={2} animate={false} seated />
-
-      {/* Initial tag */}
-      <div style={{
-        fontSize: 6, fontWeight: 800, color: agente.cor,
-        marginTop: 2, letterSpacing: '0.04em', opacity: 0.8,
-        fontFamily: "'DM Mono', monospace",
-      }}>
-        {agente.inicial}
+      {/* Header row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+        <i
+          className={`fa-solid ${ICONS[agente.id] ?? 'fa-circle'}`}
+          style={{ fontSize: 9, color: cor, opacity: 0.85 }}
+        />
+        <span style={{
+          fontSize: 8.5,
+          fontWeight: 700,
+          color: cor,
+          textTransform: 'uppercase',
+          letterSpacing: '0.1em',
+          opacity: 0.9,
+          flex: 1,
+        }}>
+          {DEPT[agente.id] ?? agente.id}
+        </span>
+        <motion.div
+          animate={{ opacity: [1, 0.3, 1] }}
+          transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
+          style={{
+            width: 5,
+            height: 5,
+            borderRadius: '50%',
+            background: '#22C55E',
+            boxShadow: '0 0 4px #22C55E88',
+            flexShrink: 0,
+          }}
+        />
       </div>
+
+      {/* Avatar + name row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+        <div style={{
+          width: 36,
+          height: 36,
+          borderRadius: 10,
+          background: `linear-gradient(135deg, ${cor}, ${cor}88)`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: 10,
+          fontWeight: 800,
+          color: '#fff',
+          flexShrink: 0,
+          boxShadow: `0 4px 12px ${cor}30`,
+        }}>
+          {agente.inicial}
+        </div>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.88)', lineHeight: 1.2 }}>
+            {agente.nome}
+          </div>
+          <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>
+            IA Ativa
+          </div>
+        </div>
+      </div>
+
+      {/* Task chip */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={actIdx}
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -4 }}
+          transition={{ duration: 0.25 }}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 5,
+            padding: '4px 8px',
+            borderRadius: 20,
+            background: `${cor}12`,
+            border: `0.5px solid ${cor}30`,
+            maxWidth: '100%',
+          }}
+        >
+          <motion.div
+            animate={{ opacity: [1, 0.3, 1] }}
+            transition={{ repeat: Infinity, duration: 1.4, ease: 'easeInOut' }}
+            style={{
+              width: 4,
+              height: 4,
+              borderRadius: '50%',
+              background: cor,
+              flexShrink: 0,
+            }}
+          />
+          <span style={{
+            fontSize: 9,
+            color: cor,
+            fontWeight: 600,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}>
+            {acts[actIdx]}
+          </span>
+        </motion.div>
+      </AnimatePresence>
     </motion.div>
   )
 }
+
+const STATS = [
+  { label: '847 tarefas', sub: 'concluídas' },
+  { label: '$12.40', sub: 'USD / run' },
+  { label: '32 projetos', sub: 'ativos' },
+]
 
 export default function AuthPage() {
   const router = useRouter()
@@ -73,7 +198,7 @@ export default function AuthPage() {
   const [erro, setErro] = useState('')
   const [msg, setMsg] = useState('')
 
-  async function submit(e: React.FormEvent) {
+  const submit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
     setErro(''); setMsg(''); setLoading(true)
     try {
@@ -89,12 +214,12 @@ export default function AuthPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [modo, email, senha, router])
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#0d0d0d' }}>
 
-      {/* Left — pixel art office */}
+      {/* Left panel */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -105,32 +230,61 @@ export default function AuthPage() {
           flexDirection: 'column',
           justifyContent: 'center',
           padding: '48px 40px',
-          background: '#080808',
-          borderRight: '0.5px solid #1f1f1f',
+          background: '#080810',
+          borderRight: '0.5px solid #1a1a28',
           position: 'relative',
           overflow: 'hidden',
         }}
       >
-        {/* Scanlines */}
+        {/* Grid pattern */}
         <div style={{
-          position: 'absolute', inset: 0,
-          background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.22) 2px, rgba(0,0,0,0.22) 3px)',
-          pointerEvents: 'none', zIndex: 2,
-        }} />
-
-        {/* Orange ambient glow top */}
-        <div style={{
-          position: 'absolute', top: -150, left: '50%', transform: 'translateX(-50%)',
-          width: 800, height: 450,
-          background: 'radial-gradient(ellipse, rgba(232,98,42,0.11) 0%, transparent 62%)',
+          position: 'absolute',
+          inset: 0,
+          backgroundImage: [
+            'linear-gradient(rgba(255,255,255,0.022) 1px, transparent 1px)',
+            'linear-gradient(90deg, rgba(255,255,255,0.022) 1px, transparent 1px)',
+          ].join(','),
+          backgroundSize: '32px 32px',
           pointerEvents: 'none',
         }} />
 
-        {/* Bottom fade */}
+        {/* Orb orange top-left */}
+        <motion.div
+          animate={{ x: [0, 20, 0], y: [0, -15, 0] }}
+          transition={{ repeat: Infinity, duration: 8, ease: 'easeInOut' }}
+          style={{
+            position: 'absolute',
+            top: -120,
+            left: -80,
+            width: 400,
+            height: 400,
+            background: 'radial-gradient(circle, rgba(232,98,42,0.14) 0%, transparent 65%)',
+            pointerEvents: 'none',
+          }}
+        />
+
+        {/* Orb purple bottom-right */}
+        <motion.div
+          animate={{ x: [0, -18, 0], y: [0, 12, 0] }}
+          transition={{ repeat: Infinity, duration: 10, ease: 'easeInOut', delay: 2 }}
+          style={{
+            position: 'absolute',
+            bottom: -100,
+            right: -100,
+            width: 380,
+            height: 380,
+            background: 'radial-gradient(circle, rgba(124,58,237,0.12) 0%, transparent 65%)',
+            pointerEvents: 'none',
+          }}
+        />
+
+        {/* Scanline overlay */}
         <div style={{
-          position: 'absolute', bottom: 0, left: 0, right: 0, height: 100,
-          background: 'linear-gradient(transparent, #080808)',
-          pointerEvents: 'none', zIndex: 1,
+          position: 'absolute',
+          inset: 0,
+          background: 'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.04) 3px, rgba(0,0,0,0.04) 4px)',
+          pointerEvents: 'none',
+          zIndex: 2,
         }} />
 
         {/* Logo */}
@@ -138,55 +292,84 @@ export default function AuthPage() {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1, duration: 0.5 }}
-          style={{ marginBottom: 28, position: 'relative', zIndex: 3 }}
+          style={{ marginBottom: 8, position: 'relative', zIndex: 3 }}
         >
-          <div style={{ fontSize: 21, fontWeight: 800, color: '#f0f0f0', letterSpacing: -0.5, marginBottom: 3 }}>
+          <div style={{ fontSize: 22, fontWeight: 800, color: '#f0f0f0', letterSpacing: -0.5, marginBottom: 4 }}>
             Factor<span style={{ color: '#e8622a' }}>Hub</span>
           </div>
-          <div style={{ fontSize: 10, color: '#555', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+          <div style={{ fontSize: 10.5, color: '#444', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
             Agentes de IA + Operação
           </div>
         </motion.div>
 
-        {/* Scene label */}
+        {/* Title */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.25, duration: 0.4 }}
-          style={{ fontSize: 8, color: '#3a3a3a', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 14, position: 'relative', zIndex: 3 }}
+          transition={{ delay: 0.2, duration: 0.4 }}
+          style={{ marginBottom: 20, position: 'relative', zIndex: 3 }}
         >
-          — Escritório ao vivo —
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.02em' }}>
+            8 Agentes de IA operando em tempo real
+          </div>
         </motion.div>
 
-        {/* 2×4 Workstation grid */}
+        {/* Agent cards grid */}
         <div style={{ position: 'relative', zIndex: 3 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
-            {AGENTES.map((a, i) => <Workstation key={a.id} agente={a} index={i} />)}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+            {AGENTES.map((a, i) => (
+              <AgentCard key={a.id} agente={a} index={i} />
+            ))}
           </div>
         </div>
 
-        {/* Status bar */}
+        {/* Bottom stats */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 1.1, duration: 0.5 }}
+          transition={{ delay: 1.0, duration: 0.5 }}
           style={{
-            marginTop: 24, position: 'relative', zIndex: 3,
-            display: 'flex', alignItems: 'center', gap: 8,
+            marginTop: 22,
+            position: 'relative',
+            zIndex: 3,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 0,
+            background: 'rgba(255,255,255,0.025)',
+            border: '0.5px solid rgba(255,255,255,0.06)',
+            borderRadius: 10,
+            overflow: 'hidden',
           }}
         >
-          <motion.div
-            animate={{ opacity: [1, 0.35, 1] }}
-            transition={{ repeat: Infinity, duration: 1.6, ease: 'easeInOut' }}
-            style={{ width: 5, height: 5, borderRadius: '50%', background: '#22C55E', flexShrink: 0 }}
-          />
-          <span style={{ fontSize: 9.5, color: '#3a3a3a', letterSpacing: '0.07em' }}>
-            8 agentes ativos · FactorHub OS v2 · online
-          </span>
+          {STATS.map((s, i) => (
+            <div
+              key={i}
+              style={{
+                flex: 1,
+                padding: '10px 14px',
+                borderRight: i < STATS.length - 1 ? '0.5px solid rgba(255,255,255,0.05)' : 'none',
+              }}
+            >
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.75)', fontFamily: "'DM Mono', monospace" }}>
+                {s.label}
+              </div>
+              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.28)', marginTop: 1 }}>
+                {s.sub}
+              </div>
+            </div>
+          ))}
+          <div style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <motion.div
+              animate={{ opacity: [1, 0.3, 1] }}
+              transition={{ repeat: Infinity, duration: 1.6, ease: 'easeInOut' }}
+              style={{ width: 5, height: 5, borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 5px #22C55E88' }}
+            />
+            <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.06em' }}>LIVE</span>
+          </div>
         </motion.div>
       </motion.div>
 
-      {/* Right — form */}
+      {/* Right panel — form */}
       <motion.div
         initial={{ opacity: 0, x: 18 }}
         animate={{ opacity: 1, x: 0 }}
@@ -206,22 +389,35 @@ export default function AuthPage() {
             {modo === 'login' ? 'Bem-vindo de volta' : 'Criar conta'}
           </div>
           <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-            {modo === 'login' ? 'Entre na sua conta para continuar' : 'Comece gratis, sem cartao de credito'}
+            {modo === 'login' ? 'Entre na sua conta para continuar' : 'Comece gratis, sem cartão de crédito'}
           </div>
         </div>
 
         {/* Tab toggle */}
-        <div style={{ display: 'flex', background: 'var(--surface)', borderRadius: 9, padding: 3, marginBottom: 28, border: '0.5px solid var(--border)' }}>
+        <div style={{
+          display: 'flex',
+          background: 'var(--surface)',
+          borderRadius: 9,
+          padding: 3,
+          marginBottom: 28,
+          border: '0.5px solid var(--border)',
+        }}>
           {(['login', 'cadastro'] as const).map(m => (
             <button
               key={m}
               onClick={() => { setModo(m); setErro(''); setMsg('') }}
               style={{
-                flex: 1, padding: '8px 0', fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
-                border: 'none', borderRadius: 7,
+                flex: 1,
+                padding: '8px 0',
+                fontSize: 12.5,
+                fontWeight: 600,
+                cursor: 'pointer',
+                border: 'none',
+                borderRadius: 7,
                 background: modo === m ? '#e8622a' : 'transparent',
                 color: modo === m ? '#fff' : 'var(--text-muted)',
-                transition: 'all .18s', fontFamily: 'inherit',
+                transition: 'all .18s',
+                fontFamily: 'inherit',
               }}
             >
               {m === 'login' ? 'Entrar' : 'Criar conta'}
@@ -233,17 +429,25 @@ export default function AuthPage() {
           <div style={{ marginBottom: 14 }}>
             <label className="form-label">E-mail</label>
             <input
-              className="form-input" type="email" required
-              value={email} onChange={e => setEmail(e.target.value)}
-              placeholder="voce@empresa.com" autoComplete="email"
+              className="form-input"
+              type="email"
+              required
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="voce@empresa.com"
+              autoComplete="email"
             />
           </div>
           <div style={{ marginBottom: 22 }}>
             <label className="form-label">Senha</label>
             <input
-              className="form-input" type="password" required
-              value={senha} onChange={e => setSenha(e.target.value)}
-              placeholder="••••••••" minLength={6}
+              className="form-input"
+              type="password"
+              required
+              value={senha}
+              onChange={e => setSenha(e.target.value)}
+              placeholder="••••••••"
+              minLength={6}
               autoComplete={modo === 'login' ? 'current-password' : 'new-password'}
             />
           </div>
@@ -251,16 +455,38 @@ export default function AuthPage() {
           <AnimatePresence>
             {erro && (
               <motion.div
-                initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
-                style={{ background: 'rgba(239,68,68,.08)', color: '#EF4444', fontSize: 12, padding: '10px 14px', borderRadius: 8, marginBottom: 16, border: '1px solid rgba(239,68,68,.2)' }}
+                key="erro"
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                style={{
+                  background: 'rgba(239,68,68,.08)',
+                  color: '#EF4444',
+                  fontSize: 12,
+                  padding: '10px 14px',
+                  borderRadius: 8,
+                  marginBottom: 16,
+                  border: '1px solid rgba(239,68,68,.2)',
+                }}
               >
                 {erro}
               </motion.div>
             )}
             {msg && (
               <motion.div
-                initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
-                style={{ background: 'rgba(34,197,94,.08)', color: '#22C55E', fontSize: 12, padding: '10px 14px', borderRadius: 8, marginBottom: 16, border: '1px solid rgba(34,197,94,.2)' }}
+                key="msg"
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                style={{
+                  background: 'rgba(34,197,94,.08)',
+                  color: '#22C55E',
+                  fontSize: 12,
+                  padding: '10px 14px',
+                  borderRadius: 8,
+                  marginBottom: 16,
+                  border: '1px solid rgba(34,197,94,.2)',
+                }}
               >
                 {msg}
               </motion.div>
