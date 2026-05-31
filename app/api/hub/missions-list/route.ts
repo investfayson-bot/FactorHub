@@ -31,7 +31,7 @@ export async function PATCH(req: NextRequest) {
     const { missionId, status } = (await req.json()) as { missionId: string; status: string }
     if (!missionId || !status) return NextResponse.json({ error: 'missionId e status obrigatórios' }, { status: 400 })
 
-    const validStatuses = ['approved', 'archived', 'running', 'completed']
+    const validStatuses = ['approved', 'archived', 'running', 'completed', 'draft', 'awaiting_approval']
     if (!validStatuses.includes(status)) return NextResponse.json({ error: 'Status inválido' }, { status: 400 })
 
     const updateData: Record<string, unknown> = { status }
@@ -41,6 +41,30 @@ export async function PATCH(req: NextRequest) {
       .from('missions')
       .update(updateData)
       .eq('id', missionId)
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+    return NextResponse.json({ ok: true })
+  } catch (error: unknown) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Erro interno' }, { status: 500 })
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const { user, supabase } = await getSupabaseUser(req)
+    if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+
+    const { missionId } = (await req.json()) as { missionId: string }
+    if (!missionId) return NextResponse.json({ error: 'missionId obrigatório' }, { status: 400 })
+
+    const { data: usrRow } = await supabase.from('usuarios').select('empresa_id').eq('id', user.id).maybeSingle()
+    const empresaId = usrRow?.empresa_id ?? user.id
+
+    const { error } = await supabase
+      .from('missions')
+      .delete()
+      .eq('id', missionId)
+      .eq('empresa_id', empresaId)
 
     if (error) return NextResponse.json({ error: error.message }, { status: 400 })
     return NextResponse.json({ ok: true })

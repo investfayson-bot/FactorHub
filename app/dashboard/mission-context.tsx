@@ -62,6 +62,8 @@ type MissionCtx = {
   loadMissions: () => Promise<void>
   approveMission: () => Promise<void>
   archiveMission: () => Promise<void>
+  reactivateMission: (id: string) => Promise<void>
+  deleteMission: (id: string) => Promise<void>
 }
 
 const MissionContext = createContext<MissionCtx | null>(null)
@@ -285,6 +287,26 @@ export function MissionProvider({ children }: { children: ReactNode }) {
     newMission()
   }, [missionId, loadMissions, newMission])
 
+  const reactivateMission = useCallback(async (id: string) => {
+    const token = await getToken()
+    await fetch('/api/hub/missions-list', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify({ missionId: id, status: 'draft' }),
+    })
+    loadMissions()
+  }, [loadMissions])
+
+  const deleteMission = useCallback(async (id: string) => {
+    const token = await getToken()
+    await fetch('/api/hub/missions-list', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify({ missionId: id }),
+    })
+    loadMissions()
+  }, [loadMissions])
+
   return (
     <MissionContext.Provider value={{
       missionText, setMissionText,
@@ -296,6 +318,7 @@ export function MissionProvider({ children }: { children: ReactNode }) {
       missions,
       startMission, cancelMission, newMission,
       loadMissions, approveMission, archiveMission,
+      reactivateMission, deleteMission,
     }}>
       {children}
     </MissionContext.Provider>

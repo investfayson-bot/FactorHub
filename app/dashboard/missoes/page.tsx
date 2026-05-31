@@ -223,17 +223,58 @@ function AgentOutputPanel({
   )
 }
 
+// ─── Status maps ─────────────────────────────────────────────────────────────
+
+const STATUS_LABELS: Record<string, string> = {
+  draft: 'Rascunho',
+  running: 'Em Andamento',
+  completed: 'Aguard. Aprovação',
+  awaiting_approval: 'Aguard. Aprovação',
+  approved: 'Aprovada',
+  archived: 'Arquivada',
+  error: 'Erro',
+}
+const STATUS_COLORS: Record<string, string> = {
+  draft: '#8b5cf6',
+  running: '#f59e0b',
+  completed: '#3b82f6',
+  awaiting_approval: '#3b82f6',
+  approved: '#10b981',
+  archived: '#6b7280',
+  error: '#ef4444',
+}
+
 // ─── History Table ────────────────────────────────────────────────────────────
 
-function HistoryTable({ missions }: { missions: MissionRecord[] }) {
+function HistoryTable({
+  missions,
+  onReactivate,
+  onDelete,
+}: {
+  missions: MissionRecord[]
+  onReactivate: (id: string) => Promise<void>
+  onDelete: (id: string) => Promise<void>
+}) {
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [busy, setBusy] = useState<string | null>(null)
+
   if (!missions.length) return (
     <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
       Nenhuma missão ainda. Inicie sua primeira missão acima.
     </div>
   )
 
-  const statusColor: Record<string, string> = {
-    running: '#f59e0b', completed: '#10b981', approved: '#3b82f6', archived: '#6b7280', error: '#ef4444',
+  async function handleReactivate(id: string) {
+    setBusy(id)
+    await onReactivate(id)
+    setBusy(null)
+  }
+
+  async function handleDelete(id: string) {
+    setBusy(id)
+    await onDelete(id)
+    setBusy(null)
+    setConfirmDelete(null)
   }
 
   return (
@@ -241,29 +282,76 @@ function HistoryTable({ missions }: { missions: MissionRecord[] }) {
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
         <thead>
           <tr style={{ borderBottom: '1px solid var(--border)' }}>
-            {['Missão', 'Nível', 'Status', 'Agentes', 'Tokens', 'Custo', 'Data'].map(h => (
+            {['Missão', 'Nível', 'Status', 'Agentes', 'Tokens', 'Custo', 'Data', ''].map(h => (
               <th key={h} style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 700, fontSize: 10, color: 'var(--text-muted)', letterSpacing: '.05em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {missions.map((m) => (
-            <tr key={m.id} style={{ borderBottom: '1px solid var(--border)' }}>
-              <td style={{ padding: '10px', maxWidth: 280 }}>
-                <div style={{ fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.title}</div>
-              </td>
-              <td style={{ padding: '10px' }}>
-                <span style={{ fontFamily: 'monospace', fontSize: 10, fontWeight: 800, padding: '2px 6px', borderRadius: 4, background: 'var(--accent-dim)', color: 'var(--accent)' }}>{m.level}</span>
-              </td>
-              <td style={{ padding: '10px' }}>
-                <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4, background: `${statusColor[m.status] ?? '#666'}15`, color: statusColor[m.status] ?? 'var(--text-muted)' }}>{m.status}</span>
-              </td>
-              <td style={{ padding: '10px', color: 'var(--text-muted)' }}>{m.agents_used?.length ?? '—'}</td>
-              <td style={{ padding: '10px', color: 'var(--text-muted)' }}>{m.total_tokens?.toLocaleString() ?? '—'}</td>
-              <td style={{ padding: '10px', color: 'var(--text-muted)' }}>{m.cost_usd ? `$${m.cost_usd.toFixed(4)}` : '—'}</td>
-              <td style={{ padding: '10px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{new Date(m.created_at).toLocaleDateString('pt-BR')}</td>
-            </tr>
-          ))}
+          {missions.map((m) => {
+            const stColor = STATUS_COLORS[m.status] ?? '#666'
+            const stLabel = STATUS_LABELS[m.status] ?? m.status
+            const isArchived = m.status === 'archived'
+            const isDeleting = confirmDelete === m.id
+            const isBusy = busy === m.id
+            return (
+              <tr key={m.id} style={{ borderBottom: '1px solid var(--border)', opacity: isArchived ? 0.7 : 1 }}>
+                <td style={{ padding: '10px', maxWidth: 260 }}>
+                  <div style={{ fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.title}</div>
+                </td>
+                <td style={{ padding: '10px' }}>
+                  <span style={{ fontFamily: 'monospace', fontSize: 10, fontWeight: 800, padding: '2px 6px', borderRadius: 4, background: 'var(--accent-dim)', color: 'var(--accent)' }}>{m.level}</span>
+                </td>
+                <td style={{ padding: '10px' }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4, background: `${stColor}15`, color: stColor }}>{stLabel}</span>
+                </td>
+                <td style={{ padding: '10px', color: 'var(--text-muted)' }}>{m.agents_used?.length ?? '—'}</td>
+                <td style={{ padding: '10px', color: 'var(--text-muted)' }}>{m.total_tokens?.toLocaleString() ?? '—'}</td>
+                <td style={{ padding: '10px', color: 'var(--text-muted)' }}>{m.cost_usd ? `$${Number(m.cost_usd).toFixed(4)}` : '—'}</td>
+                <td style={{ padding: '10px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{new Date(m.created_at).toLocaleDateString('pt-BR')}</td>
+                <td style={{ padding: '10px', whiteSpace: 'nowrap' }}>
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    {isArchived && !isDeleting && (
+                      <button
+                        onClick={() => void handleReactivate(m.id)}
+                        disabled={isBusy}
+                        style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 5, background: 'rgba(139,92,246,.15)', color: '#8b5cf6', border: '1px solid rgba(139,92,246,.3)', cursor: 'pointer', fontFamily: 'inherit' }}
+                      >
+                        {isBusy ? '...' : 'Reativar'}
+                      </button>
+                    )}
+                    {!isDeleting ? (
+                      <button
+                        onClick={() => setConfirmDelete(m.id)}
+                        disabled={isBusy}
+                        style={{ fontSize: 10, padding: '3px 8px', borderRadius: 5, background: 'transparent', color: 'var(--text-dim)', border: '1px solid transparent', cursor: 'pointer', fontFamily: 'inherit' }}
+                        title="Deletar missão"
+                      >
+                        <i className="fa-solid fa-trash" style={{ fontSize: 9 }} />
+                      </button>
+                    ) : (
+                      <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                        <span style={{ fontSize: 10, color: '#ef4444', fontWeight: 600 }}>Confirmar?</span>
+                        <button
+                          onClick={() => void handleDelete(m.id)}
+                          disabled={isBusy}
+                          style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 5, background: '#ef4444', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+                        >
+                          {isBusy ? '...' : 'Sim'}
+                        </button>
+                        <button
+                          onClick={() => setConfirmDelete(null)}
+                          style={{ fontSize: 10, padding: '2px 7px', borderRadius: 5, background: 'var(--surface-3)', color: 'var(--text-muted)', border: '1px solid var(--border)', cursor: 'pointer', fontFamily: 'inherit' }}
+                        >
+                          Não
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            )
+          })}
         </tbody>
       </table>
     </div>
@@ -282,6 +370,7 @@ export default function MissoesPage() {
     missions,
     startMission, cancelMission, newMission,
     approveMission, archiveMission,
+    reactivateMission, deleteMission,
   } = useMission()
 
   const [uploadMsg, setUploadMsg] = useState('')
@@ -489,7 +578,7 @@ export default function MissoesPage() {
       {state === 'idle' && (
         <div style={card}>
           <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '.05em', textTransform: 'uppercase', marginBottom: 14 }}>Histórico de Missões</div>
-          <HistoryTable missions={missions} />
+          <HistoryTable missions={missions} onReactivate={reactivateMission} onDelete={deleteMission} />
         </div>
       )}
     </div>

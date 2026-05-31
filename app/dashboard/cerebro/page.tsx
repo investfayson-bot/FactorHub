@@ -156,12 +156,17 @@ export default function CerebroPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [saveError, setSaveError] = useState('')
+  const [lastAutoSave, setLastAutoSave] = useState<Date | null>(null)
   const [activeTab, setActiveTab] = useState(0)
   const [filling, setFilling] = useState(false)
   const [fillMsg, setFillMsg] = useState('')
   const [showPromptModal, setShowPromptModal] = useState(false)
   const [promptText, setPromptText] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
+  const savingRef = useRef(false)
+  const dataRef = useRef(data)
+  useEffect(() => { dataRef.current = data }, [data])
 
   const carregar = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -179,18 +184,50 @@ export default function CerebroPage() {
 
   useEffect(() => { void carregar() }, [carregar])
 
-  async function salvar() {
-    setSaving(true)
+  async function salvarCore(d: CerebroData): Promise<void> {
     const token = (await supabase.auth.getSession()).data.session?.access_token
-    await fetch('/api/hub/cerebro', {
+    const res = await fetch('/api/hub/cerebro', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-      body: JSON.stringify(data),
+      body: JSON.stringify(d),
     })
-    setSaving(false)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 3000)
+    const json = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error((json as { error?: string }).error ?? `Erro ${res.status}`)
   }
+
+  async function salvar() {
+    if (savingRef.current) return
+    savingRef.current = true
+    setSaving(true)
+    setSaveError('')
+    try {
+      await salvarCore(data)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 3000)
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : 'Erro de conexão')
+    } finally {
+      setSaving(false)
+      savingRef.current = false
+    }
+  }
+
+  // Auto-save every 30s
+  useEffect(() => {
+    if (loading) return
+    const id = setInterval(() => {
+      void (async () => {
+        if (savingRef.current) return
+        savingRef.current = true
+        try {
+          await salvarCore(dataRef.current)
+          setLastAutoSave(new Date())
+        } catch { /* silent on auto-save */ }
+        finally { savingRef.current = false }
+      })()
+    }, 30000)
+    return () => clearInterval(id)
+  }, [loading]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function fillWithAI(text: string) {
     setFilling(true)
@@ -269,18 +306,30 @@ export default function CerebroPage() {
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {/* Fill status */}
+            {/* Fill / save status */}
             <AnimatePresence>
               {fillMsg && (
-                <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                <motion.span key="fill" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                   style={{ fontSize: 11, color: fillMsg.includes('Erro') ? 'var(--red)' : 'var(--green)', fontWeight: 600 }}>
                   {fillMsg}
                 </motion.span>
               )}
-              {saved && (
-                <motion.span initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }}
-                  style={{ fontSize: 11, color: 'var(--green)', fontWeight: 600 }}>
-                  <i className="fa-solid fa-check" style={{ marginRight: 4 }} />Salvo
+              {saveError && !fillMsg && (
+                <motion.span key="err" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                  style={{ fontSize: 11, color: '#ef4444', fontWeight: 600 }}>
+                  <i className="fa-solid fa-triangle-exclamation" style={{ marginRight: 4 }} />Erro: {saveError}
+                </motion.span>
+              )}
+              {saved && !saveError && !fillMsg && (
+                <motion.span key="saved" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }}
+                  style={{ fontSize: 11, color: '#22c55e', fontWeight: 600 }}>
+                  <i className="fa-solid fa-check" style={{ marginRight: 4 }} />Salvo com sucesso
+                </motion.span>
+              )}
+              {lastAutoSave && !saved && !saveError && !fillMsg && (
+                <motion.span key="auto" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                  style={{ fontSize: 10, color: 'var(--text-dim)' }}>
+                  Auto-salvo {lastAutoSave.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                 </motion.span>
               )}
             </AnimatePresence>

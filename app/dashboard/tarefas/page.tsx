@@ -21,10 +21,12 @@ const LEVEL_COLORS: Record<string, string> = {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  completed: '#22c55e', running: '#f59e0b', approved: '#3b82f6', archived: '#64748b', error: '#ef4444',
+  draft: '#8b5cf6', running: '#f59e0b', completed: '#3b82f6', awaiting_approval: '#3b82f6',
+  approved: '#22c55e', archived: '#64748b', error: '#ef4444',
 }
 const STATUS_LABELS: Record<string, string> = {
-  completed: 'Concluída', running: 'Em execução', approved: 'Aprovada', archived: 'Arquivada', error: 'Erro',
+  draft: 'Rascunho', running: 'Em andamento', completed: 'Aguard. Aprovação',
+  awaiting_approval: 'Aguard. Aprovação', approved: 'Aprovada', archived: 'Arquivada', error: 'Erro',
 }
 
 function timeAgo(d: string) {
@@ -41,12 +43,22 @@ async function getToken() {
   return sess.session?.access_token ?? ''
 }
 
+async function patchMissionStatus(id: string, status: string) {
+  const token = await getToken()
+  return fetch('/api/hub/missions-list', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body: JSON.stringify({ missionId: id, status }),
+  })
+}
+
 export default function TarefasPage() {
   const [missions, setMissions] = useState<Mission[]>([])
   const [loading, setLoading] = useState(true)
   const [filterStatus, setFilterStatus] = useState('')
   const [filterLevel, setFilterLevel] = useState('')
   const [expanded, setExpanded] = useState<string | null>(null)
+  const [busyId, setBusyId] = useState<string | null>(null)
 
   const carregar = useCallback(async () => {
     const token = await getToken()
@@ -222,7 +234,7 @@ export default function TarefasPage() {
                           <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 }}>
                             Agentes executados
                           </div>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: m.status === 'archived' ? 12 : 0 }}>
                             {(m.agents_used ?? []).map(aid => {
                               const a = AGENTS_V2[aid]
                               return (
@@ -237,6 +249,21 @@ export default function TarefasPage() {
                               )
                             })}
                           </div>
+                          {m.status === 'archived' && (
+                            <button
+                              onClick={async () => {
+                                setBusyId(m.id)
+                                await patchMissionStatus(m.id, 'draft')
+                                await carregar()
+                                setBusyId(null)
+                              }}
+                              disabled={busyId === m.id}
+                              style={{ fontSize: 11, fontWeight: 700, padding: '5px 12px', borderRadius: 6, background: 'rgba(139,92,246,.15)', color: '#8b5cf6', border: '1px solid rgba(139,92,246,.3)', cursor: 'pointer', fontFamily: 'inherit' }}
+                            >
+                              <i className="fa-solid fa-rotate-left" style={{ fontSize: 9, marginRight: 5 }} />
+                              {busyId === m.id ? 'Reativando...' : 'Reativar missão'}
+                            </button>
+                          )}
                         </div>
                       </motion.div>
                     )}
