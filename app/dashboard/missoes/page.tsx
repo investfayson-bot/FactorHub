@@ -348,8 +348,16 @@ export default function MissoesPage() {
     loadMissions()
   }, [])
 
+  async function getToken() {
+    const { data: { session } } = await (await import('@/lib/supabase')).supabase.auth.getSession()
+    return session?.access_token ?? ''
+  }
+
   async function loadMissions() {
-    const res = await fetch('/api/hub/missions-list')
+    const token = await getToken()
+    const res = await fetch('/api/hub/missions-list', {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
     if (res.ok) {
       const { missions: list } = await res.json() as { missions: MissionRecord[] }
       setMissions(list ?? [])
@@ -405,9 +413,13 @@ export default function MissoesPage() {
     abortRef.current = new AbortController()
 
     try {
+      const token = await getToken()
       const res = await fetch('/api/hub/mission', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ mission: missionText, level: selectedLevel }),
         signal: abortRef.current.signal,
       })
@@ -536,9 +548,10 @@ export default function MissoesPage() {
 
   async function approveMission() {
     if (!missionId) return
+    const token = await getToken()
     await fetch(`/api/hub/missions-list`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       body: JSON.stringify({ missionId, status: 'approved' }),
     })
     loadMissions()
@@ -547,9 +560,10 @@ export default function MissoesPage() {
 
   async function archiveMission() {
     if (!missionId) return
+    const token = await getToken()
     await fetch(`/api/hub/missions-list`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       body: JSON.stringify({ missionId, status: 'archived' }),
     })
     loadMissions()
