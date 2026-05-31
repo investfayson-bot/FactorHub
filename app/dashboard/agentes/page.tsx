@@ -40,6 +40,8 @@ export default function AgentesPage() {
   const [tarefaAberta, setTarefaAberta] = useState<Tarefa | null>(null)
   const [plano, setPlano] = useState<PlanStep[] | null>(null)
   const [fase, setFase] = useState<'idle' | 'planejando' | 'executando' | 'concluido'>('idle')
+  const [feedback, setFeedback] = useState('')
+  const [aprovadas, setAprovadas] = useState<Set<string>>(new Set())
 
   const carregarTarefas = useCallback(async (agentId: string) => {
     setLoadingTarefas(true)
@@ -318,13 +320,70 @@ export default function AgentesPage() {
                     >
                       {tarefaAberta.resultado ?? ''}
                     </motion.div>
-                    <button
-                      className="btn btn-ghost btn-sm"
-                      style={{ marginTop: 14 }}
-                      onClick={() => { setTarefaAberta(null); setPlano(null); setFase('idle') }}
-                    >
-                      Fechar
-                    </button>
+                    {aprovadas.has(tarefaAberta.id) ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 14 }}>
+                        <i className="fa-solid fa-check-circle" style={{ color: 'var(--green)', fontSize: 13 }} />
+                        <span style={{ fontSize: 11.5, color: 'var(--green)', fontWeight: 600 }}>Aprovado</span>
+                        <button className="btn btn-ghost btn-sm" style={{ marginLeft: 8 }} onClick={() => { setTarefaAberta(null); setPlano(null); setFase('idle') }}>Fechar</button>
+                      </div>
+                    ) : (
+                      <div style={{ marginTop: 14 }}>
+                        <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                          <motion.button
+                            className="btn btn-sm"
+                            whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                            onClick={() => setAprovadas(prev => { const s = new Set(prev); s.add(tarefaAberta.id); return s })}
+                            style={{ background: 'rgba(34,197,94,.12)', color: 'var(--green)', border: '0.5px solid rgba(34,197,94,.3)' }}
+                          >
+                            <i className="fa-solid fa-check" style={{ fontSize: 10 }} />Aprovar
+                          </motion.button>
+                          <motion.button
+                            className="btn btn-sm"
+                            whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                            onClick={() => { setTarefaAberta(null); setPlano(null); setFase('idle') }}
+                            style={{ background: 'var(--surface-3)', color: 'var(--text-muted)', border: '0.5px solid var(--border)' }}
+                          >
+                            Fechar
+                          </motion.button>
+                        </div>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <input
+                            className="form-input"
+                            placeholder="Feedback para rejeitar e refazer..."
+                            value={feedback}
+                            onChange={e => setFeedback(e.target.value)}
+                            style={{ flex: 1, fontSize: 12 }}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter' && feedback.trim()) {
+                                setTitulo(tarefaAberta.titulo)
+                                setDescricao(`FEEDBACK: ${feedback}\n\nRefaça considerando este feedback.`)
+                                setFeedback('')
+                                setTarefaAberta(null)
+                                setPlano(null)
+                                setFase('idle')
+                              }
+                            }}
+                          />
+                          <motion.button
+                            className="btn btn-sm"
+                            whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                            disabled={!feedback.trim()}
+                            onClick={() => {
+                              if (!feedback.trim()) return
+                              setTitulo(tarefaAberta.titulo)
+                              setDescricao(`FEEDBACK: ${feedback}\n\nRefaça considerando este feedback.`)
+                              setFeedback('')
+                              setTarefaAberta(null)
+                              setPlano(null)
+                              setFase('idle')
+                            }}
+                            style={{ background: 'rgba(239,68,68,.12)', color: 'var(--red)', border: '0.5px solid rgba(239,68,68,.3)', whiteSpace: 'nowrap' }}
+                          >
+                            <i className="fa-solid fa-rotate-right" style={{ fontSize: 10 }} />Rejeitar e refazer
+                          </motion.button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </motion.div>
               )}

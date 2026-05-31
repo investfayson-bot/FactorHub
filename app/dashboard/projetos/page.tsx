@@ -3,6 +3,9 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
+import dynamic from 'next/dynamic'
+
+const ProjectDrawer = dynamic(() => import('@/components/projects/ProjectDrawer'), { ssr: false })
 
 type Projeto = { id: string; nome: string; descricao: string | null; status: string; progresso: number; categoria: string | null; created_at: string }
 
@@ -18,6 +21,7 @@ export default function ProjetosPage() {
   const [empresaId, setEmpresaId] = useState('')
   const [form, setForm] = useState({ nome: '', descricao: '', status: 'ideia', progresso: 0, categoria: '' })
   const [saving, setSaving] = useState(false)
+  const [drawerProjeto, setDrawerProjeto] = useState<Projeto | null>(null)
 
   useEffect(() => { void carregar() }, [])
 
@@ -138,6 +142,7 @@ export default function ProjetosPage() {
                       <td style={{ color: 'var(--text-muted)', fontSize: 11, fontFamily: "'DM Mono',monospace" }}>{new Date(p.created_at).toLocaleDateString('pt-BR')}</td>
                       <td>
                         <div style={{ display: 'flex', gap: 6 }}>
+                          <button className="btn btn-ghost btn-sm" onClick={() => setDrawerProjeto(p)}>Abrir</button>
                           <button className="btn btn-ghost btn-sm" onClick={() => abrirEditar(p)}>Editar</button>
                           <button className="btn btn-danger btn-sm" onClick={() => void excluir(p.id)}>Del</button>
                         </div>
@@ -150,6 +155,14 @@ export default function ProjetosPage() {
           </div>
         )}
       </motion.div>
+      <ProjectDrawer
+        projeto={drawerProjeto}
+        onClose={() => setDrawerProjeto(null)}
+        onSave={(updated) => {
+          setItens(prev => prev.map(p => p.id === updated.id ? updated : p))
+          setDrawerProjeto(updated)
+        }}
+      />
     </div>
   )
 }

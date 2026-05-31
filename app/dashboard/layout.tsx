@@ -16,6 +16,7 @@ const NAV: { label: string; items: NavItem[] }[] = [
     items: [
       { href: '/dashboard', icon: 'fa-grid-2', label: 'Dashboard', match: (p) => p === '/dashboard' || p === '/dashboard/' },
       { href: '/dashboard/agentes', icon: 'fa-robot', label: 'Agentes', badge: 'IA', badgeColor: '#e8622a' },
+      { href: '/dashboard/chat', icon: 'fa-comment-dots', label: 'Chat' },
       { href: '/dashboard/cerebro', icon: 'fa-brain', label: 'Cerebro' },
       { href: '/dashboard/tarefas', icon: 'fa-list-check', label: 'Tarefas' },
       { href: '/dashboard/uso', icon: 'fa-chart-bar', label: 'Consumo' },
@@ -36,6 +37,7 @@ const NAV: { label: string; items: NavItem[] }[] = [
 const TITLES: Record<string, string> = {
   '/dashboard': 'Dashboard',
   '/dashboard/agentes': 'Agentes IA',
+  '/dashboard/chat': 'Chat com Agentes',
   '/dashboard/tarefas': 'Tarefas',
   '/dashboard/cerebro': 'Cerebro — Rede Neural',
   '/dashboard/uso': 'Consumo',
