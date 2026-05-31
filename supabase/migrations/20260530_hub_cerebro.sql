@@ -29,9 +29,15 @@ create table if not exists public.hub_cerebro (
 alter table public.hub_cerebro enable row level security;
 
 create policy "cerebro owner access" on public.hub_cerebro
-  using (empresa_id = auth.uid()::text or empresa_id in (
-    select empresa_id from public.usuarios where id = auth.uid()
-  ))
-  with check (empresa_id = auth.uid()::text or empresa_id in (
-    select empresa_id from public.usuarios where id = auth.uid()
-  ));
+  using (
+    empresa_id = auth.uid()::text
+    or empresa_id in (
+      select empresa_id from public.usuarios where id::text = auth.uid()::text
+    )
+  )
+  with check (
+    empresa_id = auth.uid()::text
+    or empresa_id in (
+      select empresa_id from public.usuarios where id::text = auth.uid()::text
+    )
+  );
