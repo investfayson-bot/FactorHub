@@ -342,7 +342,10 @@ export default function MissoesPage() {
   const [costUsd, setCostUsd] = useState(0)
   const [errorMsg, setErrorMsg] = useState('')
   const [missions, setMissions] = useState<MissionRecord[]>([])
+  const [uploadMsg, setUploadMsg] = useState('')
+  const [uploading, setUploading] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     loadMissions()
@@ -351,6 +354,36 @@ export default function MissoesPage() {
   async function getToken() {
     const { data: { session } } = await (await import('@/lib/supabase')).supabase.auth.getSession()
     return session?.access_token ?? ''
+  }
+
+  async function handleFileUpload(file: File) {
+    setUploading(true)
+    setUploadMsg('Extraindo texto…')
+    try {
+      const token = await getToken()
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/hub/extract-text', {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: fd,
+      })
+      const json = await res.json()
+      if (json.text) {
+        const extracted = json.text.trim().slice(0, 4000)
+        setMissionText(prev => prev ? `${prev}\n\n---\n${extracted}` : extracted)
+        setUploadMsg('Texto adicionado à missão!')
+        setTimeout(() => setUploadMsg(''), 3000)
+      } else {
+        setUploadMsg(json.error ?? 'Falha na extração')
+        setTimeout(() => setUploadMsg(''), 4000)
+      }
+    } catch {
+      setUploadMsg('Erro no upload')
+      setTimeout(() => setUploadMsg(''), 3000)
+    } finally {
+      setUploading(false)
+    }
   }
 
   async function loadMissions() {
@@ -585,9 +618,36 @@ export default function MissoesPage() {
         {state === 'idle' && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={card}>
-              <div style={{ marginBottom: 12 }}>
-                <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)', marginBottom: 4 }}>Nova Missão</div>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Descreva o que precisa analisar, planejar ou executar. O sistema decide quem analisa e em que ordem.</div>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)', marginBottom: 4 }}>Nova Missão</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Descreva o que precisa analisar, planejar ou executar. Pode incluir documentos, transcrições ou qualquer contexto.</div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                  {uploadMsg && (
+                    <span style={{ fontSize: 11, color: uploadMsg.includes('Erro') ? '#ef4444' : '#22c55e', fontWeight: 600 }}>
+                      {uploadMsg}
+                    </span>
+                  )}
+                  <input ref={fileRef} type="file" accept=".pdf,.txt,.md,.csv" style={{ display: 'none' }}
+                    onChange={e => { const f = e.target.files?.[0]; if (f) handleFileUpload(f); e.target.value = '' }} />
+                  <button
+                    onClick={() => fileRef.current?.click()}
+                    disabled={uploading}
+                    title="Fazer upload de PDF/TXT para adicionar como contexto da missão"
+                    style={{
+                      padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border)',
+                      background: 'var(--surface-2)', color: 'var(--text-muted)',
+                      cursor: uploading ? 'not-allowed' : 'pointer', fontSize: 12, fontWeight: 600,
+                      display: 'flex', alignItems: 'center', gap: 6,
+                    }}
+                  >
+                    {uploading
+                      ? <><i className="fa-solid fa-circle-notch fa-spin" style={{ fontSize: 10 }} />Extraindo...</>
+                      : <><i className="fa-solid fa-paperclip" style={{ fontSize: 11 }} />Anexar</>
+                    }
+                  </button>
+                </div>
               </div>
               <textarea
                 value={missionText}
@@ -602,6 +662,9 @@ export default function MissoesPage() {
                   boxSizing: 'border-box',
                 }}
               />
+              <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 6, opacity: 0.6 }}>
+                Suporta PDF, TXT, MD — texto extraído é adicionado como contexto da missão
+              </div>
             </div>
 
             {/* Level selector */}

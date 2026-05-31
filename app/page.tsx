@@ -1,5 +1,5 @@
-import { HeroSection } from '@/components/blocks/hero-section-9'
+import { redirect } from 'next/navigation'
 
 export default function RootPage() {
-  return <HeroSection />
+  redirect('/dashboard')
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
 import { calcCerebroCompletion } from '@/lib/cerebro'
@@ -157,6 +157,11 @@ export default function CerebroPage() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [activeTab, setActiveTab] = useState(0)
+  const [filling, setFilling] = useState(false)
+  const [fillMsg, setFillMsg] = useState('')
+  const [showPromptModal, setShowPromptModal] = useState(false)
+  const [promptText, setPromptText] = useState('')
+  const fileRef = useRef<HTMLInputElement>(null)
 
   const carregar = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -187,6 +192,67 @@ export default function CerebroPage() {
     setTimeout(() => setSaved(false), 3000)
   }
 
+  async function fillWithAI(text: string) {
+    setFilling(true)
+    setFillMsg('Analisando com IA…')
+    try {
+      const token = (await supabase.auth.getSession()).data.session?.access_token
+      const res = await fetch('/api/hub/cerebro-fill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ text }),
+      })
+      const json = await res.json()
+      if (json.filled) {
+        setData(d => {
+          const updated = { ...d }
+          for (const key of Object.keys(json.filled) as (keyof CerebroData)[]) {
+            if (json.filled[key] && String(json.filled[key]).trim()) {
+              updated[key] = json.filled[key]
+            }
+          }
+          return updated
+        })
+        setFillMsg('Preenchido! Revise e salve.')
+        setTimeout(() => setFillMsg(''), 5000)
+      } else {
+        setFillMsg(json.error ?? 'Erro ao preencher')
+        setTimeout(() => setFillMsg(''), 4000)
+      }
+    } catch {
+      setFillMsg('Erro de conexão')
+      setTimeout(() => setFillMsg(''), 3000)
+    } finally {
+      setFilling(false)
+    }
+  }
+
+  async function handleFileUpload(file: File) {
+    setFilling(true)
+    setFillMsg('Extraindo texto do arquivo…')
+    try {
+      const token = (await supabase.auth.getSession()).data.session?.access_token
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/hub/extract-text', {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: fd,
+      })
+      const json = await res.json()
+      if (json.text) {
+        await fillWithAI(json.text)
+      } else {
+        setFillMsg(json.error ?? 'Falha na extração')
+        setFilling(false)
+        setTimeout(() => setFillMsg(''), 4000)
+      }
+    } catch {
+      setFillMsg('Erro no upload')
+      setFilling(false)
+    }
+  }
+
   const layer = LAYERS[activeTab]
   const completion = pct(data)
 
@@ -202,19 +268,52 @@ export default function CerebroPage() {
               Estas informações são injetadas no contexto de todos os agentes automaticamente.
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {/* Fill status */}
             <AnimatePresence>
+              {fillMsg && (
+                <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                  style={{ fontSize: 11, color: fillMsg.includes('Erro') ? 'var(--red)' : 'var(--green)', fontWeight: 600 }}>
+                  {fillMsg}
+                </motion.span>
+              )}
               {saved && (
-                <motion.span
-                  initial={{ opacity: 0, x: 10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 10 }}
-                  style={{ fontSize: 11, color: 'var(--green)', fontWeight: 600 }}
-                >
+                <motion.span initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }}
+                  style={{ fontSize: 11, color: 'var(--green)', fontWeight: 600 }}>
                   <i className="fa-solid fa-check" style={{ marginRight: 4 }} />Salvo
                 </motion.span>
               )}
             </AnimatePresence>
+
+            {/* Upload file */}
+            <input ref={fileRef} type="file" accept=".pdf,.txt,.md,.csv" style={{ display: 'none' }}
+              onChange={e => { const f = e.target.files?.[0]; if (f) handleFileUpload(f); e.target.value = '' }} />
+
+            <motion.button
+              className="btn btn-ghost"
+              onClick={() => fileRef.current?.click()}
+              disabled={filling}
+              whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+              title="Fazer upload de PDF/TXT e preencher automaticamente"
+              style={{ fontSize: 12, gap: 6 }}
+            >
+              {filling
+                ? <><i className="fa-solid fa-circle-notch fa-spin" style={{ fontSize: 10 }} />Analisando...</>
+                : <><i className="fa-solid fa-upload" style={{ fontSize: 10 }} />Upload + IA</>
+              }
+            </motion.button>
+
+            <motion.button
+              className="btn btn-ghost"
+              onClick={() => setShowPromptModal(true)}
+              disabled={filling}
+              whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+              title="Colar texto e preencher automaticamente"
+              style={{ fontSize: 12, gap: 6 }}
+            >
+              <i className="fa-solid fa-wand-magic-sparkles" style={{ fontSize: 10 }} />Colar + IA
+            </motion.button>
+
             <motion.button
               className="btn btn-primary"
               onClick={() => void salvar()}
@@ -349,6 +448,68 @@ export default function CerebroPage() {
           </motion.div>
         </AnimatePresence>
       )}
+
+      {/* Prompt modal */}
+      <AnimatePresence>
+        {showPromptModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 100,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
+            }}
+            onClick={e => { if (e.target === e.currentTarget) setShowPromptModal(false) }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              style={{
+                background: 'var(--surface)', borderRadius: 16, padding: 24, width: '100%', maxWidth: 600,
+                border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 16,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 700 }}>Preencher Cérebro com IA</div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 3 }}>
+                    Cole qualquer texto: pitch, email, entrevista, descrição da empresa, transcrição…
+                  </div>
+                </div>
+                <button onClick={() => setShowPromptModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 18 }}>
+                  <i className="fa-solid fa-xmark" />
+                </button>
+              </div>
+              <textarea
+                value={promptText}
+                onChange={e => setPromptText(e.target.value)}
+                placeholder="Cole aqui qualquer texto sobre a empresa. A IA vai extrair e preencher cada seção automaticamente, sem sobrescrever campos já preenchidos."
+                rows={10}
+                style={{
+                  width: '100%', background: 'var(--surface-2)', border: '1px solid var(--border)',
+                  borderRadius: 10, padding: 14, fontSize: 13, color: 'var(--foreground)',
+                  resize: 'vertical', outline: 'none', lineHeight: 1.6, fontFamily: 'inherit', boxSizing: 'border-box',
+                }}
+              />
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                <button className="btn btn-ghost" onClick={() => setShowPromptModal(false)}>Cancelar</button>
+                <motion.button
+                  className="btn btn-primary"
+                  disabled={!promptText.trim() || filling}
+                  whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+                  onClick={() => { setShowPromptModal(false); fillWithAI(promptText) }}
+                  style={{ gap: 6 }}
+                >
+                  <i className="fa-solid fa-wand-magic-sparkles" style={{ fontSize: 11 }} />
+                  Preencher com IA
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Preview */}
       {completion > 0 && (
