@@ -155,7 +155,7 @@ export default function DashboardPage() {
       >
         <div>
           <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}>
-            Bem-vindo de volta, <span style={{ color: 'var(--teal)' }}>{userName}</span>
+            Bem-vindo de volta, <span style={{ color: 'var(--accent)' }}>{userName}</span>
           </div>
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
             {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}
@@ -187,7 +187,7 @@ export default function DashboardPage() {
         style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12 }}
       >
         {[
-          { label: 'Tarefas hoje',  value: hoje.length,                      sub: 'Criadas nas últimas 24h',    icon: 'fa-bolt',          color: '#14B8A6' },
+          { label: 'Tarefas hoje',  value: hoje.length,                      sub: 'Criadas nas últimas 24h',    icon: 'fa-bolt',          color: '#e8622a' },
           { label: 'Tarefas ativas', value: ativas.length,                   sub: 'Em execução agora',          icon: 'fa-circle-notch',  color: '#F59E0B' },
           { label: 'Total tarefas', value: counts?.tarefas ?? '—',           sub: 'Desde o início',             icon: 'fa-list-check',    color: '#7C3AED' },
           { label: 'Custo IA (USD)',value: `$${totalCusto.toFixed(4)}`,      sub: 'Acumulado total',            icon: 'fa-microchip',     color: '#059669', mono: true },
@@ -229,7 +229,7 @@ export default function DashboardPage() {
               <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Distribuicao de Atividade</div>
               <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>Tarefas por horario e dia</div>
             </div>
-            <span style={{ fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 5, background: 'rgba(20,184,166,.1)', color: 'var(--teal)' }}>Semanal</span>
+            <span style={{ fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 5, background: 'var(--accent-dim)', color: 'var(--accent)' }}>Semanal</span>
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
             {/* Y-axis labels */}
@@ -284,7 +284,7 @@ export default function DashboardPage() {
             </div>
             <div style={{ display: 'flex', gap: 14 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <div style={{ width: 8, height: 2, borderRadius: 1, background: '#14B8A6' }} />
+                <div style={{ width: 8, height: 2, borderRadius: 1, background: 'var(--accent)' }} />
                 <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>Tarefas</span>
               </div>
             </div>
@@ -297,7 +297,7 @@ export default function DashboardPage() {
               ))}
             </div>
             <div style={{ flex: 1, height: 110 }}>
-              <SvgLine data={lineData} color="#14B8A6" />
+              <SvgLine data={lineData} color="#e8622a" />
             </div>
           </div>
           {/* X-axis */}
@@ -324,7 +324,7 @@ export default function DashboardPage() {
         >
           <div className="card-header">
             <span className="card-title">Agentes IA</span>
-            <Link href="/dashboard/agentes" style={{ fontSize: 11.5, color: 'var(--teal)', textDecoration: 'none', fontWeight: 600 }}>+ Criar tarefa</Link>
+            <Link href="/dashboard/agentes" style={{ fontSize: 11.5, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>+ Criar tarefa</Link>
           </div>
           <div style={{ padding: '12px 14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             {agentStats.map((a, i) => (
@@ -366,12 +366,12 @@ export default function DashboardPage() {
         >
           <div className="card-header">
             <span className="card-title">Atividade recente</span>
-            <Link href="/dashboard/tarefas" style={{ fontSize: 11.5, color: 'var(--teal)', textDecoration: 'none', fontWeight: 600 }}>Ver tudo</Link>
+            <Link href="/dashboard/tarefas" style={{ fontSize: 11.5, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Ver tudo</Link>
           </div>
           <AnimatePresence initial={false}>
             {recent.length === 0 ? (
               <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>
-                Nenhuma tarefa ainda. <Link href="/dashboard/agentes" style={{ color: 'var(--teal)', textDecoration: 'none', fontWeight: 600 }}>Crie a primeira</Link>
+                Nenhuma tarefa ainda. <Link href="/dashboard/agentes" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Crie a primeira</Link>
               </div>
             ) : recent.map((t, i) => {
               const agente = AGENTES.find(a => a.id === t.agente_id)

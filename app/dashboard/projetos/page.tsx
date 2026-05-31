@@ -103,7 +103,7 @@ export default function ProjetosPage() {
       <motion.div className="card" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} style={{ overflow: 'hidden' }}>
         {loading ? (
           <div style={{ padding: '50px', display: 'flex', justifyContent: 'center' }}>
-            <motion.div style={{ width: 22, height: 22, borderRadius: '50%', border: '2px solid var(--border-light)', borderTopColor: 'var(--teal)' }} animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }} />
+            <motion.div style={{ width: 22, height: 22, borderRadius: '50%', border: '2px solid var(--border-light)', borderTopColor: 'var(--accent)' }} animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }} />
           </div>
         ) : itens.length === 0 ? (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
@@ -129,7 +129,7 @@ export default function ProjetosPage() {
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 100 }}>
                           <div style={{ flex: 1, height: 5, background: 'var(--surface-2)', borderRadius: 3, overflow: 'hidden' }}>
-                            <motion.div initial={{ width: 0 }} animate={{ width: `${p.progresso}%` }} transition={{ duration: 0.6, ease: 'easeOut' }} style={{ height: '100%', background: 'var(--teal)', borderRadius: 3 }} />
+                            <motion.div initial={{ width: 0 }} animate={{ width: `${p.progresso}%` }} transition={{ duration: 0.6, ease: 'easeOut' }} style={{ height: '100%', background: 'var(--accent)', borderRadius: 3 }} />
                           </div>
                           <span style={{ fontSize: 11, fontFamily: "'DM Mono',monospace", color: 'var(--text-muted)', minWidth: 30 }}>{p.progresso}%</span>
                         </div>

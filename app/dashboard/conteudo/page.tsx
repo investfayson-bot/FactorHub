@@ -63,7 +63,7 @@ export default function ConteudoPage() {
               whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}
               style={{
                 padding: '5px 12px', fontSize: 11, fontWeight: 600, borderRadius: 6, cursor: 'pointer', border: 'none', fontFamily: 'inherit',
-                background: filtroStatus === s ? 'var(--teal)' : 'var(--surface-2)',
+                background: filtroStatus === s ? 'var(--accent)' : 'var(--surface-2)',
                 color: filtroStatus === s ? '#fff' : 'var(--text-muted)',
                 transition: 'all .15s',
               }}
@@ -115,7 +115,7 @@ export default function ConteudoPage() {
       <motion.div className="card" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} style={{ overflow: 'hidden' }}>
         {loading ? (
           <div style={{ padding: '50px', display: 'flex', justifyContent: 'center' }}>
-            <motion.div style={{ width: 22, height: 22, borderRadius: '50%', border: '2px solid var(--border-light)', borderTopColor: 'var(--teal)' }} animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }} />
+            <motion.div style={{ width: 22, height: 22, borderRadius: '50%', border: '2px solid var(--border-light)', borderTopColor: 'var(--accent)' }} animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }} />
           </div>
         ) : filtrados.length === 0 ? (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>

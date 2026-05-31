@@ -182,7 +182,7 @@ export default function AgentesPage() {
                   <motion.span
                     animate={{ opacity: [1, 0.4, 1] }}
                     transition={{ repeat: Infinity, duration: 1 }}
-                    style={{ fontSize: 10, color: 'var(--teal)', fontWeight: 600 }}
+                    style={{ fontSize: 10, color: 'var(--accent)', fontWeight: 600 }}
                   >
                     gerando plano...
                   </motion.span>
@@ -323,7 +323,7 @@ export default function AgentesPage() {
           {loadingTarefas ? (
             <div style={{ padding: '30px 16px', textAlign: 'center' }}>
               <motion.div
-                style={{ width: 20, height: 20, borderRadius: '50%', border: '2px solid var(--border-light)', borderTopColor: 'var(--teal)', margin: '0 auto' }}
+                style={{ width: 20, height: 20, borderRadius: '50%', border: '2px solid var(--border-light)', borderTopColor: 'var(--accent)', margin: '0 auto' }}
                 animate={{ rotate: 360 }}
                 transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }}
               />

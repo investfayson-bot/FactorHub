@@ -126,7 +126,7 @@ export default function TarefasPage() {
         {loading ? (
           <div style={{ padding: '50px', display: 'flex', justifyContent: 'center' }}>
             <motion.div
-              style={{ width: 22, height: 22, borderRadius: '50%', border: '2px solid var(--border-light)', borderTopColor: 'var(--teal)' }}
+              style={{ width: 22, height: 22, borderRadius: '50%', border: '2px solid var(--border-light)', borderTopColor: 'var(--accent)' }}
               animate={{ rotate: 360 }}
               transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }}
             />
