@@ -3,11 +3,11 @@
 import { useEffect, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
-import { AGENTES } from '@/lib/hub-agentes'
+import { AGENTS_V2 } from '@/lib/agents-v2'
 import Link from 'next/link'
 
-type Tarefa = { id: string; titulo: string; agente_id: string; status: string; resultado: string | null; custo_usd: number; created_at: string }
-type Counts = { projetos: number; ideias: number; clientes: number; tarefas: number; missoes: number }
+type Mission = { id: string; title: string; level: string; status: string; created_at: string; total_tokens: number; cost_usd: number; agents_used: string[] }
+type Counts = { projetos: number; ideias: number; missoes: number; aprovados: number }
 
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime()
@@ -23,12 +23,12 @@ function timeAgo(dateStr: string) {
 const HOURS = ['22h', '18h', '14h', '10h', '6h', '2h']
 const DAYS  = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 
-function buildHeatmap(tarefas: Tarefa[]) {
+function buildHeatmap(items: { created_at: string }[]) {
   const grid: number[][] = Array.from({ length: 6 }, () => Array(7).fill(0))
-  tarefas.forEach(t => {
+  items.forEach(t => {
     const d = new Date(t.created_at)
-    const dow = d.getDay()                        // 0–6
-    const bucket = Math.min(5, Math.floor(d.getHours() / 4)) // 0–5 → 6 buckets
+    const dow = d.getDay()
+    const bucket = Math.min(5, Math.floor(d.getHours() / 4))
     grid[5 - bucket][dow]++
   })
   return grid
@@ -45,10 +45,10 @@ function heatColor(v: number, max: number): string {
 }
 
 // ── Line chart: tasks per day last 12 days ───────────────────────────────────
-function buildLineData(tarefas: Tarefa[], days = 12) {
+function buildLineData(items: { created_at: string }[], days = 12) {
   const buckets: number[] = Array(days).fill(0)
   const now = Date.now()
-  tarefas.forEach(t => {
+  items.forEach(t => {
     const age = Math.floor((now - new Date(t.created_at).getTime()) / 86400000)
     if (age < days) buckets[days - 1 - age]++
   })
@@ -86,15 +86,26 @@ function SvgLine({ data, color, width = 420, height = 110 }: { data: number[]; c
   )
 }
 
-const statusColor: Record<string, string> = { concluida: '#22C55E', executando: '#F59E0B', erro: '#EF4444' }
-const statusBg: Record<string, string> = { concluida: 'rgba(34,197,94,.13)', executando: 'rgba(245,158,11,.13)', erro: 'rgba(239,68,68,.13)' }
+const STATUS_COLORS: Record<string, string> = { completed: '#22C55E', running: '#F59E0B', approved: '#3b82f6', error: '#EF4444', archived: '#64748b' }
+const STATUS_BG: Record<string, string> = { completed: 'rgba(34,197,94,.13)', running: 'rgba(245,158,11,.13)', approved: 'rgba(59,130,246,.13)', error: 'rgba(239,68,68,.13)' }
+const STATUS_LABELS: Record<string, string> = { completed: 'Concluída', running: 'Em execução', approved: 'Aprovada', archived: 'Arquivada', error: 'Erro' }
+const LEVEL_COLORS: Record<string, string> = { N1: '#0d9488', N2: '#e8622a', N3: '#6366f1', N4: '#7c3aed', N5: '#dc2626' }
+
+const FEATURED_AGENTS = ['CEO', 'CFO', 'CMO', 'COO', 'CTO', 'MR', 'CW', 'CS']
+
+async function getMissions(): Promise<Mission[]> {
+  const { data: sess } = await supabase.auth.getSession()
+  const token = sess.session?.access_token
+  const res = await fetch('/api/hub/missions-list', { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+  if (!res.ok) return []
+  const data = await res.json()
+  return data.missions ?? []
+}
 
 export default function DashboardPage() {
-  const [counts, setCounts]       = useState<Counts | null>(null)
-  const [tarefas, setTarefas]     = useState<Tarefa[]>([])
-  const [totalCusto, setTotalCusto] = useState(0)
-  const [empresaId, setEmpresaId] = useState('')
-  const [userName, setUserName]   = useState('Usuário')
+  const [counts, setCounts]   = useState<Counts | null>(null)
+  const [missions, setMissions] = useState<Mission[]>([])
+  const [userName, setUserName] = useState('Usuário')
 
   const carregar = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -102,47 +113,60 @@ export default function DashboardPage() {
     setUserName(user.email?.split('@')[0] ?? 'Usuário')
     const { data: u } = await supabase.from('usuarios').select('empresa_id').eq('id', user.id).maybeSingle()
     const eid = u?.empresa_id ?? user.id
-    setEmpresaId(eid)
 
-    const [p, id, cl, tf, uso, ms] = await Promise.all([
+    const [p, id, ms] = await Promise.all([
       supabase.from('hub_projetos').select('id', { count: 'exact', head: true }).eq('empresa_id', eid),
       supabase.from('hub_ideias').select('id', { count: 'exact', head: true }).eq('empresa_id', eid),
-      supabase.from('hub_clientes').select('id', { count: 'exact', head: true }).eq('empresa_id', eid),
-      supabase.from('hub_tarefas').select('id', { count: 'exact', head: true }).eq('empresa_id', eid),
-      supabase.from('hub_uso_agentes').select('custo_usd').eq('empresa_id', eid),
-      supabase.from('missions').select('id', { count: 'exact', head: true }).eq('empresa_id', eid),
+      getMissions(),
     ])
-    setCounts({ projetos: p.count ?? 0, ideias: id.count ?? 0, clientes: cl.count ?? 0, tarefas: tf.count ?? 0, missoes: ms.count ?? 0 })
-    setTotalCusto((uso.data ?? []).reduce((s, r) => s + Number(r.custo_usd ?? 0), 0))
-
-    const { data: tfList } = await supabase.from('hub_tarefas')
-      .select('id,titulo,agente_id,status,resultado,custo_usd,created_at')
-      .eq('empresa_id', eid).order('created_at', { ascending: false }).limit(60)
-    setTarefas((tfList ?? []) as Tarefa[])
+    const aprovados = ms.filter(m => m.status === 'approved').length
+    setCounts({ projetos: p.count ?? 0, ideias: id.count ?? 0, missoes: ms.length, aprovados })
+    setMissions(ms)
   }, [])
 
   useEffect(() => { void carregar() }, [carregar])
-  useEffect(() => {
-    if (!empresaId) return
-    const ch = supabase.channel('dashboard')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'hub_tarefas', filter: `empresa_id=eq.${empresaId}` }, () => { void carregar() })
-      .subscribe()
-    return () => { void supabase.removeChannel(ch) }
-  }, [empresaId, carregar])
 
-  const hoje = tarefas.filter(t => {
-    const d = new Date(t.created_at), n = new Date()
-    return d.getDate() === n.getDate() && d.getMonth() === n.getMonth()
+  const ativas = missions.filter(m => m.status === 'running')
+  const totalTokens = missions.reduce((s, m) => s + (m.total_tokens ?? 0), 0)
+  const totalCusto = missions.reduce((s, m) => s + Number(m.cost_usd ?? 0), 0)
+
+  // Build line chart from missions (last 12 days)
+  function buildMissionLine(ms: Mission[], days = 12) {
+    const buckets: number[] = Array(days).fill(0)
+    const now = Date.now()
+    ms.forEach(m => {
+      const age = Math.floor((now - new Date(m.created_at).getTime()) / 86400000)
+      if (age < days) buckets[days - 1 - age]++
+    })
+    return buckets
+  }
+
+  // Build heatmap from missions
+  function buildMissionHeatmap(ms: Mission[]) {
+    const grid: number[][] = Array.from({ length: 6 }, () => Array(7).fill(0))
+    ms.forEach(m => {
+      const d = new Date(m.created_at)
+      const dow = d.getDay()
+      const bucket = Math.min(5, Math.floor(d.getHours() / 4))
+      grid[5 - bucket][dow]++
+    })
+    return grid
+  }
+
+  const heatGrid = buildMissionHeatmap(missions)
+  const heatMax = Math.max(...heatGrid.flat(), 1)
+  const lineData = buildMissionLine(missions)
+
+  // Compute agent mission counts from agents_used arrays
+  const agentMissionCounts: Record<string, number> = {}
+  missions.forEach(m => {
+    (m.agents_used ?? []).forEach(aid => {
+      agentMissionCounts[aid] = (agentMissionCounts[aid] ?? 0) + 1
+    })
   })
-  const ativas = tarefas.filter(t => t.status === 'executando')
-  const heatGrid = buildHeatmap(tarefas)
-  const heatMax  = Math.max(...heatGrid.flat(), 1)
-  const lineData = buildLineData(tarefas)
-  const agentStats = AGENTES.map(a => {
-    const ag = tarefas.filter(t => t.agente_id === a.id)
-    return { ...a, total: ag.length, last: ag[0], isWorking: ag[0]?.status === 'executando' }
-  })
-  const recent = tarefas.slice(0, 8)
+
+  const featuredAgents = FEATURED_AGENTS.map(id => AGENTS_V2[id]).filter(Boolean)
+  const recent = missions.slice(0, 8)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -189,9 +213,9 @@ export default function DashboardPage() {
       >
         {[
           { label: 'Missões',        value: counts?.missoes ?? '—',           sub: 'Análises executadas',        icon: 'fa-rocket',        color: '#e8622a' },
-          { label: 'Tarefas ativas', value: ativas.length,                   sub: 'Em execução agora',          icon: 'fa-circle-notch',  color: '#F59E0B' },
-          { label: 'Total tarefas', value: counts?.tarefas ?? '—',           sub: 'Desde o início',             icon: 'fa-list-check',    color: '#7C3AED' },
-          { label: 'Custo IA (USD)',value: `$${totalCusto.toFixed(4)}`,      sub: 'Acumulado total',            icon: 'fa-microchip',     color: '#059669', mono: true },
+          { label: 'Em execução',    value: ativas.length,                   sub: 'Missões ativas agora',       icon: 'fa-circle-notch',  color: '#F59E0B' },
+          { label: 'Tokens gastos',  value: totalTokens.toLocaleString('pt-BR'), sub: 'Total de tokens IA',    icon: 'fa-coins',         color: '#7C3AED', mono: true },
+          { label: 'Custo IA (USD)', value: `$${totalCusto.toFixed(4)}`,     sub: 'Acumulado total',            icon: 'fa-microchip',     color: '#059669', mono: true },
         ].map(k => (
           <motion.div
             key={k.label}
@@ -227,8 +251,8 @@ export default function DashboardPage() {
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Distribuicao de Atividade</div>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>Tarefas por horario e dia</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Distribuição de Missões</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>Por horário e dia da semana</div>
             </div>
             <span style={{ fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 5, background: 'var(--accent-dim)', color: 'var(--accent)' }}>Semanal</span>
           </div>
@@ -280,8 +304,8 @@ export default function DashboardPage() {
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Volume de Tarefas</div>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>Ultimos 12 dias</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Volume de Missões</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>Últimos 12 dias</div>
             </div>
             <div style={{ display: 'flex', gap: 14 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -324,36 +348,40 @@ export default function DashboardPage() {
           style={{ overflow: 'hidden' }}
         >
           <div className="card-header">
-            <span className="card-title">Agentes IA</span>
-            <Link href="/dashboard/agentes" style={{ fontSize: 11.5, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>+ Criar tarefa</Link>
+            <span className="card-title">Agentes do Squad</span>
+            <Link href="/dashboard/agentes" style={{ fontSize: 11.5, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Ver todos →</Link>
           </div>
           <div style={{ padding: '12px 14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            {agentStats.map((a, i) => (
-              <motion.div
-                key={a.id}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.4 + i * 0.04, duration: 0.2 }}
-              >
-                <Link href="/dashboard/agentes" style={{ textDecoration: 'none' }}>
-                  <motion.div
-                    whileHover={{ y: -1 }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 10px', borderRadius: 9, background: 'var(--surface-2)', border: '1px solid var(--border)', cursor: 'pointer' }}
-                  >
-                    <div style={{ width: 30, height: 30, borderRadius: 8, background: a.cor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, color: '#fff', flexShrink: 0 }}>
-                      {a.inicial}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.nome}</div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
-                        <div style={{ width: 5, height: 5, borderRadius: '50%', background: a.isWorking ? '#F59E0B' : a.total > 0 ? '#22C55E' : '#475569', flexShrink: 0 }} />
-                        <span style={{ fontSize: 10, color: 'var(--text-dim)' }}>{a.total} tarefa{a.total !== 1 ? 's' : ''}</span>
+            {featuredAgents.map((a, i) => {
+              const missionCount = agentMissionCounts[a.id] ?? 0
+              const isActive = ativas.some(m => (m.agents_used ?? []).includes(a.id))
+              return (
+                <motion.div
+                  key={a.id}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.4 + i * 0.04, duration: 0.2 }}
+                >
+                  <Link href="/dashboard/agentes" style={{ textDecoration: 'none' }}>
+                    <motion.div
+                      whileHover={{ y: -1 }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 10px', borderRadius: 9, background: 'var(--surface-2)', border: `1px solid ${isActive ? a.color + '50' : 'var(--border)'}`, cursor: 'pointer' }}
+                    >
+                      <div style={{ width: 30, height: 30, borderRadius: 8, background: `${a.color}20`, border: `1.5px solid ${a.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, color: a.color, flexShrink: 0 }}>
+                        {a.initial}
                       </div>
-                    </div>
-                  </motion.div>
-                </Link>
-              </motion.div>
-            ))}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.name}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                          <div style={{ width: 5, height: 5, borderRadius: '50%', background: isActive ? '#F59E0B' : missionCount > 0 ? '#22C55E' : '#475569', flexShrink: 0 }} />
+                          <span style={{ fontSize: 9.5, color: 'var(--text-dim)' }}>{missionCount} missão{missionCount !== 1 ? 'ões' : ''}</span>
+                        </div>
+                      </div>
+                    </motion.div>
+                  </Link>
+                </motion.div>
+              )
+            })}
           </div>
         </motion.div>
 
@@ -366,35 +394,35 @@ export default function DashboardPage() {
           style={{ overflow: 'hidden' }}
         >
           <div className="card-header">
-            <span className="card-title">Atividade recente</span>
+            <span className="card-title">Missões recentes</span>
             <Link href="/dashboard/tarefas" style={{ fontSize: 11.5, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Ver tudo</Link>
           </div>
           <AnimatePresence initial={false}>
             {recent.length === 0 ? (
               <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>
-                Nenhuma tarefa ainda. <Link href="/dashboard/agentes" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Crie a primeira</Link>
+                Nenhuma missão ainda. <Link href="/dashboard/missoes" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Iniciar a primeira</Link>
               </div>
-            ) : recent.map((t, i) => {
-              const agente = AGENTES.find(a => a.id === t.agente_id)
+            ) : recent.map((m, i) => {
+              const levelColor = LEVEL_COLORS[m.level] ?? '#e8622a'
               return (
                 <motion.div
-                  key={t.id}
+                  key={m.id}
                   initial={{ opacity: 0, x: -8 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.45 + i * 0.035, duration: 0.22 }}
                   style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', borderBottom: '1px solid var(--border)' }}
                 >
-                  <div style={{ width: 26, height: 26, borderRadius: 7, background: agente?.cor ?? '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, color: '#fff', flexShrink: 0 }}>
-                    {agente?.inicial ?? '?'}
+                  <div style={{ width: 30, height: 30, borderRadius: 7, background: `${levelColor}18`, border: `1.5px solid ${levelColor}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, color: levelColor, flexShrink: 0 }}>
+                    {m.level}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.titulo}</div>
-                    <div style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: 2 }}>{agente?.nome ?? t.agente_id}</div>
+                    <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.title}</div>
+                    <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>{(m.agents_used ?? []).length} agentes · {(m.total_tokens ?? 0).toLocaleString()} tk</div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                    <span style={{ fontSize: 10, color: 'var(--text-dim)' }}>{timeAgo(t.created_at)}</span>
-                    <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 5, background: statusBg[t.status] ?? 'var(--surface-2)', color: statusColor[t.status] ?? 'var(--text-muted)' }}>
-                      {t.status === 'concluida' ? 'Concluida' : t.status === 'executando' ? 'Em andamento' : t.status}
+                    <span style={{ fontSize: 10, color: 'var(--text-dim)' }}>{timeAgo(m.created_at)}</span>
+                    <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 5, background: STATUS_BG[m.status] ?? 'var(--surface-2)', color: STATUS_COLORS[m.status] ?? 'var(--text-muted)' }}>
+                      {STATUS_LABELS[m.status] ?? m.status}
                     </span>
                   </div>
                 </motion.div>
