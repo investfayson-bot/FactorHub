@@ -60,25 +60,54 @@ export default function TerminalModal({ open, onClose }: Props) {
   async function runAgent(agentId: string, task: string) {
     if (!task) { push({ type: 'err', text: 'Descreva a tarefa após mencionar o agente.' }); return }
     setRunning(true)
-    push({ type: 'agent', text: `→ Enviando para @${agentId}: "${task}"` })
-
-    let streamLine = ''
-    const streamIdx = lines.length + 1
+    push({ type: 'agent', text: `→ @${agentId}: "${task}"` })
     setLines(prev => [...prev, { type: 'stream', text: '' }])
 
     try {
-      const res = await fetch('/api/hub/tarefa', {
+      const { supabase: sb } = await import('@/lib/supabase')
+      const { data: sess } = await sb.auth.getSession()
+      const authToken = sess.session?.access_token
+
+      const res = await fetch('/api/hub/stream', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agente_id: agentId, titulo: task, descricao: task }),
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+        },
+        body: JSON.stringify({ agentId, titulo: task }),
       })
-      const data = await res.json() as { resultado?: string; error?: string }
-      if (data.error) {
-        setLines(prev => { const n = [...prev]; n[n.length - 1] = { type: 'err', text: data.error! }; return n })
-      } else {
-        const result = data.resultado ?? ''
-        setLines(prev => { const n = [...prev]; n[n.length - 1] = { type: 'ok', text: result }; return n })
+
+      if (!res.ok || !res.body) {
+        setLines(prev => { const n = [...prev]; n[n.length - 1] = { type: 'err', text: 'Falha ao conectar com o agente.' }; return n })
+        setRunning(false)
+        return
       }
+
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let full = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        const chunk = decoder.decode(value, { stream: true })
+        const lines = chunk.split('\n')
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          const raw = line.slice(6).trim()
+          if (raw === '[DONE]') break
+          try {
+            const parsed = JSON.parse(raw) as { token?: string }
+            if (parsed.token) {
+              full += parsed.token
+              setLines(prev => { const n = [...prev]; n[n.length - 1] = { type: 'stream', text: full }; return n })
+            }
+          } catch { /* skip */ }
+        }
+      }
+
+      // Finalize as 'ok'
+      setLines(prev => { const n = [...prev]; n[n.length - 1] = { type: 'ok', text: full || '(sem resposta)' }; return n })
     } catch {
       setLines(prev => { const n = [...prev]; n[n.length - 1] = { type: 'err', text: 'Erro de rede.' }; return n })
     }

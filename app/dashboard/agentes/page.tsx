@@ -5,6 +5,9 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { AGENTES, type Agente } from '@/lib/hub-agentes'
 import { supabase } from '@/lib/supabase'
 import { AgentPlan, type PlanStep } from '@/components/ui/agent-plan'
+import dynamic from 'next/dynamic'
+
+const AgentDrawer = dynamic(() => import('@/components/agents/AgentDrawer'), { ssr: false })
 
 type Tarefa = { id: string; titulo: string; descricao: string | null; status: string; resultado: string | null; custo_usd: number; created_at: string }
 
@@ -28,6 +31,7 @@ async function getToken() {
 
 export default function AgentesPage() {
   const [ativo, setAtivo] = useState<Agente>(AGENTES[0])
+  const [drawerAgente, setDrawerAgente] = useState<Agente | null>(null)
   const [tarefas, setTarefas] = useState<Tarefa[]>([])
   const [titulo, setTitulo] = useState('')
   const [descricao, setDescricao] = useState('')
@@ -112,6 +116,7 @@ export default function AgentesPage() {
   }
 
   return (
+    <>
     <div style={{ display: 'grid', gridTemplateColumns: '248px 1fr', gap: 16, height: '100%', minHeight: 0 }}>
 
       {/* Agent list */}
@@ -123,28 +128,41 @@ export default function AgentesPage() {
           {AGENTES.map((a, i) => {
             const sel = a.id === ativo.id
             return (
-              <motion.button
+              <motion.div
                 key={a.id}
-                onClick={() => setAtivo(a)}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.05, duration: 0.25 }}
-                whileHover={{ x: 2 }}
-                style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left', padding: '9px 10px', borderRadius: 8, cursor: 'pointer', marginBottom: 2, border: `1px solid ${sel ? a.cor + '50' : 'transparent'}`, background: sel ? `${a.cor}10` : 'transparent', transition: 'background .12s, border-color .12s' }}
+                style={{ display: 'flex', alignItems: 'center', gap: 2, marginBottom: 2 }}
               >
-                <motion.div
-                  className="agent-av"
-                  style={{ background: a.cor, width: 30, height: 30, borderRadius: 7, fontSize: 10 }}
-                  animate={sel ? { scale: [1, 1.06, 1] } : {}}
-                  transition={{ duration: 0.4 }}
+                <motion.button
+                  onClick={() => setAtivo(a)}
+                  whileHover={{ x: 2 }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, textAlign: 'left', padding: '9px 10px', borderRadius: 8, cursor: 'pointer', border: `1px solid ${sel ? a.cor + '50' : 'transparent'}`, background: sel ? `${a.cor}10` : 'transparent', transition: 'background .12s, border-color .12s' }}
                 >
-                  {a.inicial}
-                </motion.div>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 12.5, fontWeight: sel ? 600 : 500, color: sel ? 'var(--text)' : 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.nome}</div>
-                  <div style={{ fontSize: 10.5, color: 'var(--text-dim)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 1 }}>{a.especialidade}</div>
-                </div>
-              </motion.button>
+                  <motion.div
+                    className="agent-av"
+                    style={{ background: a.cor, width: 30, height: 30, borderRadius: 7, fontSize: 10 }}
+                    animate={sel ? { scale: [1, 1.06, 1] } : {}}
+                    transition={{ duration: 0.4 }}
+                  >
+                    {a.inicial}
+                  </motion.div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: sel ? 600 : 500, color: sel ? 'var(--text)' : 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.nome}</div>
+                    <div style={{ fontSize: 10.5, color: 'var(--text-dim)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 1 }}>{a.especialidade}</div>
+                  </div>
+                </motion.button>
+                <motion.button
+                  onClick={(e) => { e.stopPropagation(); setDrawerAgente(a) }}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  style={{ width: 26, height: 26, borderRadius: 6, border: '0.5px solid var(--border)', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+                  title="Ver detalhes"
+                >
+                  <i className="fa-solid fa-circle-info" style={{ fontSize: 10, color: 'var(--text-dim)' }} />
+                </motion.button>
+              </motion.div>
             )
           })}
         </div>
@@ -383,5 +401,8 @@ export default function AgentesPage() {
         </div>
       </div>
     </div>
+
+    <AgentDrawer agente={drawerAgente} onClose={() => setDrawerAgente(null)} />
+    </>
   )
 }
