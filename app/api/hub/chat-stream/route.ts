@@ -1,39 +1,46 @@
 import { NextRequest } from 'next/server'
 import { getSupabaseUser } from '@/lib/supabase-route'
-import { getAgente } from '@/lib/hub-agentes'
+import { getAgentV2 } from '@/lib/agents-v2'
+import { getCerebroContext } from '@/lib/cerebro'
 
-const MODELO_PADRAO = process.env.OPENROUTER_MODEL || 'openai/gpt-4o-mini'
+export const runtime = 'nodejs'
+
 const MAX_HISTORY = 5
-const CACHE_TTL = 24 * 60 * 60 * 1000 // 24h
+const CACHE_TTL = 24 * 60 * 60 * 1000
 
 type ChatMsg = { role: 'user' | 'assistant'; content: string }
 
 // In-memory response cache — persists within same server instance
 const responseCache = new Map<string, { response: string; expiry: number }>()
 
-function getCacheKey(empresaId: string, agentId: string, lastMsg: string): string {
-  return `${empresaId}:${agentId}:${lastMsg.toLowerCase().trim().slice(0, 300)}`
+function cacheKey(empresaId: string, agentId: string, msg: string) {
+  return `${empresaId}:${agentId}:${msg.toLowerCase().trim().slice(0, 300)}`
 }
 
 function getCached(key: string): string | null {
-  const entry = responseCache.get(key)
-  if (!entry) return null
-  if (Date.now() > entry.expiry) { responseCache.delete(key); return null }
-  return entry.response
+  const e = responseCache.get(key)
+  if (!e) return null
+  if (Date.now() > e.expiry) { responseCache.delete(key); return null }
+  return e.response
 }
 
 function setCache(key: string, response: string) {
-  if (responseCache.size > 200) {
+  if (responseCache.size > 500) {
     const first = responseCache.keys().next().value
     if (first) responseCache.delete(first)
   }
   responseCache.set(key, { response, expiry: Date.now() + CACHE_TTL })
 }
 
+function getModel(layer: string): string {
+  return layer === 'C1'
+    ? (process.env.MODEL_C1 ?? 'anthropic/claude-sonnet-4-5')
+    : (process.env.MODEL_DEFAULT ?? 'anthropic/claude-haiku-4-5')
+}
+
 export async function POST(req: NextRequest) {
-  if (!process.env.OPENROUTER_API_KEY) {
-    return new Response('OPENROUTER_API_KEY não configurada', { status: 500 })
-  }
+  const apiKey = process.env.OPENROUTER_API_KEY
+  if (!apiKey) return new Response('OPENROUTER_API_KEY não configurada', { status: 500 })
 
   const { user, supabase } = await getSupabaseUser(req)
   if (!user) return new Response('Não autorizado', { status: 401 })
@@ -42,92 +49,82 @@ export async function POST(req: NextRequest) {
   const empresaId = usrRow?.empresa_id ?? user.id
 
   const { agentId, messages } = (await req.json()) as { agentId?: string; messages?: ChatMsg[] }
-  const agente = agentId ? getAgente(agentId) : undefined
-  if (!agente) return new Response('Agente inválido', { status: 400 })
+  const agent = agentId ? getAgentV2(agentId) : undefined
+  if (!agent) return new Response('Agente inválido', { status: 400 })
 
   // Last 5 messages only — cost reduction
   const clean = (messages ?? [])
     .filter(m => (m.role === 'user' || m.role === 'assistant') && m.content?.trim())
     .slice(-MAX_HISTORY)
-
   if (!clean.length) return new Response('Mensagem obrigatória', { status: 400 })
 
-  // Check cache — only cache single-question exchanges (last msg is user)
+  // Check cache — only for single-question exchanges
   const lastUserMsg = clean.findLast(m => m.role === 'user')?.content ?? ''
-  const cacheKey = getCacheKey(empresaId, agente.id, lastUserMsg)
-  const cached = getCached(cacheKey)
+  const key = cacheKey(empresaId, agent.id, lastUserMsg)
+  const cached = getCached(key)
 
   if (cached) {
-    const encoder = new TextEncoder()
-    const readable = new ReadableStream({
-      start(controller) {
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ token: cached })}\n\n`))
-        controller.enqueue(encoder.encode('data: [DONE]\n\n'))
-        controller.close()
-      },
-    })
-    return new Response(readable, {
-      headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive', 'X-Cache': 'HIT' },
-    })
+    const enc = new TextEncoder()
+    return new Response(
+      new ReadableStream({
+        start(ctrl) {
+          ctrl.enqueue(enc.encode(`data: ${JSON.stringify({ token: cached })}\n\n`))
+          ctrl.enqueue(enc.encode('data: [DONE]\n\n'))
+          ctrl.close()
+        },
+      }),
+      { headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive', 'X-Cache': 'HIT' } }
+    )
   }
 
-  // Load cerebro context — compressed
-  const { data: cerebro } = await supabase.from('hub_cerebro').select('*').eq('empresa_id', empresaId).maybeSingle()
-  let systemPrompt = agente.system
+  // Build system prompt — cérebro context + agent profile
+  const { formatted: cerebroFormatted } = await getCerebroContext(empresaId, supabase)
+  const systemPrompt = [
+    cerebroFormatted ? `[CÉREBRO DA EMPRESA]\n${cerebroFormatted}` : '',
+    `[PERFIL DO AGENTE]\nVocê é o ${agent.name} — ${agent.role}.`,
+    agent.systemPrompt,
+  ].filter(Boolean).join('\n\n')
 
-  if (cerebro) {
-    const ctx: string[] = ['=== CONTEXTO DA EMPRESA ===']
-    if (cerebro.nome_empresa) ctx.push(`Empresa: ${cerebro.nome_empresa}`)
-    if (cerebro.slogan) ctx.push(`Slogan: ${cerebro.slogan}`)
-    if (cerebro.missao) ctx.push(`Missão: ${String(cerebro.missao).slice(0, 400)}`)
-    if (cerebro.produto_principal) ctx.push(`Produto: ${String(cerebro.produto_principal).slice(0, 200)}`)
-    if (cerebro.publico_alvo) ctx.push(`ICP: ${String(cerebro.publico_alvo).slice(0, 200)}`)
-    if (cerebro.metas) ctx.push(`Metas: ${String(cerebro.metas).slice(0, 200)}`)
-    if (cerebro.dna_fundador) ctx.push(`DNA: ${String(cerebro.dna_fundador).slice(0, 300)}`)
-    // Knowledge vault and playbooks truncated for cost reduction
-    if (cerebro.knowledge_vault) ctx.push(`Conhecimento: ${String(cerebro.knowledge_vault).slice(0, 800)}`)
-    if (cerebro.playbooks) ctx.push(`Playbooks: ${String(cerebro.playbooks).slice(0, 600)}`)
-    ctx.push('=== FIM ===')
-    systemPrompt = `${ctx.join('\n')}\n\n${agente.system}`
-  }
-
-  const modelo = agente.modelo || MODELO_PADRAO
+  const model = getModel(agent.layer)
 
   const orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+      Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
-      'X-Title': 'FactorHub',
+      'X-Title': 'FactorHub OS',
+      'HTTP-Referer': 'https://factor-hub.vercel.app',
     },
     body: JSON.stringify({
-      model: modelo,
-      max_tokens: 1500,
+      model,
+      max_tokens: agent.maxTokens,
       stream: true,
       messages: [{ role: 'system', content: systemPrompt }, ...clean],
     }),
   })
 
   if (!orRes.ok || !orRes.body) {
-    return new Response('Falha ao conectar com o modelo', { status: 502 })
+    const err = await orRes.text()
+    return new Response(`OpenRouter error: ${err}`, { status: 502 })
   }
 
   const encoder = new TextEncoder()
   const readable = new ReadableStream({
-    async start(controller) {
+    async start(ctrl) {
       const reader = orRes.body!.getReader()
       const decoder = new TextDecoder()
       let full = ''
+      let buf = ''
 
-      const logUsage = async (tokens: { p: number; c: number; cost: number }) => {
+      const logUsage = async (p: number, c: number, cost: number) => {
         await supabase.from('hub_uso_agentes').insert({
           empresa_id: empresaId,
-          agente_id: agente.id,
-          modelo,
-          prompt_tokens: tokens.p,
-          completion_tokens: tokens.c,
-          total_tokens: tokens.p + tokens.c,
-          custo_usd: tokens.cost,
+          agente_id: agent.id,
+          modelo: model,
+          prompt_tokens: p,
+          completion_tokens: c,
+          total_tokens: p + c,
+          custo_usd: cost,
         })
       }
 
@@ -135,39 +132,37 @@ export async function POST(req: NextRequest) {
         while (true) {
           const { done, value } = await reader.read()
           if (done) break
-          const chunk = decoder.decode(value, { stream: true })
-          for (const line of chunk.split('\n')) {
+          buf += decoder.decode(value, { stream: true })
+          const lines = buf.split('\n')
+          buf = lines.pop() ?? ''
+
+          for (const line of lines) {
             if (!line.startsWith('data: ')) continue
             const raw = line.slice(6).trim()
             if (raw === '[DONE]') {
-              controller.enqueue(encoder.encode('data: [DONE]\n\n'))
-              // Cache full response
-              if (full.length > 20) setCache(cacheKey, full)
+              ctrl.enqueue(encoder.encode('data: [DONE]\n\n'))
+              if (full.length > 20) setCache(key, full)
               continue
             }
             try {
-              const parsed = JSON.parse(raw) as {
+              const p = JSON.parse(raw) as {
                 choices?: { delta?: { content?: string } }[]
                 usage?: { prompt_tokens?: number; completion_tokens?: number; cost?: number }
               }
-              const token = parsed.choices?.[0]?.delta?.content ?? ''
-              if (token) {
-                full += token
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ token })}\n\n`))
+              const tok = p.choices?.[0]?.delta?.content ?? ''
+              if (tok) {
+                full += tok
+                ctrl.enqueue(encoder.encode(`data: ${JSON.stringify({ token: tok })}\n\n`))
               }
-              if (parsed.usage) {
-                void logUsage({
-                  p: parsed.usage.prompt_tokens ?? 0,
-                  c: parsed.usage.completion_tokens ?? 0,
-                  cost: parsed.usage.cost ?? 0,
-                })
+              if (p.usage) {
+                void logUsage(p.usage.prompt_tokens ?? 0, p.usage.completion_tokens ?? 0, p.usage.cost ?? 0)
               }
-            } catch { /* skip */ }
+            } catch { /* skip malformed */ }
           }
         }
       } finally {
         reader.releaseLock()
-        controller.close()
+        ctrl.close()
       }
     },
   })

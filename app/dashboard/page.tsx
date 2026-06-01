@@ -7,7 +7,7 @@ import { AGENTS_V2 } from '@/lib/agents-v2'
 import Link from 'next/link'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  AreaChart, Area,
+  AreaChart, Area, LineChart, Line,
 } from 'recharts'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -188,6 +188,20 @@ export default function DashboardPage() {
     return { date: fmtDate(d.toISOString()), custo: Math.round(custo * 10000) / 10000 }
   })
 
+  // Monthly cost projection
+  const hoursElapsed = new Date().getHours() + 1
+  const projMensal = hoursElapsed > 0 ? (todayCost / hoursElapsed) * 24 * 30 : 0
+
+  // Hourly activity timeline (last 24h from usage)
+  const hourlyData = Array.from({ length: 24 }, (_, h) => {
+    const count = usage.filter(u => {
+      const d = new Date(u.created_at)
+      const diffH = (now - d.getTime()) / 3600000
+      return diffH >= 0 && diffH < 24 && d.getHours() === h
+    }).length
+    return { hora: `${String(h).padStart(2, '0')}h`, ações: count }
+  })
+
   // Heatmap
   const heatGrid = buildHeatmap(missions)
   const heatMax = Math.max(...heatGrid.flat(), 1)
@@ -206,7 +220,7 @@ export default function DashboardPage() {
     { label: 'Missões ativas', value: activeMissions.length, sub: 'rodando agora', icon: 'fa-circle-notch', color: '#f59e0b', mono: true },
     { label: 'Missões hoje', value: todayMissions.length, sub: 'criadas hoje', icon: 'fa-rocket', color: '#e8622a', mono: true },
     { label: 'Agentes ativos', value: agentsActive, sub: 'em missões', icon: 'fa-robot', color: '#6366f1', mono: true },
-    { label: 'Custo hoje', value: `$${todayCost.toFixed(4)}`, sub: 'gasto de IA hoje', icon: 'fa-coins', color: '#c9a84c', mono: true },
+    { label: 'Custo hoje', value: `$${todayCost.toFixed(4)}`, sub: `proj. mês $${projMensal.toFixed(2)}`, icon: 'fa-coins', color: '#c9a84c', mono: true },
     { label: 'Cérebro', value: `${cerebroPct}%`, sub: 'contexto preenchido', icon: 'fa-brain', color: cerebroPct < 40 ? '#ef4444' : cerebroPct < 70 ? '#f59e0b' : '#22c55e', mono: true },
   ]
 
@@ -466,6 +480,92 @@ export default function DashboardPage() {
             ))}
           </div>
         </div>
+      </div>
+
+      {/* ── Section 4: Hourly activity timeline ── */}
+      <div style={{ background: '#0f0d18', border: '1px solid #1e1a2e', borderRadius: 10, padding: '14px 16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#f0f0f0', marginBottom: 2 }}>Timeline de Atividade</div>
+            <div style={{ fontSize: 10, color: '#7a6e9a' }}>ações por hora nas últimas 24h</div>
+          </div>
+        </div>
+        <ResponsiveContainer width="100%" height={80}>
+          <LineChart data={hourlyData} margin={{ top: 4, right: 0, bottom: 0, left: 0 }}>
+            <CartesianGrid vertical={false} stroke="#1e1a2e" />
+            <XAxis dataKey="hora" tick={{ fontSize: 7.5, fill: '#7a6e9a' }} axisLine={false} tickLine={false} interval={3} />
+            <YAxis hide />
+            <Tooltip content={<ChartTooltip />} cursor={{ stroke: '#1e1a2e' }} />
+            <Line type="monotone" dataKey="ações" stroke="#c9a84c" strokeWidth={1.5} dot={false} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* ── Section 6: Recent usage table ── */}
+      <div style={{ background: '#0f0d18', border: '1px solid #1e1a2e', borderRadius: 10, overflow: 'hidden' }}>
+        <div style={{ padding: '12px 16px', borderBottom: '1px solid #1e1a2e' }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: '#f0f0f0' }}>Uso Recente de Agentes</span>
+          <span style={{ fontSize: 10, color: '#7a6e9a', marginLeft: 8 }}>últimas {Math.min(usage.length, 20)} interações</span>
+        </div>
+        <div style={{ maxHeight: 280, overflowY: 'auto' }}>
+          {usage.length === 0 ? (
+            <div style={{ padding: '32px', textAlign: 'center', color: '#7a6e9a', fontSize: 12 }}>Nenhuma interação ainda</div>
+          ) : [...usage].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 20).map((u, i) => {
+            const a = AGENTS_V2[u.agente_id]
+            const isC1 = a?.layer === 'C1'
+            return (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px', borderBottom: '1px solid #1e1a2e', transition: 'background .1s' }}>
+                <div style={{ width: 24, height: 24, borderRadius: 6, background: `${a?.color ?? '#c9a84c'}18`, border: `1px solid ${a?.color ?? '#c9a84c'}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 800, color: a?.color ?? '#c9a84c', flexShrink: 0 }}>
+                  {a?.initial ?? u.agente_id.slice(0, 2)}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#f0f0f0' }}>{a?.name ?? u.agente_id}</div>
+                  <div style={{ fontSize: 9, color: '#7a6e9a' }}>{u.modelo}</div>
+                </div>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <div style={{ fontSize: 10, fontFamily: "'JetBrains Mono', monospace", color: '#c9a84c' }}>
+                    ${Number(u.custo_usd).toFixed(5)}
+                  </div>
+                  <div style={{ fontSize: 9, color: '#7a6e9a' }}>{(u.total_tokens ?? 0).toLocaleString()} tk</div>
+                </div>
+                <div style={{ fontSize: 9, color: '#3a3055', width: 36, textAlign: 'right', flexShrink: 0 }}>
+                  {timeAgo(u.created_at)}
+                </div>
+                <div style={{ fontSize: 8, fontWeight: 700, padding: '2px 6px', borderRadius: 3, background: isC1 ? '#e8622a18' : '#0d948818', color: isC1 ? '#e8622a' : '#0d9488', flexShrink: 0, minWidth: 42, textAlign: 'center' }}>
+                  {isC1 ? 'Sonnet' : 'Haiku'}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* ── Section 9: Products ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+        {[
+          { name: 'FactorOne', desc: 'Finance OS para PMEs', url: 'https://factorone-mvp2.vercel.app', color: '#6366f1', icon: 'fa-chart-line', status: 'live' },
+          { name: 'LifeOS', desc: 'Sistema de gestão pessoal', url: '#', color: '#10b981', icon: 'fa-leaf', status: 'dev' },
+          { name: 'VN Prime', desc: 'Imóveis e patrimônio', url: '#', color: '#c9a84c', icon: 'fa-building', status: 'dev' },
+        ].map(p => (
+          <div key={p.name} style={{ background: '#0f0d18', border: `1px solid ${p.color}30`, borderRadius: 10, padding: '16px', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: p.color, opacity: 0.6 }} />
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 9, background: `${p.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <i className={`fa-solid ${p.icon}`} style={{ fontSize: 14, color: p.color }} />
+              </div>
+              <span style={{ fontSize: 8, fontWeight: 800, padding: '2px 7px', borderRadius: 4, background: p.status === 'live' ? '#22c55e18' : '#f59e0b18', color: p.status === 'live' ? '#22c55e' : '#f59e0b', letterSpacing: '.06em', textTransform: 'uppercase' }}>
+                {p.status === 'live' ? 'Live' : 'Dev'}
+              </span>
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#f0f0f0', marginBottom: 4 }}>{p.name}</div>
+            <div style={{ fontSize: 11, color: '#7a6e9a', marginBottom: 12 }}>{p.desc}</div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ fontSize: 10, color: '#3a3055' }}>
+                {missions.filter(m => (m.agents_used ?? []).length > 0).length} missões relacionadas
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* ── Featured agents ── */}

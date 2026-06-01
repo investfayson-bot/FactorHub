@@ -109,7 +109,7 @@ function AgentDrawer({ agent, stats, loading, onClose }: {
   loading: boolean
   onClose: () => void
 }) {
-  const [tab, setTab] = useState<'perfil' | 'tarefa'>('perfil')
+  const [tab, setTab] = useState<'perfil' | 'tarefa' | 'config'>('perfil')
   const [expandedDelivery, setExpandedDelivery] = useState<string | null>(null)
   const [taskInput, setTaskInput] = useState('')
   const [taskLoading, setTaskLoading] = useState(false)
@@ -234,19 +234,19 @@ function AgentDrawer({ agent, stats, loading, onClose }: {
           </div>
 
           <div style={{ display: 'flex', gap: 4 }}>
-            {(['perfil', 'tarefa'] as const).map(t => (
+            {([['perfil', 'Perfil'], ['tarefa', 'Tarefa'], ['config', 'Config']] as const).map(([t, l]) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
                 style={{
-                  padding: '5px 14px', borderRadius: 6, border: `1px solid ${tab === t ? agent.color : '#1e1a2e'}`,
+                  padding: '5px 12px', borderRadius: 6, border: `1px solid ${tab === t ? agent.color : '#1e1a2e'}`,
                   fontSize: 11, fontWeight: 600, cursor: 'pointer',
                   background: tab === t ? `${agent.color}20` : 'transparent',
                   color: tab === t ? agent.color : '#7a6e9a',
                   transition: 'all .15s',
                 }}
               >
-                {t === 'perfil' ? 'Perfil' : 'Tarefa Direta'}
+                {l}
               </button>
             ))}
           </div>
@@ -340,6 +340,50 @@ function AgentDrawer({ agent, stats, loading, onClose }: {
               <div style={{ background: `${agent.color}0d`, border: `1px solid ${agent.color}25`, borderRadius: 8, padding: '10px 14px' }}>
                 <div style={{ fontSize: 9, color: agent.color, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 4 }}>{agent.layer} · {agent.layerLabel}</div>
                 <div style={{ fontSize: 11, color: '#c4b8e0', lineHeight: 1.5 }}>{agent.role}</div>
+              </div>
+            </>
+          ) : tab === 'config' ? (
+            <>
+              {/* Model info */}
+              <div style={{ background: '#14101f', border: '1px solid #1e1a2e', borderRadius: 8, padding: '12px 14px', marginBottom: 4 }}>
+                <div style={{ fontSize: 9, color: '#7a6e9a', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 6 }}>Modelo de IA</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#f0f0f0', fontFamily: "'JetBrains Mono', monospace" }}>
+                    {agent.layer === 'C1' ? 'claude-sonnet-4-5' : 'claude-haiku-4-5'}
+                  </div>
+                  <span style={{ fontSize: 8, fontWeight: 800, padding: '2px 6px', borderRadius: 3, background: agent.layer === 'C1' ? '#e8622a18' : '#0d948818', color: agent.layer === 'C1' ? '#e8622a' : '#0d9488' }}>
+                    {agent.layer === 'C1' ? 'Sonnet' : 'Haiku'}
+                  </span>
+                </div>
+                <div style={{ fontSize: 10, color: '#7a6e9a', marginTop: 4 }}>
+                  {agent.layer === 'C1' ? 'Camada executiva — modelo premium' : 'Camada operacional — modelo rápido e econômico'}
+                </div>
+              </div>
+
+              {/* Layer + max tokens */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 4 }}>
+                <div style={{ background: '#14101f', border: '1px solid #1e1a2e', borderRadius: 8, padding: '10px 12px' }}>
+                  <div style={{ fontSize: 9, color: '#7a6e9a', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 4 }}>Camada</div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: agent.color, fontFamily: "'JetBrains Mono', monospace" }}>{agent.layer}</div>
+                  <div style={{ fontSize: 9, color: '#7a6e9a', marginTop: 2 }}>{agent.layerLabel}</div>
+                </div>
+                <div style={{ background: '#14101f', border: '1px solid #1e1a2e', borderRadius: 8, padding: '10px 12px' }}>
+                  <div style={{ fontSize: 9, color: '#7a6e9a', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 4 }}>Max Tokens</div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: '#f0f0f0', fontFamily: "'JetBrains Mono', monospace" }}>{agent.maxTokens.toLocaleString()}</div>
+                </div>
+              </div>
+
+              {/* System prompt */}
+              <div>
+                <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.08em', color: '#7a6e9a', textTransform: 'uppercase', marginBottom: 8 }}>System Prompt</div>
+                <div style={{
+                  background: '#0a0812', border: '1px solid #1e1a2e', borderRadius: 8,
+                  padding: '12px', fontSize: 10.5, color: '#c4b8e0', lineHeight: 1.75,
+                  whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 340, overflowY: 'auto',
+                  fontFamily: "'JetBrains Mono', monospace",
+                }}>
+                  {agent.systemPrompt}
+                </div>
               </div>
             </>
           ) : (
