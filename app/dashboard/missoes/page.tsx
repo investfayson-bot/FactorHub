@@ -386,11 +386,32 @@ export default function MissoesPage() {
     startMission, cancelMission, newMission,
     approveMission, archiveMission,
     reactivateMission, deleteMission,
+    loadMissions,
   } = useMission()
 
   const [uploadMsg, setUploadMsg] = useState('')
   const [uploading, setUploading] = useState(false)
+  const [forceCancelling, setForceCancelling] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+
+  // Missões travadas no DB (running no DB mas React state = idle)
+  const stuckMissions = state === 'idle'
+    ? missions.filter(m => m.status === 'running')
+    : []
+
+  async function forceCancel(missionId: string) {
+    setForceCancelling(missionId)
+    try {
+      const token = await getToken()
+      await fetch('/api/hub/missions-list', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ missionId, status: 'archived' }),
+      })
+      await loadMissions()
+    } catch { /* ignore */ }
+    setForceCancelling(null)
+  }
 
   async function getToken() {
     const { supabase } = await import('@/lib/supabase')
@@ -434,6 +455,82 @@ export default function MissoesPage() {
 
   return (
     <div style={{ padding: '20px', maxWidth: 1200, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+      {/* ── STUCK MISSIONS BANNER ── */}
+      <AnimatePresence>
+        {stuckMissions.map(m => (
+          <motion.div
+            key={m.id}
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              padding: '12px 16px', borderRadius: 10,
+              background: 'rgba(239,68,68,.08)',
+              border: '1px solid rgba(239,68,68,.25)',
+            }}
+          >
+            <motion.div
+              style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', flexShrink: 0 }}
+              animate={{ opacity: [1, 0.3, 1] }}
+              transition={{ repeat: Infinity, duration: 0.9 }}
+            />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#ef4444' }}>Missão travada detectada</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {m.level} · {m.title || 'Sem título'} · iniciada em {new Date(m.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+              </div>
+            </div>
+            <button
+              onClick={() => void forceCancel(m.id)}
+              disabled={forceCancelling === m.id}
+              style={{
+                padding: '6px 14px', borderRadius: 7,
+                background: 'rgba(239,68,68,.15)',
+                border: '1px solid rgba(239,68,68,.3)',
+                color: '#ef4444', cursor: forceCancelling === m.id ? 'not-allowed' : 'pointer',
+                fontSize: 11, fontWeight: 700, fontFamily: 'inherit',
+                display: 'flex', alignItems: 'center', gap: 6,
+              }}
+            >
+              {forceCancelling === m.id
+                ? <><i className="fa-solid fa-circle-notch fa-spin" style={{ fontSize: 10 }} />Cancelando...</>
+                : <><i className="fa-solid fa-xmark" style={{ fontSize: 10 }} />Cancelar</>
+              }
+            </button>
+          </motion.div>
+        ))}
+      </AnimatePresence>
+
+      {/* ── Active mission control bar (always visible when running) ── */}
+      {state === 'running' && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '10px 14px', borderRadius: 10,
+          background: 'rgba(34,197,94,.06)',
+          border: '1px solid rgba(34,197,94,.2)',
+        }}>
+          <motion.div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', flexShrink: 0 }} animate={{ opacity: [1, 0.3, 1] }} transition={{ repeat: Infinity, duration: 0.9 }} />
+          <div style={{ flex: 1, fontSize: 12, fontWeight: 600, color: '#22c55e' }}>
+            Missão {selectedLevel} em execução
+            {currentAgentId && <span style={{ color: 'var(--text-muted)', fontWeight: 400, marginLeft: 8 }}>
+              ● {AGENTS_V2[currentAgentId]?.name ?? currentAgentId} processando...
+            </span>}
+          </div>
+          <button
+            onClick={cancelMission}
+            style={{
+              padding: '5px 12px', borderRadius: 6,
+              background: 'rgba(239,68,68,.12)', border: '1px solid rgba(239,68,68,.25)',
+              color: '#ef4444', cursor: 'pointer', fontSize: 11, fontWeight: 700,
+              fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 5,
+            }}
+          >
+            <i className="fa-solid fa-stop" style={{ fontSize: 9 }} />Parar missão
+          </button>
+        </div>
+      )}
 
       {/* ── IDLE ── */}
       <AnimatePresence>

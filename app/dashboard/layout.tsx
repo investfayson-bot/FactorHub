@@ -319,41 +319,90 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
 
       <TerminalModal open={terminalOpen} onClose={() => setTerminalOpen(false)} />
       <LiveMonitor open={liveOpen} onClose={() => setLiveOpen(false)} />
-      <MissionFloatingBar pathname={pathname} onOpenLive={() => setLiveOpen(true)} />
+      <MissionFloatingBar pathname={pathname} />
     </div>
   )
 }
 
-function MissionFloatingBar({ pathname, onOpenLive }: { pathname: string; onOpenLive: () => void }) {
-  const { state, currentAgentId, phases, selectedLevel } = useMission()
-  if (state !== 'running' || pathname === '/dashboard/missoes') return null
+function MissionFloatingBar({ pathname }: { pathname: string }) {
+  const { state, currentAgentId, phases, selectedLevel, missions, cancelMission } = useMission()
+  const router = useRouter()
+
+  if (pathname === '/dashboard/missoes') return null
+
+  // Detect: either React state is running, OR DB has stuck running missions
+  const isReactRunning = state === 'running'
+  const stuckMissions = state === 'idle' ? missions.filter(m => m.status === 'running') : []
+  const hasStuck = stuckMissions.length > 0
+
+  if (!isReactRunning && !hasStuck) return null
 
   const runningAgent = phases.flatMap(p => p.agents).find(a => a.agentId === currentAgentId)
   const done = phases.flatMap(p => p.agents).filter(a => a.status === 'done').length
   const total = phases.flatMap(p => p.agents).length
+  const stuck = stuckMissions[0]
 
   return (
-    <div
-      onClick={onOpenLive}
-      style={{
-        position: 'fixed', bottom: 20, right: 20, zIndex: 900,
-        background: 'var(--surface)', border: '1px solid var(--border-light)',
-        borderRadius: 12, padding: '10px 16px',
-        display: 'flex', alignItems: 'center', gap: 10,
-        boxShadow: '0 4px 32px rgba(0,0,0,.6)',
-        cursor: 'pointer', minWidth: 240,
-      }}
-    >
-      <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', animation: 'pulse 1s infinite' }} />
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text)' }}>
-          Missão {selectedLevel} em andamento
-        </div>
-        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>
-          {runningAgent ? `${runningAgent.agentName} pensando…` : 'Inicializando…'} · {done}/{total} agentes
-        </div>
+    <div style={{
+      position: 'fixed', bottom: 20, right: 20, zIndex: 900,
+      background: 'var(--surface)', border: `1px solid ${hasStuck && !isReactRunning ? 'rgba(239,68,68,.3)' : 'rgba(34,197,94,.2)'}`,
+      borderRadius: 12, padding: '10px 16px',
+      display: 'flex', alignItems: 'center', gap: 10,
+      boxShadow: '0 4px 32px rgba(0,0,0,.6)',
+      minWidth: 260,
+    }}>
+      <div style={{
+        width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+        background: hasStuck && !isReactRunning ? '#ef4444' : '#22c55e',
+        animation: 'pulse 1s infinite',
+      }} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        {isReactRunning ? (
+          <>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text)' }}>
+              Missão {selectedLevel} em andamento
+            </div>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>
+              {runningAgent ? `${runningAgent.agentName} processando…` : 'Inicializando…'} · {done}/{total}
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#ef4444' }}>
+              Missão travada detectada
+            </div>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {stuck?.level} · {stuck?.title || 'Sem título'}
+            </div>
+          </>
+        )}
       </div>
-      <i className="fa-solid fa-arrow-up-right-from-square" style={{ fontSize: 10, color: 'var(--text-muted)' }} />
+      <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+        <button
+          onClick={() => router.push('/dashboard/missoes')}
+          style={{
+            padding: '5px 10px', borderRadius: 6,
+            background: 'var(--surface-2)', border: '1px solid var(--border)',
+            color: 'var(--text-muted)', cursor: 'pointer', fontSize: 10,
+            fontFamily: 'inherit', fontWeight: 600,
+          }}
+        >
+          Ver
+        </button>
+        {isReactRunning && (
+          <button
+            onClick={cancelMission}
+            style={{
+              padding: '5px 10px', borderRadius: 6,
+              background: 'rgba(239,68,68,.12)', border: '1px solid rgba(239,68,68,.3)',
+              color: '#ef4444', cursor: 'pointer', fontSize: 10,
+              fontFamily: 'inherit', fontWeight: 700,
+            }}
+          >
+            <i className="fa-solid fa-stop" style={{ fontSize: 8, marginRight: 4 }} />Parar
+          </button>
+        )}
+      </div>
     </div>
   )
 }
