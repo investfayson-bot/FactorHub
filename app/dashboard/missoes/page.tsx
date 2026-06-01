@@ -222,12 +222,12 @@ function HistoryTable({
   missions,
   onReactivate,
   onDelete,
-  onRerun,
+  onEdit,
 }: {
   missions: MissionRecord[]
   onReactivate: (id: string) => Promise<void>
   onDelete: (id: string) => Promise<void>
-  onRerun: (title: string) => void
+  onEdit: (m: MissionRecord) => void
 }) {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
@@ -309,8 +309,8 @@ function HistoryTable({
                     {/* Editar / Re-executar — qualquer missão exceto rodando */}
                     {m.status !== 'running' && !isArchived && !isDeleting && (
                       <button
-                        onClick={() => onRerun(m.title)}
-                        title="Carregar no editor e reexecutar"
+                        onClick={() => onEdit(m)}
+                        title="Editar e reexecutar"
                         style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 5, background: 'var(--accent-dim)', color: 'var(--accent)', border: '1px solid var(--accent)', cursor: 'pointer', fontFamily: 'inherit' }}
                       >
                         <i className="fa-solid fa-pen" style={{ fontSize: 8, marginRight: 4 }} />Editar
@@ -383,7 +383,22 @@ export default function MissoesPage() {
   const [uploadMsg, setUploadMsg] = useState('')
   const [uploading, setUploading] = useState(false)
   const [forceCancelling, setForceCancelling] = useState<string | null>(null)
+  const [editMission, setEditMission] = useState<MissionRecord | null>(null)
+  const [editText, setEditText] = useState('')
+  const [editLevel, setEditLevel] = useState('N2')
   const fileRef = useRef<HTMLInputElement>(null)
+
+  function openEdit(m: MissionRecord) {
+    setEditMission(m)
+    setEditText(m.title)
+    setEditLevel(m.level || 'N2')
+  }
+  function salvarEdicaoEIniciar() {
+    setMissionText(editText)
+    setSelectedLevel(editLevel)
+    setEditMission(null)
+    setTimeout(() => { void startMission() }, 100)
+  }
 
   // Receber prefill de Ideias
   useEffect(() => {
@@ -719,10 +734,46 @@ export default function MissoesPage() {
             missions={missions}
             onReactivate={reactivateMission}
             onDelete={deleteMission}
-            onRerun={(title) => { setMissionText(title); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+            onEdit={openEdit}
           />
         </div>
       )}
+
+      {/* ── Edit modal ── */}
+      <AnimatePresence>
+        {editMission && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={e => { if (e.target === e.currentTarget) setEditMission(null) }}
+            style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+            <motion.div initial={{ scale: 0.96, y: 12 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.96, y: 12 }}
+              style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 22, width: '100%', maxWidth: 560 }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)', marginBottom: 4 }}>Editar Missão</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>Altere o texto e o nível, depois reexecute.</div>
+
+              <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Texto da missão</label>
+              <textarea value={editText} onChange={e => setEditText(e.target.value)}
+                style={{ width: '100%', minHeight: 120, resize: 'vertical', marginTop: 6, marginBottom: 14, background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px', fontSize: 13, color: 'var(--text)', fontFamily: 'inherit', outline: 'none', lineHeight: 1.6, boxSizing: 'border-box' }} />
+
+              <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Nível</label>
+              <div style={{ display: 'flex', gap: 6, marginTop: 6, marginBottom: 18, flexWrap: 'wrap' }}>
+                {Object.keys(MISSION_LEVELS).map(id => (
+                  <button key={id} onClick={() => setEditLevel(id)}
+                    style={{ padding: '6px 12px', borderRadius: 7, border: `1px solid ${editLevel === id ? 'var(--accent)' : 'var(--border)'}`, background: editLevel === id ? 'var(--accent-dim)' : 'transparent', color: editLevel === id ? 'var(--accent)' : 'var(--text-muted)', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                    {id}
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                <button onClick={() => setEditMission(null)} style={{ padding: '9px 16px', borderRadius: 8, background: 'var(--surface-2)', color: 'var(--text-muted)', border: '1px solid var(--border)', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit' }}>Cancelar</button>
+                <button onClick={salvarEdicaoEIniciar} disabled={!editText.trim()} style={{ padding: '9px 18px', borderRadius: 8, background: editText.trim() ? 'var(--accent)' : 'var(--surface-3)', color: editText.trim() ? '#0a0a0a' : 'var(--text-dim)', border: 'none', cursor: editText.trim() ? 'pointer' : 'default', fontSize: 12, fontWeight: 800, fontFamily: 'inherit' }}>
+                  <i className="fa-solid fa-rocket" style={{ fontSize: 10, marginRight: 6 }} />Salvar e Iniciar
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
