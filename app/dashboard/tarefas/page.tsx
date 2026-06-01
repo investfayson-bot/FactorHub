@@ -30,6 +30,19 @@ const STATUS_LABELS: Record<string, string> = {
   awaiting_approval: 'Aguard. Aprovação', approved: 'Aprovada', archived: 'Arquivada', error: 'Erro',
 }
 
+// Kanban columns by status
+const KANBAN_COLS: { id: string; label: string; color: string; match: string[] }[] = [
+  { id: 'draft',    label: 'Rascunho',    color: '#888888', match: ['draft'] },
+  { id: 'running',  label: 'Em Andamento', color: '#f59e0b', match: ['running'] },
+  { id: 'review',   label: 'Aprovação',   color: '#84cc16', match: ['completed', 'awaiting_approval'] },
+  { id: 'approved', label: 'Aprovada',    color: '#3ecf8e', match: ['approved'] },
+  { id: 'archived', label: 'Arquivada',   color: '#555555', match: ['archived', 'error'] },
+]
+
+function btnStyle(color: string): React.CSSProperties {
+  return { fontSize: 9, fontWeight: 700, padding: '4px 8px', borderRadius: 5, background: `${color}18`, color, border: `1px solid ${color}40`, cursor: 'pointer', fontFamily: 'inherit' }
+}
+
 function timeAgo(d: string) {
   const m = Math.floor((Date.now() - new Date(d).getTime()) / 60000)
   if (m < 1) return 'agora'
@@ -74,6 +87,13 @@ export default function TarefasPage() {
   }, [])
 
   useEffect(() => { void carregar() }, [carregar])
+
+  async function act(id: string, status: string) {
+    setBusyId(id)
+    await patchMissionStatus(id, status)
+    await carregar()
+    setBusyId(null)
+  }
 
   const filtered = missions.filter(m =>
     (!filterStatus || m.status === filterStatus) &&
@@ -153,138 +173,90 @@ export default function TarefasPage() {
         </span>
       </div>
 
-      {/* Mission list */}
-      <motion.div className="card" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} style={{ overflow: 'hidden' }}>
-        {loading ? (
-          <div style={{ padding: 50, display: 'flex', justifyContent: 'center' }}>
-            <motion.div style={{ width: 22, height: 22, borderRadius: '50%', border: '2px solid var(--border)', borderTopColor: 'var(--accent)' }} animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }} />
-          </div>
-        ) : filtered.length === 0 ? (
-          <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
-            <i className="fa-solid fa-rocket" style={{ fontSize: 28, marginBottom: 12, display: 'block', opacity: 0.2 }} />
-            <div style={{ fontSize: 13, marginBottom: 8 }}>Nenhuma missão encontrada</div>
-            <a href="/dashboard/missoes" style={{ fontSize: 12, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>
-              Iniciar primeira missão →
-            </a>
-          </div>
-        ) : (
-          <AnimatePresence initial={false}>
-            {filtered.map((m, i) => {
-              const open = expanded === m.id
-              const color = LEVEL_COLORS[m.level] ?? '#e8622a'
-              const stColor = STATUS_COLORS[m.status] ?? '#64748b'
-              return (
-                <motion.div
-                  key={m.id}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: Math.min(i * 0.03, 0.3), duration: 0.2 }}
-                  style={{ borderTop: i === 0 ? 'none' : '1px solid var(--border)' }}
-                >
-                  <motion.div
-                    onClick={() => setExpanded(open ? null : m.id)}
-                    whileHover={{ backgroundColor: 'var(--surface-2)' }}
-                    transition={{ duration: 0.1 }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', cursor: 'pointer' }}
-                  >
-                    {/* Level badge */}
-                    <div style={{ width: 36, height: 36, borderRadius: 8, background: `${color}18`, border: `1.5px solid ${color}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <span style={{ fontSize: 10, fontWeight: 800, color, letterSpacing: 0.5 }}>{m.level}</span>
-                    </div>
-
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.title}</div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3 }}>
-                        <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                          {m.agents_used?.length ?? 0} agente{(m.agents_used?.length ?? 0) !== 1 ? 's' : ''}
-                        </span>
-                        {m.total_tokens > 0 && (
-                          <span style={{ fontSize: 10, color: 'var(--text-muted)', fontFamily: "'DM Mono',monospace" }}>
-                            {m.total_tokens.toLocaleString()} tk
-                          </span>
-                        )}
-                        {Number(m.cost_usd) > 0 && (
-                          <span style={{ fontSize: 10, color: 'var(--text-muted)', fontFamily: "'DM Mono',monospace" }}>
-                            ${Number(m.cost_usd).toFixed(4)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+      {/* Kanban board */}
+      {loading ? (
+        <div style={{ padding: 50, display: 'flex', justifyContent: 'center' }}>
+          <motion.div style={{ width: 22, height: 22, borderRadius: '50%', border: '2px solid var(--border)', borderTopColor: 'var(--accent)' }} animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }} />
+        </div>
+      ) : missions.length === 0 ? (
+        <div className="card" style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+          <i className="fa-solid fa-rocket" style={{ fontSize: 28, marginBottom: 12, display: 'block', opacity: 0.2 }} />
+          <div style={{ fontSize: 13, marginBottom: 8 }}>Nenhuma missão ainda</div>
+          <a href="/dashboard/missoes" className="btn btn-primary" style={{ textDecoration: 'none' }}>Iniciar primeira missão</a>
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, alignItems: 'start' }}>
+          {KANBAN_COLS.map(col => {
+            const colItems = filtered.filter(m => col.match.includes(m.status))
+            return (
+              <div key={col.id} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 2px' }}>
+                  <div style={{ width: 7, height: 7, borderRadius: '50%', background: col.color, flexShrink: 0 }} />
+                  <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{col.label}</span>
+                  <span style={{ fontSize: 9, color: 'var(--text-dim)', marginLeft: 'auto' }}>{colItems.length}</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                  {colItems.map(m => {
+                    const open = expanded === m.id
+                    const lvColor = LEVEL_COLORS[m.level] ?? '#e8622a'
+                    return (
                       <motion.div
-                        animate={m.status === 'running' ? { opacity: [1, 0.4, 1] } : {}}
-                        transition={{ repeat: Infinity, duration: 1.2 }}
-                        style={{ display: 'flex', alignItems: 'center', gap: 5, background: `${stColor}15`, color: stColor, padding: '3px 8px', borderRadius: 20, fontSize: 10, fontWeight: 700 }}
+                        key={m.id}
+                        layout
+                        initial={{ opacity: 0, scale: 0.96 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        onClick={() => setExpanded(open ? null : m.id)}
+                        whileHover={{ y: -1 }}
+                        style={{ background: 'var(--surface)', border: `1px solid ${open ? col.color + '60' : 'var(--border)'}`, borderRadius: 8, padding: '10px 11px', cursor: 'pointer', transition: 'border-color .15s' }}
                       >
-                        <div style={{ width: 5, height: 5, borderRadius: '50%', background: stColor }} />
-                        {STATUS_LABELS[m.status] ?? m.status}
-                      </motion.div>
-                      <span style={{ fontSize: 10, color: 'var(--text-muted)', fontFamily: "'DM Mono',monospace", minWidth: 50, textAlign: 'right' }}>
-                        {timeAgo(m.created_at)}
-                      </span>
-                      <motion.i
-                        className="fa-solid fa-chevron-down"
-                        animate={{ rotate: open ? 180 : 0 }}
-                        transition={{ duration: 0.2 }}
-                        style={{ fontSize: 10, color: 'var(--text-dim)' }}
-                      />
-                    </div>
-                  </motion.div>
-
-                  <AnimatePresence>
-                    {open && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.25, ease: 'easeOut' }}
-                        style={{ overflow: 'hidden' }}
-                      >
-                        <div style={{ padding: '0 16px 16px 64px' }}>
-                          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 }}>
-                            Agentes executados
-                          </div>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: m.status === 'archived' ? 12 : 0 }}>
-                            {(m.agents_used ?? []).map(aid => {
-                              const a = AGENTS_V2[aid]
-                              return (
-                                <div key={aid} style={{ display: 'flex', alignItems: 'center', gap: 5, background: `${a?.color ?? '#e8622a'}12`, border: `1px solid ${a?.color ?? '#e8622a'}30`, borderRadius: 6, padding: '4px 8px' }}>
-                                  <div style={{ width: 18, height: 18, borderRadius: '50%', background: `${a?.color ?? '#e8622a'}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 7, fontWeight: 800, color: a?.color ?? '#e8622a' }}>
-                                    {a?.initial ?? aid.slice(0, 2)}
-                                  </div>
-                                  <span style={{ fontSize: 10, fontWeight: 600, color: a?.color ?? '#e8622a' }}>
-                                    {a?.name ?? aid}
-                                  </span>
-                                </div>
-                              )
-                            })}
-                          </div>
-                          {m.status === 'archived' && (
-                            <button
-                              onClick={async () => {
-                                setBusyId(m.id)
-                                await patchMissionStatus(m.id, 'draft')
-                                await carregar()
-                                setBusyId(null)
-                              }}
-                              disabled={busyId === m.id}
-                              style={{ fontSize: 11, fontWeight: 700, padding: '5px 12px', borderRadius: 6, background: 'rgba(139,92,246,.15)', color: '#8b5cf6', border: '1px solid rgba(139,92,246,.3)', cursor: 'pointer', fontFamily: 'inherit' }}
-                            >
-                              <i className="fa-solid fa-rotate-left" style={{ fontSize: 9, marginRight: 5 }} />
-                              {busyId === m.id ? 'Reativando...' : 'Reativar missão'}
-                            </button>
-                          )}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                          <span style={{ fontSize: 8, fontWeight: 800, padding: '1px 5px', borderRadius: 3, background: `${lvColor}1f`, color: lvColor }}>{m.level}</span>
+                          <span style={{ fontSize: 8, color: 'var(--text-dim)', marginLeft: 'auto', fontFamily: "'DM Mono',monospace" }}>{timeAgo(m.created_at)}</span>
                         </div>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text)', lineHeight: 1.4, marginBottom: 6 }}>{m.title}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 8.5, color: 'var(--text-dim)' }}>
+                          <span>{m.agents_used?.length ?? 0} agentes</span>
+                          {Number(m.cost_usd) > 0 && <span style={{ fontFamily: "'DM Mono',monospace" }}>${Number(m.cost_usd).toFixed(4)}</span>}
+                        </div>
+
+                        {/* Expanded: agents + actions */}
+                        <AnimatePresence>
+                          {open && (
+                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} style={{ overflow: 'hidden', marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border)' }} onClick={e => e.stopPropagation()}>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginBottom: 8 }}>
+                                {(m.agents_used ?? []).map(aid => {
+                                  const a = AGENTS_V2[aid]
+                                  return <div key={aid} title={a?.name ?? aid} style={{ width: 18, height: 18, borderRadius: 5, background: `${a?.color ?? '#888'}20`, border: `1px solid ${a?.color ?? '#888'}50`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 7, fontWeight: 800, color: a?.color ?? '#888' }}>{a?.initial ?? aid.slice(0, 2)}</div>
+                                })}
+                              </div>
+                              {/* ACTION BUTTONS per status */}
+                              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                                {(m.status === 'completed' || m.status === 'awaiting_approval') && (
+                                  <button onClick={() => act(m.id, 'approved')} disabled={busyId === m.id} style={btnStyle('#3ecf8e')}><i className="fa-solid fa-check" style={{ fontSize: 8, marginRight: 3 }} />Aprovar</button>
+                                )}
+                                {m.status === 'archived'
+                                  ? <button onClick={() => act(m.id, 'draft')} disabled={busyId === m.id} style={btnStyle('#a855f7')}><i className="fa-solid fa-rotate-left" style={{ fontSize: 8, marginRight: 3 }} />Reativar</button>
+                                  : <button onClick={() => act(m.id, 'archived')} disabled={busyId === m.id} style={btnStyle('#888')}>Arquivar</button>
+                                }
+                                {m.status === 'approved' && (
+                                  <button onClick={() => { window.location.href = `/dashboard/projetos?from=missao&nome=${encodeURIComponent(m.title)}` }} style={btnStyle('#3ecf8e')}><i className="fa-solid fa-diagram-project" style={{ fontSize: 8, marginRight: 3 }} />Virar Projeto</button>
+                                )}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
-              )
-            })}
-          </AnimatePresence>
-        )}
-      </motion.div>
+                    )
+                  })}
+                  {colItems.length === 0 && (
+                    <div style={{ fontSize: 9, color: 'var(--text-dim)', textAlign: 'center', padding: '12px 0', border: '1px dashed var(--border)', borderRadius: 7 }}>vazio</div>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
