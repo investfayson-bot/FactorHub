@@ -28,7 +28,10 @@ export default function CriarPage() {
   const [msgs, setMsgs] = useState<Msg[]>([])
   const [html, setHtml] = useState('')
   const [building, setBuilding] = useState(false)
-  const [view, setView] = useState<'preview' | 'code'>('preview')
+  const [view, setView] = useState<'preview' | 'code' | 'conselho'>('preview')
+  const [conselho, setConselho] = useState<{ id: string; veredito: string; opiniao: string; recomendacao: string }[]>([])
+  const [loadingConselho, setLoadingConselho] = useState(false)
+  const [vereditos, setVereditos] = useState<Record<string, 'aprovado' | 'recusado'>>({})
   const [saved, setSaved] = useState<Criacao[]>([])
   const [currentId, setCurrentId] = useState<string | null>(null)
   const [setor, setSetor] = useState('Geral')
@@ -147,7 +150,33 @@ export default function CriarPage() {
   function openNewTab() {
     const w = window.open('', '_blank'); if (w) { w.document.write(cleanHtml(html)); w.document.close() }
   }
-  function novo() { setMsgs([]); setHtml(''); setInput(''); setView('preview'); setCurrentId(null); setSetor('Geral') }
+  function novo() { setMsgs([]); setHtml(''); setInput(''); setView('preview'); setCurrentId(null); setSetor('Geral'); setConselho([]); setVereditos({}) }
+
+  const AG: Record<string, { name: string; color: string; init: string }> = {
+    CEO: { name: 'CEO Estratégico', color: '#e8622a', init: 'CE' },
+    CFO: { name: 'CFO', color: '#10b981', init: 'CF' },
+    CMO: { name: 'CMO', color: '#db2777', init: 'CM' },
+    CTO: { name: 'CTO', color: '#10b981', init: 'CT' },
+  }
+
+  async function pedirConselho() {
+    const projeto = `${msgs.map(m => m.content).join('\n')}\n\n${cleanHtml(html).slice(0, 2000)}`.trim()
+    if (!projeto) return
+    setLoadingConselho(true)
+    setConselho([])
+    setVereditos({})
+    setView('conselho')
+    try {
+      const token = await getToken()
+      const res = await fetch('/api/hub/conselho', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ projeto }),
+      })
+      if (res.ok) { const { opinioes } = await res.json(); setConselho(opinioes ?? []) }
+    } catch { /* ignore */ }
+    setLoadingConselho(false)
+  }
 
   const SUG = [
     'Calculadora de comissão imobiliária com 3 planos para VN Prime',
@@ -235,6 +264,9 @@ export default function CriarPage() {
           <div style={{ display: 'flex', gap: 4 }}>
             <button onClick={() => setView('preview')} style={{ fontSize: 10, fontWeight: 600, padding: '4px 10px', borderRadius: 6, border: `1px solid ${view === 'preview' ? 'var(--accent)' : 'var(--border)'}`, background: view === 'preview' ? 'var(--accent-dim)' : 'transparent', color: view === 'preview' ? 'var(--accent)' : 'var(--text-muted)', cursor: 'pointer', fontFamily: 'inherit' }}>Preview</button>
             <button onClick={() => setView('code')} style={{ fontSize: 10, fontWeight: 600, padding: '4px 10px', borderRadius: 6, border: `1px solid ${view === 'code' ? 'var(--accent)' : 'var(--border)'}`, background: view === 'code' ? 'var(--accent-dim)' : 'transparent', color: view === 'code' ? 'var(--accent)' : 'var(--text-muted)', cursor: 'pointer', fontFamily: 'inherit' }}>Código</button>
+            {(html || msgs.length > 0) && (
+              <button onClick={() => { if (conselho.length === 0 && !loadingConselho) void pedirConselho(); else setView('conselho') }} style={{ fontSize: 10, fontWeight: 600, padding: '4px 10px', borderRadius: 6, border: `1px solid ${view === 'conselho' ? 'var(--accent)' : 'var(--border)'}`, background: view === 'conselho' ? 'var(--accent-dim)' : 'transparent', color: view === 'conselho' ? 'var(--accent)' : 'var(--text-muted)', cursor: 'pointer', fontFamily: 'inherit' }}><i className="fa-solid fa-users" style={{ fontSize: 9, marginRight: 4 }} />Conselho</button>
+            )}
           </div>
           {building && <span style={{ fontSize: 10, color: 'var(--accent)', marginLeft: 8 }}>gerando...</span>}
           {(html || msgs.length > 0) && !building && (
@@ -250,10 +282,47 @@ export default function CriarPage() {
           )}
         </div>
         <div style={{ flex: 1, minHeight: 0, background: '#0a0a0a' }}>
-          {!html && !building ? (
+          {!html && !building && view !== 'conselho' ? (
             <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-dim)', gap: 10 }}>
               <i className="fa-solid fa-wand-magic-sparkles" style={{ fontSize: 32, opacity: 0.25 }} />
               <div style={{ fontSize: 13 }}>O resultado aparece aqui</div>
+            </div>
+          ) : view === 'conselho' ? (
+            <div style={{ height: '100%', overflowY: 'auto', padding: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>Conselho avaliou o projeto</span>
+                <button onClick={() => void pedirConselho()} disabled={loadingConselho} style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 600, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--text-muted)', cursor: 'pointer', fontFamily: 'inherit' }}>
+                  {loadingConselho ? 'Avaliando...' : 'Reavaliar'}
+                </button>
+              </div>
+              {loadingConselho && conselho.length === 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--accent)', fontSize: 12, padding: 20 }}>
+                  <motion.div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent)' }} animate={{ opacity: [1, 0.3, 1] }} transition={{ repeat: Infinity, duration: 0.8 }} />
+                  Os agentes estão analisando seu projeto...
+                </div>
+              )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {conselho.map(op => {
+                  const a = AG[op.id] ?? { name: op.id, color: 'var(--accent)', init: op.id.slice(0, 2) }
+                  const vcolor = op.veredito === 'GO' ? '#3ecf8e' : op.veredito === 'NO-GO' ? '#f44' : '#f59e0b'
+                  const vd = vereditos[op.id]
+                  return (
+                    <div key={op.id} style={{ background: 'var(--surface-2)', border: `1px solid ${vd === 'aprovado' ? 'rgba(62,207,142,.4)' : vd === 'recusado' ? 'rgba(244,68,68,.4)' : 'var(--border)'}`, borderRadius: 10, padding: 14 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                        <div style={{ width: 30, height: 30, borderRadius: 8, background: `${a.color}18`, border: `1.5px solid ${a.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, color: a.color }}>{a.init}</div>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{a.name}</span>
+                        <span style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 800, padding: '3px 9px', borderRadius: 5, background: `${vcolor}18`, color: vcolor }}>{op.veredito}</span>
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.6, marginBottom: 8 }}>{op.opiniao}</div>
+                      {op.recomendacao && <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: 10 }}><b style={{ color: a.color }}>Recomenda:</b> {op.recomendacao}</div>}
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button onClick={() => setVereditos(v => ({ ...v, [op.id]: 'aprovado' }))} style={{ fontSize: 10, fontWeight: 700, padding: '5px 12px', borderRadius: 6, background: vd === 'aprovado' ? '#3ecf8e' : 'rgba(62,207,142,.12)', color: vd === 'aprovado' ? '#0a0a0a' : '#3ecf8e', border: '1px solid rgba(62,207,142,.3)', cursor: 'pointer', fontFamily: 'inherit' }}><i className="fa-solid fa-check" style={{ fontSize: 9, marginRight: 4 }} />Aprovar</button>
+                        <button onClick={() => setVereditos(v => ({ ...v, [op.id]: 'recusado' }))} style={{ fontSize: 10, fontWeight: 700, padding: '5px 12px', borderRadius: 6, background: vd === 'recusado' ? '#f44' : 'rgba(244,68,68,.1)', color: vd === 'recusado' ? '#fff' : '#f44', border: '1px solid rgba(244,68,68,.3)', cursor: 'pointer', fontFamily: 'inherit' }}><i className="fa-solid fa-xmark" style={{ fontSize: 9, marginRight: 4 }} />Recusar</button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
           ) : view === 'preview' ? (
             <iframe title="preview" srcDoc={cleanHtml(html)} style={{ width: '100%', height: '100%', border: 'none', background: '#fff' }} sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups" />
