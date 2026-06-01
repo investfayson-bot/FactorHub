@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
 
         // Create mission record
         const allAgents = missionLevel.chains.flat()
-        const { data: missionRow } = await supabase
+        const { data: missionRow } = await admin
           .from('missions')
           .insert({
             empresa_id: empresaId,
@@ -203,7 +203,7 @@ export async function POST(req: NextRequest) {
 
             // Save step to Supabase
             if (missionId) {
-              await supabase.from('mission_steps').insert({
+              await admin.from('mission_steps').insert({
                 mission_id: missionId,
                 agent_id: agentId,
                 agent_name: agent.name,
@@ -240,7 +240,7 @@ export async function POST(req: NextRequest) {
         const costUsd = totalTokens * 0.00000015 // gpt-4o-mini estimate
 
         if (missionId) {
-          await supabase
+          await admin
             .from('missions')
             .update({
               status: 'completed',
@@ -266,7 +266,7 @@ export async function POST(req: NextRequest) {
         const msg = err instanceof Error ? err.message : 'Erro desconhecido'
 
         if (missionId) {
-          await supabase.from('missions').update({ status: 'error' }).eq('id', missionId)
+          await admin.from('missions').update({ status: 'error' }).eq('id', missionId)
         }
 
         send(controller, 'error', { message: msg })

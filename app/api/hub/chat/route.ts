@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'OPENROUTER_API_KEY não configurada' }, { status: 500 })
     }
 
-    const { user, supabase } = await getSupabaseUser(req)
+    const { user, supabase, admin } = await getSupabaseUser(req)
     if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
     const { data: usrRow } = await supabase.from('usuarios').select('empresa_id').eq('id', user.id).maybeSingle()
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
     const totalTokens = Number(usage.total_tokens ?? promptTokens + completionTokens)
     const custoUsd = Number(usage.cost ?? 0)
 
-    await supabase.from('hub_uso_agentes').insert({
+    await admin.from('hub_uso_agentes').insert({
       empresa_id: empresaId,
       agente_id: agente.id,
       modelo,

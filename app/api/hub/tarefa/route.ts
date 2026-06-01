@@ -4,8 +4,8 @@ import { getAgente } from '@/lib/hub-agentes'
 
 const MODELO_PADRAO = process.env.OPENROUTER_MODEL || 'openai/gpt-4o-mini'
 
-async function buildSystemPrompt(agentSystem: string, supabase: Awaited<ReturnType<typeof getSupabaseUser>>['supabase'], empresaId: string): Promise<string> {
-  const { data: cerebro } = await supabase.from('hub_cerebro').select('*').eq('empresa_id', empresaId).maybeSingle()
+async function buildSystemPrompt(agentSystem: string, admin: Awaited<ReturnType<typeof getSupabaseUser>>['admin'], empresaId: string): Promise<string> {
+  const { data: cerebro } = await admin.from('hub_cerebro').select('*').eq('empresa_id', empresaId).maybeSingle()
   if (!cerebro) return agentSystem
 
   const ctx: string[] = ['=== CONTEXTO DA EMPRESA (Cerebro) ===']
@@ -36,10 +36,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'OPENROUTER_API_KEY não configurada' }, { status: 500 })
     }
 
-    const { user, supabase } = await getSupabaseUser(req)
+    const { user, admin } = await getSupabaseUser(req)
     if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
-    const { data: usrRow } = await supabase.from('usuarios').select('empresa_id').eq('id', user.id).maybeSingle()
+    const { data: usrRow } = await admin.from('usuarios').select('empresa_id').eq('id', user.id).maybeSingle()
     const empresaId = usrRow?.empresa_id ?? user.id
 
     const body = (await req.json()) as { agentId?: string; agente_id?: string; titulo?: string; descricao?: string }
@@ -51,9 +51,9 @@ export async function POST(req: NextRequest) {
 
     const modelo = agente.modelo || MODELO_PADRAO
     const prompt = descricao ? `${titulo}\n\n${descricao}` : titulo
-    const systemPrompt = await buildSystemPrompt(agente.system, supabase, empresaId)
+    const systemPrompt = await buildSystemPrompt(agente.system, admin, empresaId)
 
-    const { data: tarefa } = await supabase.from('hub_tarefas').insert({
+    const { data: tarefa } = await admin.from('hub_tarefas').insert({
       empresa_id: empresaId,
       agente_id: agente.id,
       titulo: titulo.trim(),
@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
     const data = await r.json().catch(() => ({}))
 
     if (!r.ok) {
-      await supabase.from('hub_tarefas').update({ status: 'erro', resultado: data?.error?.message || 'Falha na geração', completed_at: new Date().toISOString() }).eq('id', tarefa?.id)
+      await admin.from('hub_tarefas').update({ status: 'erro', resultado: data?.error?.message || 'Falha na geração', completed_at: new Date().toISOString() }).eq('id', tarefa?.id)
       return NextResponse.json({ error: 'Falha ao gerar resposta', resultado: data?.error?.message }, { status: 502 })
     }
 
@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
     const totalTokens = Number(usage.total_tokens ?? promptTokens + completionTokens)
     const custoUsd = Number(usage.cost ?? 0)
 
-    const { data: updated } = await supabase.from('hub_tarefas').update({
+    const { data: updated } = await admin.from('hub_tarefas').update({
       status: 'concluida',
       resultado,
       prompt_tokens: promptTokens,
@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
       completed_at: new Date().toISOString(),
     }).eq('id', tarefa?.id).select().single()
 
-    await supabase.from('hub_uso_agentes').insert({
+    await admin.from('hub_uso_agentes').insert({
       empresa_id: empresaId,
       agente_id: agente.id,
       modelo,
@@ -122,17 +122,17 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const { user, supabase } = await getSupabaseUser(req)
+    const { user, admin } = await getSupabaseUser(req)
     if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
-    const { data: usrRow } = await supabase.from('usuarios').select('empresa_id').eq('id', user.id).maybeSingle()
+    const { data: usrRow } = await admin.from('usuarios').select('empresa_id').eq('id', user.id).maybeSingle()
     const empresaId = usrRow?.empresa_id ?? user.id
 
     const url = new URL(req.url)
     const agentId = url.searchParams.get('agentId')
     const limit = Number(url.searchParams.get('limit') ?? 50)
 
-    let query = supabase.from('hub_tarefas').select('*').eq('empresa_id', empresaId).order('created_at', { ascending: false }).limit(limit)
+    let query = admin.from('hub_tarefas').select('*').eq('empresa_id', empresaId).order('created_at', { ascending: false }).limit(limit)
     if (agentId) query = query.eq('agente_id', agentId)
 
     const { data } = await query
