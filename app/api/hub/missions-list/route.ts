@@ -37,13 +37,38 @@ export async function PATCH(req: NextRequest) {
     const updateData: Record<string, unknown> = { status }
     if (status === 'approved') updateData.approved_at = new Date().toISOString()
 
-    const { error } = await supabase
+    const { error } = await admin
       .from('missions')
       .update(updateData)
       .eq('id', missionId)
 
     if (error) return NextResponse.json({ error: error.message }, { status: 400 })
-    return NextResponse.json({ ok: true })
+
+    // LOOP: missão aprovada vira projeto automaticamente
+    let projetoCriado = false
+    if (status === 'approved') {
+      const { data: usrRow } = await admin.from('usuarios').select('empresa_id').eq('id', user.id).maybeSingle()
+      const empresaId = usrRow?.empresa_id ?? user.id
+
+      const { data: mission } = await admin.from('missions').select('title, level').eq('id', missionId).maybeSingle()
+      if (mission) {
+        // evita duplicar projeto da mesma missão
+        const { data: existing } = await admin.from('hub_projetos').select('id').eq('empresa_id', empresaId).eq('nome', mission.title).maybeSingle()
+        if (!existing) {
+          await admin.from('hub_projetos').insert({
+            empresa_id: empresaId,
+            nome: mission.title,
+            descricao: `Projeto criado automaticamente a partir da missão ${mission.level} aprovada.`,
+            status: 'planejamento',
+            progresso: 0,
+            categoria: 'Missão',
+          })
+          projetoCriado = true
+        }
+      }
+    }
+
+    return NextResponse.json({ ok: true, projetoCriado })
   } catch (error: unknown) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Erro interno' }, { status: 500 })
   }
