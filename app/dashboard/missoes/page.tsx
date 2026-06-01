@@ -116,13 +116,20 @@ function AgentOutputPanel({
 }) {
   const [expanded, setExpanded] = useState<string | null>(null)
   const liveScrollRef = useRef<HTMLDivElement>(null)
+  const autoScroll = useRef(true)
 
-  // Auto-scroll the live stream only — never interrupt user reading other outputs
+  // Auto-scroll enquanto chega texto; para se o usuário rolar pra cima
   useEffect(() => {
-    if (liveScrollRef.current) {
+    if (autoScroll.current && liveScrollRef.current) {
       liveScrollRef.current.scrollTop = liveScrollRef.current.scrollHeight
     }
   }, [currentToken])
+
+  function onLiveScroll() {
+    const el = liveScrollRef.current
+    if (!el) return
+    autoScroll.current = el.scrollHeight - el.scrollTop - el.clientHeight < 50
+  }
 
   // Show live agent at top if not in completed steps
   const liveAgent = currentAgentId && !steps.find(s => s.agentId === currentAgentId)
@@ -158,9 +165,9 @@ function AgentOutputPanel({
                 <span style={{ fontSize: 11, fontWeight: 700, color: liveAgent.color }}>{liveAgent.name}</span>
                 <span style={{ fontSize: 9, color: 'var(--text-dim)', fontWeight: 600 }}>escrevendo...</span>
               </div>
-              <div ref={liveScrollRef} style={{ maxHeight: 120, overflow: 'hidden', fontFamily: 'monospace', fontSize: 11, lineHeight: 1.7, color: 'var(--text-muted)', whiteSpace: 'pre-wrap', wordBreak: 'break-word', padding: '8px', background: 'var(--surface-2)', borderRadius: 6, border: '1px solid var(--border)' }}>
+              <div ref={liveScrollRef} onScroll={onLiveScroll} style={{ maxHeight: 300, overflowY: 'auto', fontFamily: 'monospace', fontSize: 12, lineHeight: 1.75, color: 'var(--text)', whiteSpace: 'pre-wrap', wordBreak: 'break-word', padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 6, border: '1px solid var(--border)' }}>
                 {currentToken || ''}
-                <motion.span animate={{ opacity: [1, 0] }} transition={{ repeat: Infinity, duration: 0.5 }} style={{ display: 'inline-block', width: 2, height: 12, background: liveAgent.color, marginLeft: 2, verticalAlign: 'text-bottom' }} />
+                <motion.span animate={{ opacity: [1, 0] }} transition={{ repeat: Infinity, duration: 0.5 }} style={{ display: 'inline-block', width: 2, height: 13, background: liveAgent.color, marginLeft: 2, verticalAlign: 'text-bottom' }} />
               </div>
             </div>
           </motion.div>
@@ -340,12 +347,13 @@ function HistoryTable({
                       </button>
                     )}
                     {/* Draft — re-run immediately */}
-                    {m.status === 'draft' && !isDeleting && (
+                    {(m.status === 'draft' || m.status === 'completed' || m.status === 'awaiting_approval') && !isDeleting && (
                       <button
                         onClick={() => onRerun(m.title)}
-                        style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 5, background: 'rgba(16,185,129,.15)', color: '#10b981', border: '1px solid rgba(16,185,129,.3)', cursor: 'pointer', fontFamily: 'inherit' }}
+                        title="Editar e reexecutar"
+                        style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 5, background: 'var(--accent-dim)', color: 'var(--accent)', border: '1px solid var(--accent)', cursor: 'pointer', fontFamily: 'inherit' }}
                       >
-                        <i className="fa-solid fa-play" style={{ fontSize: 8, marginRight: 4 }} />Re-executar
+                        <i className="fa-solid fa-pen" style={{ fontSize: 8, marginRight: 4 }} />Editar
                       </button>
                     )}
                     {!isDeleting ? (
