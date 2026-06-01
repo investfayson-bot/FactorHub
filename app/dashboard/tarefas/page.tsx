@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
 import { AGENTS_V2 } from '@/lib/agents-v2'
+import PageHeader from '@/components/layout/PageHeader'
 
 type Mission = {
   id: string
@@ -91,6 +92,16 @@ export default function TarefasPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+      <PageHeader
+        title="Tarefas"
+        subtitle={`Histórico de missões executadas pelos agentes — ${missions.length} no total`}
+        action={
+          <a href="/dashboard/missoes" className="btn btn-primary" style={{ textDecoration: 'none' }}>
+            <i className="fa-solid fa-rocket" style={{ fontSize: 11 }} />Nova Missão
+          </a>
+        }
+      />
 
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10 }}>

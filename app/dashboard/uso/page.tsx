@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
 import { AGENTS_V2 } from '@/lib/agents-v2'
+import PageHeader from '@/components/layout/PageHeader'
 
 type Mission = {
   id: string
@@ -124,6 +125,11 @@ export default function UsoPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+      <PageHeader
+        title="Consumo de IA"
+        subtitle="Custo, tokens e atividade dos agentes por dia e por modelo"
+      />
 
       {/* Threshold alert */}
       {thresholdExceeded && (

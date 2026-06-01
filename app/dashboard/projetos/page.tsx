@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
+import PageHeader from '@/components/layout/PageHeader'
 
 type Projeto = {
   id: string
@@ -18,8 +19,8 @@ type Projeto = {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  ideia: '#f59e0b', planejamento: '#2dd4bf', desenvolvimento: '#a3a3a3',
-  concluido: '#3ecf8e', pausado: '#64748b',
+  ideia: '#f59e0b', planejamento: '#eab308', desenvolvimento: '#3ecf8e',
+  concluido: '#22c55e', pausado: '#888888',
 }
 const DECISAO_COLORS: Record<string, string> = { aprovado: '#22c55e', rejeitado: '#ef4444' }
 const DECISAO_ICONS: Record<string, string> = { aprovado: 'fa-circle-check', rejeitado: 'fa-circle-xmark' }
@@ -115,6 +116,16 @@ export default function ProjetosPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
+      <PageHeader
+        title="Projetos"
+        subtitle={`Acompanhe o andamento de cada projeto — ${itens.length} projeto${itens.length !== 1 ? 's' : ''}`}
+        action={
+          <button className="btn btn-primary" onClick={abrirNovo}>
+            <i className="fa-solid fa-plus" style={{ fontSize: 11 }} />Novo Projeto
+          </button>
+        }
+      />
+
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
         {[
@@ -150,9 +161,6 @@ export default function ProjetosPage() {
           <option value="pendente">Pendente de decisão</option>
         </select>
         <div style={{ flex: 1 }} />
-        <motion.button className="btn btn-primary" onClick={abrirNovo} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
-          <i className="fa-solid fa-plus" style={{ fontSize: 11 }} />Novo Projeto
-        </motion.button>
       </div>
 
       {/* Form */}
@@ -200,7 +208,7 @@ export default function ProjetosPage() {
         ) : (
           <AnimatePresence initial={false}>
             {filtrados.map((p, i) => {
-              const stColor = STATUS_COLORS[p.status] ?? '#64748B'
+              const stColor = STATUS_COLORS[p.status] ?? '#888888'
               const dcColor = p.decisao ? DECISAO_COLORS[p.decisao] : '#f59e0b'
               const isSelected = selectedId === p.id
               return (

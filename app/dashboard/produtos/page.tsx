@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
+import PageHeader from '@/components/layout/PageHeader'
 
 const PRODUCTS = [
   {
@@ -85,12 +86,10 @@ export default function ProdutosPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-      <div>
-        <div style={{ fontSize: 15, fontWeight: 700, color: '#f0f0f0', marginBottom: 4 }}>Portfólio FALC INC</div>
-        <div style={{ fontSize: 12, color: '#7a6e9a' }}>
-          3 produtos — o FactorHub cria e gerencia as ferramentas de cada um
-        </div>
-      </div>
+      <PageHeader
+        title="Portfólio FALC INC"
+        subtitle="3 produtos — o FactorHub cria e gerencia as ferramentas de cada um"
+      />
 
       {PRODUCTS.map((p, i) => {
         const st = STATUS_CONFIG[p.status]
