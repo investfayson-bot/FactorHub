@@ -5,559 +5,431 @@
 <title>FactorHub OS — Live Monitor</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-html,body{width:100%;height:100%;overflow:hidden;background:#060408;font-family:'Courier New',monospace}
+html,body{width:100%;height:100%;overflow:hidden;background:#060408;font-family:'Inter',system-ui,sans-serif}
 
-/* ── Office ── */
-#office{position:fixed;inset:0}
-#bg{width:100%;height:100%;object-fit:cover;object-position:center;display:block}
-#chars-layer{position:absolute;inset:0;pointer-events:none}
+/* ── Full-screen office background with characters already drawn ── */
+#office{
+  position:fixed;inset:0;
+  background:url('/sprites/bg-office-v2.png') center/cover no-repeat;
+}
 
-/* ── Characters ── */
-.char-wrap{
+/* ── Invisible hotspot over each character ── */
+.hotspot{
   position:absolute;
+  width:70px;height:90px;
   transform:translate(-50%,-100%);
-  pointer-events:all;
   cursor:pointer;
   z-index:10;
+  border-radius:8px;
+  transition:background .15s;
 }
-.char-wrap:hover{z-index:50}
-.char-sprite{
-  width:80px;height:96px;
-  image-rendering:pixelated;
-  image-rendering:-moz-crisp-edges;
-  background-repeat:no-repeat;
-  /* background-size and background-position set by JS */
-}
+.hotspot:hover{background:rgba(255,255,255,.06);outline:1.5px solid rgba(255,255,255,.15)}
+.hotspot.active{background:rgba(255,255,255,.08);outline:2px solid var(--color)}
 
-/* Sit animation — row 2, 4 frames, frame-width at final display scale */
-@keyframes anim-sit{
-  0%  {background-position-x:var(--f0)}
-  25% {background-position-x:var(--f1)}
-  50% {background-position-x:var(--f2)}
-  75% {background-position-x:var(--f3)}
-  100%{background-position-x:var(--f0)}
-}
-@keyframes anim-idle{
-  0%  {background-position-x:var(--f0)}
-  33% {background-position-x:var(--f1)}
-  67% {background-position-x:var(--f2)}
-  100%{background-position-x:var(--f0)}
-}
-
-.state-sit {animation:anim-sit  1.2s steps(1) infinite}
-.state-idle{animation:anim-idle 2.0s steps(1) infinite}
-
-/* Agent name badge */
-.char-label{
-  position:absolute;bottom:calc(100%+2px);left:50%;transform:translateX(-50%);
-  font-size:8px;font-weight:900;letter-spacing:.05em;
-  padding:2px 7px;border-radius:4px;white-space:nowrap;
-  pointer-events:none;
-}
-/* Speech bubble */
-.char-bubble{
-  position:absolute;bottom:calc(100%+20px);left:50%;transform:translateX(-50%);
-  background:rgba(8,6,16,.92);border:1px solid rgba(255,255,255,.12);
-  border-radius:8px;padding:5px 9px;
-  font-size:9px;color:#c4b8e0;white-space:nowrap;max-width:160px;
-  white-space:normal;text-align:center;line-height:1.35;
-  pointer-events:none;opacity:0;transition:opacity .25s;
+/* ── Speech bubble ── */
+.bubble{
+  position:absolute;
+  bottom:calc(100% + 6px);
+  left:50%;transform:translateX(-50%);
+  background:rgba(6,4,14,.95);
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:10px;
+  padding:7px 11px;
+  font-size:10px;color:#e0e0f0;line-height:1.45;
+  white-space:nowrap;max-width:200px;white-space:normal;text-align:center;
+  pointer-events:none;opacity:0;transition:opacity .2s;
+  min-width:130px;
   z-index:20;
+  box-shadow:0 4px 20px rgba(0,0,0,.5);
 }
-.char-bubble::after{
+.bubble::after{
   content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);
-  border:4px solid transparent;border-top-color:rgba(255,255,255,.12);
+  border:5px solid transparent;border-top-color:rgba(255,255,255,.12);
 }
-.char-wrap:hover .char-bubble,.char-wrap.active .char-bubble{opacity:1}
-.working-dot{
-  position:absolute;bottom:2px;right:2px;
-  width:8px;height:8px;border-radius:50%;
-  background:#22c55e;border:1.5px solid #060408;
+.hotspot:hover .bubble,.hotspot.active .bubble{opacity:1}
+
+.b-name{font-size:11px;font-weight:800;margin-bottom:2px}
+.b-role{font-size:9px;opacity:.55;margin-bottom:5px}
+.b-task{font-size:9.5px;color:#c4b8e0;font-style:italic}
+
+/* Working indicator */
+.working-ring{
+  position:absolute;bottom:8px;right:8px;
+  width:9px;height:9px;border-radius:50%;
+  background:#22c55e;border:1.5px solid rgba(6,4,14,.9);
   display:none;
 }
-.char-wrap.working .working-dot{display:block;animation:dot-pulse 1.2s ease-out infinite}
-@keyframes dot-pulse{0%{box-shadow:0 0 0 0 rgba(34,197,94,.6)}70%{box-shadow:0 0 0 8px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
+.hotspot.working .working-ring{display:block;animation:ring-pulse 1.3s ease-out infinite}
+@keyframes ring-pulse{
+  0%{box-shadow:0 0 0 0 rgba(34,197,94,.7)}
+  70%{box-shadow:0 0 0 8px rgba(34,197,94,0)}
+  100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}
+}
 
 /* ── Top Bar ── */
 #topbar{
-  position:fixed;top:0;left:0;right:300px;height:42px;
-  background:rgba(6,4,14,.9);backdrop-filter:blur(14px);
-  border-bottom:1px solid rgba(255,255,255,.06);
+  position:fixed;top:0;left:0;right:270px;height:44px;
+  background:rgba(6,4,14,.88);backdrop-filter:blur(14px);
+  border-bottom:1px solid rgba(255,255,255,.07);
   display:flex;align-items:center;padding:0 16px;gap:12px;z-index:200;
 }
 .pip{width:7px;height:7px;border-radius:50%;background:#22c55e;animation:glow-p 1.6s ease-in-out infinite}
-@keyframes glow-p{0%,100%{box-shadow:0 0 4px #22c55e}50%{box-shadow:0 0 12px #22c55e,0 0 24px #22c55e44}}
-.logo{font-size:13px;font-weight:900;letter-spacing:.14em;color:#f0f0f0}.logo span{color:#c9a84c}
-.bdg{font-size:8px;font-weight:800;padding:2px 7px;border-radius:3px;letter-spacing:.06em}
-.b-g{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);color:#22c55e}
-.b-o{background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.25);color:#c9a84c}
-#clk{font-size:10px;color:#4a4a6a;margin-left:auto}
-#mission-lbl{font-size:10px;color:#c9a84c;font-weight:700}
+@keyframes glow-p{0%,100%{box-shadow:0 0 4px #22c55e}50%{box-shadow:0 0 14px #22c55e,0 0 28px #22c55e44}}
+.logo{font-size:13px;font-weight:800;letter-spacing:.12em;color:#f0f0f0}.logo span{color:#888}
+.bdg{font-size:8px;font-weight:700;padding:2px 7px;border-radius:3px;letter-spacing:.05em}
+.b-g{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);color:#22c55e}
+.b-o{background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.2);color:#c9a84c}
+#clk{font-size:10px;color:#555;margin-left:auto;font-variant-numeric:tabular-nums}
 
 /* ── Right Panel ── */
 #panel{
-  position:fixed;top:0;right:0;bottom:34px;width:280px;
-  background:rgba(8,6,18,.96);backdrop-filter:blur(20px);
+  position:fixed;top:0;right:0;bottom:34px;width:270px;
+  background:rgba(6,4,14,.95);backdrop-filter:blur(20px);
   border-left:1px solid rgba(255,255,255,.07);
   display:flex;flex-direction:column;overflow:hidden;z-index:200;
 }
 .psec{padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0}
-.ptitle{font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#3a3564;margin-bottom:10px}
-/* Agent row — matches reference */
+.ptit{font-size:7.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#333;margin-bottom:10px}
+
 .arow{
-  display:flex;align-items:center;gap:10px;
-  padding:7px 8px;border-radius:7px;cursor:pointer;
-  transition:background .12s;margin-bottom:3px;
+  display:flex;align-items:center;gap:9px;
+  padding:6px 7px;border-radius:7px;cursor:pointer;
+  transition:background .1s;margin-bottom:2px;
 }
 .arow:hover{background:rgba(255,255,255,.04)}
-.aav{
-  width:32px;height:32px;border-radius:8px;
-  display:flex;align-items:center;justify-content:center;
-  font-size:10px;font-weight:900;flex-shrink:0;
-  border-width:1px;border-style:solid;
-}
+.aav{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:900;flex-shrink:0}
 .ainfo{flex:1;min-width:0}
-.aname{font-size:11px;font-weight:700;color:#e0e0f0;margin-bottom:1px}
-.arole{font-size:9px;color:#4a4a6a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.a-status{
-  font-size:7.5px;font-weight:800;letter-spacing:.06em;
-  padding:2px 6px;border-radius:3px;flex-shrink:0;
-}
-.s-online{background:rgba(34,197,94,.12);color:#22c55e;border:1px solid rgba(34,197,94,.2)}
-.s-busy  {background:rgba(232,98,42,.12); color:#e8622a;border:1px solid rgba(232,98,42,.2)}
+.aname{font-size:10.5px;font-weight:700;color:#e0e0f0;margin-bottom:1px}
+.arole{font-size:8.5px;color:#444;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.astat{font-size:7px;font-weight:800;letter-spacing:.06em;padding:2px 6px;border-radius:3px;flex-shrink:0}
+.s-on{background:rgba(34,197,94,.1);color:#22c55e;border:1px solid rgba(34,197,94,.18)}
+.s-busy{background:rgba(232,98,42,.1);color:#e8622a;border:1px solid rgba(232,98,42,.18)}
 
-/* scrollable body */
-#panel-body{flex:1;overflow-y:auto}
-#panel-body::-webkit-scrollbar{width:3px}#panel-body::-webkit-scrollbar-thumb{background:#1a1535;border-radius:2px}
+#pbody{flex:1;overflow-y:auto}
+#pbody::-webkit-scrollbar{width:2px}#pbody::-webkit-scrollbar-thumb{background:#1a1a1a;border-radius:1px}
 
-/* Missions */
-.mrow{padding:8px 8px;border-radius:6px;margin-bottom:5px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05)}
-.mtag{font-size:7.5px;font-weight:800;padding:2px 6px;border-radius:3px;letter-spacing:.05em}
-.mname{font-size:10px;font-weight:600;color:#c4b8e0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:4px 0 5px}
-.mpb{height:2px;background:#14112a;border-radius:1px}
-.mpbf{height:100%;border-radius:1px;transition:width .5s}
-.see-all{
-  width:100%;padding:7px;border-radius:5px;
-  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);
-  color:#4a4a6a;font-size:9.5px;font-weight:600;cursor:pointer;
-  font-family:inherit;letter-spacing:.04em;margin-top:8px;
-}
-.see-all:hover{background:rgba(255,255,255,.07);color:#7a6e9a}
+.mrow{padding:8px;border-radius:6px;margin-bottom:5px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.04)}
+.mtag{font-size:7px;font-weight:800;padding:2px 6px;border-radius:3px;letter-spacing:.05em}
+.mname{font-size:10px;font-weight:600;color:#ccc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:4px 0 5px}
+.mpb{height:2px;background:#111;border-radius:1px}.mpbf{height:100%;border-radius:1px;transition:width .5s}
+.see-all{width:100%;padding:7px;border-radius:5px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);color:#444;font-size:9px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:8px;transition:all .1s}
+.see-all:hover{color:#777;background:rgba(255,255,255,.06)}
 
-#cost-area{padding:12px 16px}
-#cost-chart{width:100%;height:44px;border-radius:3px}
-.cost-row{display:flex;justify-content:space-between;align-items:center;margin-top:5px}
+/* Cost sparkline */
+#cost-wrap{padding:12px 16px}
+#cost-cv{width:100%;height:42px;border-radius:3px}
 
 /* ── Bottom Ticker ── */
 #ticker{
   position:fixed;bottom:0;left:0;right:0;height:34px;
-  background:rgba(6,4,14,.9);border-top:1px solid rgba(255,255,255,.05);
+  background:rgba(6,4,14,.92);border-top:1px solid rgba(255,255,255,.06);
   display:flex;align-items:center;overflow:hidden;z-index:200;
 }
-.tlbl{padding:0 10px;font-size:7px;font-weight:900;letter-spacing:.1em;color:#c9a84c;white-space:nowrap;border-right:1px solid rgba(255,255,255,.05);text-transform:uppercase}
-.tinn{display:flex;animation:scroll-t 52s linear infinite;white-space:nowrap}
+.tlbl{padding:0 12px;font-size:7px;font-weight:700;letter-spacing:.1em;color:#c9a84c;white-space:nowrap;border-right:1px solid rgba(255,255,255,.06);text-transform:uppercase}
+.tinn{display:flex;animation:scroll-t 55s linear infinite;white-space:nowrap}
 @keyframes scroll-t{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-.tev{display:inline-flex;align-items:center;gap:5px;padding:0 20px;font-size:8.5px;color:#3a3a5a}
+.tev{display:inline-flex;align-items:center;gap:5px;padding:0 20px;font-size:8.5px;color:#444}
 .tdot{width:3px;height:3px;border-radius:50%}
 
-/* Modal */
-#modal{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center}
-#modal.open{display:flex}
-.mbox{background:#0a0818;border:1px solid rgba(255,255,255,.09);border-radius:12px;padding:20px;width:340px}
+/* ── Agent modal ── */
+#amodal{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center}
+#amodal.open{display:flex}
+.abox{background:#0d0d0d;border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:22px;width:340px}
 </style>
 </head>
 <body>
 
+<!-- Office background — bg-office-v2.png ALREADY has the characters drawn in -->
 <div id="office">
-  <img id="bg" src="/sprites/bg-office.png" />
-  <div id="chars-layer"></div>
+
+  <!-- HOTSPOTS — invisible clickable areas over each character in the image -->
+  <!-- Positions as % of viewport (bg-office-v2 is 1672×941, covers 100% viewport) -->
+
+  <div class="hotspot" id="hs-CA"   style="left:8%;top:45%;--color:#c9a84c">
+    <div class="bubble"><div class="b-name" id="bn-CA">Chief of Staff</div><div class="b-role">Síntese executiva</div><div class="b-task" id="bt-CA">Coordenando agenda do founder.</div></div>
+    <div class="working-ring"></div>
+  </div>
+
+  <div class="hotspot" id="hs-CEO"  style="left:18%;top:33%;--color:#e8622a">
+    <div class="bubble"><div class="b-name" id="bn-CEO">CEO Estratégico</div><div class="b-role">Decisões estratégicas · C1</div><div class="b-task" id="bt-CEO">A autonomia define o nosso sucesso.</div></div>
+    <div class="working-ring"></div>
+  </div>
+
+  <div class="hotspot" id="hs-COO"  style="left:25%;top:27%;--color:#f59e0b">
+    <div class="bubble"><div class="b-name" id="bn-COO">COO</div><div class="b-role">Operações · C1</div><div class="b-task" id="bt-COO">Sprint atualizado. Dependências ok.</div></div>
+    <div class="working-ring"></div>
+  </div>
+
+  <div class="hotspot" id="hs-CMO"  style="left:22%;top:47%;--color:#ec4899">
+    <div class="bubble"><div class="b-name" id="bn-CMO">CMO Growth</div><div class="b-role">Marketing e aquisição · C1</div><div class="b-task" id="bt-CMO">Nova campanha Q3 — ROAS 3.2x.</div></div>
+    <div class="working-ring"></div>
+  </div>
+
+  <div class="hotspot" id="hs-CSO"  style="left:36%;top:45%;--color:#8b5cf6">
+    <div class="bubble"><div class="b-name" id="bn-CSO">Dir. Comercial</div><div class="b-role">Estratégia comercial · C3</div><div class="b-task" id="bt-CSO">Funil de conversão revisado.</div></div>
+    <div class="working-ring"></div>
+  </div>
+
+  <div class="hotspot" id="hs-CTO"  style="left:49%;top:23%;--color:#10b981">
+    <div class="bubble"><div class="b-name" id="bn-CTO">CTO</div><div class="b-role">Arquitetura técnica · C1</div><div class="b-task" id="bt-CTO">Deploy de nova feature em produção.</div></div>
+    <div class="working-ring"></div>
+  </div>
+
+  <div class="hotspot" id="hs-CFO"  style="left:66%;top:33%;--color:#6366f1">
+    <div class="bubble"><div class="b-name" id="bn-CFO">CFO</div><div class="b-role">Financeiro · C1</div><div class="b-task" id="bt-CFO">Margem 68% confirmada. CAC ok.</div></div>
+    <div class="working-ring"></div>
+  </div>
+
 </div>
 
+<!-- Top Bar -->
 <div id="topbar">
   <div class="pip"></div>
   <div class="logo"><span>FACTOR</span>HUB</div>
   <div class="bdg b-g">Sistema Online</div>
-  <span id="mission-lbl">Aguardando missão</span>
+  <span id="mission-lbl" style="font-size:10px;color:#555">Aguardando missão</span>
   <div id="clk">--:--:--</div>
 </div>
 
+<!-- Right Panel -->
 <div id="panel">
-  <div class="psec" id="agents-sec">
-    <div class="ptitle">Squad Ativo</div>
+  <div class="psec">
+    <div class="ptit">Agentes</div>
     <div id="agent-list"></div>
   </div>
-  <div id="panel-body">
+  <div id="pbody">
     <div style="padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.06)">
-      <div class="ptitle">Missões</div>
+      <div class="ptit">Missões</div>
       <div id="mission-list">
-        <div style="font-size:10px;color:#2a2848;text-align:center;padding:16px 0">Nenhuma missão ativa</div>
+        <div style="font-size:10px;color:#333;text-align:center;padding:16px 0">Nenhuma missão ativa</div>
       </div>
       <button class="see-all" onclick="window.open('/dashboard/missoes','_top')">Ver todas as missões →</button>
     </div>
-    <div id="cost-area">
-      <div class="ptitle">Consumo IA — 14 dias</div>
-      <canvas id="cost-chart" width="248" height="44"></canvas>
-      <div class="cost-row">
-        <span style="font-size:8.5px;color:#3a3a5a">Total acumulado</span>
-        <span id="total-cost" style="font-size:10px;font-weight:700;color:#c9a84c;font-family:'Courier New',monospace">$0.0000</span>
+    <div id="cost-wrap">
+      <div class="ptit">Consumo IA</div>
+      <canvas id="cost-cv" width="238" height="42"></canvas>
+      <div style="display:flex;justify-content:space-between;margin-top:5px">
+        <span style="font-size:8px;color:#333">Total acumulado</span>
+        <span id="total-cost" style="font-size:10px;font-weight:700;color:#c9a84c;font-variant-numeric:tabular-nums">$0.0000</span>
       </div>
     </div>
   </div>
 </div>
 
+<!-- Ticker -->
 <div id="ticker">
   <div class="tlbl">Atividade</div>
   <div style="flex:1;overflow:hidden"><div class="tinn" id="tinn"></div></div>
 </div>
 
-<div id="modal" onclick="if(event.target===this)closeModal()">
-  <div class="mbox" id="modal-content"></div>
+<!-- Agent click modal -->
+<div id="amodal" onclick="if(event.target===this)closeModal()">
+  <div class="abox" id="abox-content"></div>
 </div>
 
 <script>
 // ─── Agent definitions ────────────────────────────────────────────────────────
 const AGENTS = [
-  {id:'CEO',name:'CEO Estratégico',role:'Decisões estratégicas',layer:'C1',color:'#e8622a',sprite:'char-purple',init:'CE',
-   pos:{l:17,t:33}},   // Strategy Room — desk esquerda
-  {id:'COO',name:'COO',role:'Operações e eficiência',layer:'C1',color:'#f59e0b',sprite:'char-blue',init:'CO',
-   pos:{l:24,t:27}},   // Strategy Room — desk direita
-  {id:'CFO',name:'CFO',role:'Viabilidade financeira',layer:'C1',color:'#6366f1',sprite:'char-dark',init:'CF',
-   pos:{l:22,t:47}},   // Growth Room
-  {id:'CTO',name:'CTO Arquitetura',role:'Decisões técnicas',layer:'C1',color:'#10b981',sprite:'char-green',init:'CT',
-   pos:{l:49,t:23}},   // Tech Room
-  {id:'CMO',name:'CMO Growth',role:'Marketing e aquisição',layer:'C1',color:'#ec4899',sprite:'char-black',init:'CM',
-   pos:{l:35,t:45}},   // Meeting Room
-  {id:'CA',name:'Chief of Staff',role:'Síntese executiva',layer:'CA',color:'#c9a84c',sprite:'char-orange',init:'CA',
-   pos:{l:7,t:45}},    // Recepção
-  {id:'SI',name:'Strategic Intel',role:'Inteligência estratégica',layer:'C2',color:'#7c3aed',sprite:'char-pink',init:'SI',
-   pos:{l:66,t:33}},   // Kitchen
+  {id:'CEO',name:'CEO Estratégico',role:'Decisões estratégicas',layer:'C1',color:'#e8622a',init:'CE',hs:'CEO'},
+  {id:'COO',name:'COO',role:'Operações e eficiência',layer:'C1',color:'#f59e0b',init:'CO',hs:'COO'},
+  {id:'CFO',name:'CFO',role:'Viabilidade financeira',layer:'C1',color:'#6366f1',init:'CF',hs:'CFO'},
+  {id:'CTO',name:'CTO',role:'Arquitetura técnica',layer:'C1',color:'#10b981',init:'CT',hs:'CTO'},
+  {id:'CMO',name:'CMO Growth',role:'Marketing e aquisição',layer:'C1',color:'#ec4899',init:'CM',hs:'CMO'},
+  {id:'CSO',name:'Dir. Comercial',role:'Estratégia comercial',layer:'C3',color:'#8b5cf6',init:'DC',hs:'CSO'},
+  {id:'CA',name:'Chief of Staff',role:'Síntese executiva',layer:'CA',color:'#c9a84c',init:'CA',hs:'CA'},
 ]
 
-// ─── Sprite sheet geometry ────────────────────────────────────────────────────
-// Sheet: 1536 × 1024 — 7 cols × 4 rows — frame: 219.4 × 256
-// Display: 80 × 96 — scale = 80/219.4 = 0.365
-// background-size at display scale: 1536*0.365 = 560.6 × 1024*0.365 = 373.8
-// Frame x-step at display scale: 219.4*0.365 ≈ 80px
-// Row y-offset at display scale: 256*0.365 ≈ 93.4 ≈ 93px
-
-const SPRITE_COLS = 7
-const SPRITE_ROWS = 4
-const DISP_W = 80   // display width per frame
-const DISP_H = 96   // display height per frame
-const SHEET_DISP_W = SPRITE_COLS * DISP_W   // 560
-const SHEET_DISP_H = SPRITE_ROWS * DISP_H   // 384
-
-// Row indices
-const ROW = { idle: 0, walk: 1, sit: 2, think: 3 }
-
-// State per agent
 const STATE = {}
 AGENTS.forEach(a => {
-  STATE[a.id] = { status: 'sit', task: 'Disponível', el: null }
+  STATE[a.id] = { status:'sit', task: '' }
 })
 
-// ─── Remove white bg from sprite image via canvas ─────────────────────────────
-const processedSprites = {}
+const TASKS = {
+  CEO:['A autonomia define o nosso sucesso.','Validando nova oportunidade de mercado.','Aprovando plano estratégico Q3.'],
+  COO:['Sprint atualizado. Dependências ok.','Alinhando times para Q3.','Processos operacionais revisados.'],
+  CFO:['Margem 68% confirmada. CAC ok.','Modelando unit economics.','Análise de fluxo de caixa concluída.'],
+  CTO:['Deploy de nova feature em produção.','Revisando arquitetura de serviços.','Code review PR #47 aprovado.'],
+  CMO:['Nova campanha Q3 — ROAS 3.2x.','Estratégia de conteúdo aprovada.','Análise de funil de conversão.'],
+  CSO:['Funil de conversão revisado.','Pipeline de vendas atualizado.','Proposta comercial enviada.'],
+  CA:['Coordenando agenda do founder.','Briefing executivo enviado.','Report semanal preparado.'],
+}
 
-function processSprite(name) {
-  return new Promise(resolve => {
-    if (processedSprites[name]) { resolve(processedSprites[name]); return }
-    const img = new Image()
-    img.onload = () => {
-      const cvs = document.createElement('canvas')
-      cvs.width = img.naturalWidth
-      cvs.height = img.naturalHeight
-      const ctx = cvs.getContext('2d', {willReadFrequently:true})
-      ctx.drawImage(img, 0, 0)
-      const d = ctx.getImageData(0, 0, cvs.width, cvs.height)
-      for (let i = 0; i < d.data.length; i += 4) {
-        const r=d.data[i], g=d.data[i+1], b=d.data[i+2]
-        // Make near-white pixels transparent
-        if (r > 210 && g > 210 && b > 210) d.data[i+3] = 0
-      }
-      ctx.putImageData(d, 0, 0)
-      const url = cvs.toDataURL('image/png')
-      processedSprites[name] = url
-      resolve(url)
-    }
-    img.onerror = () => resolve(null)
-    img.src = `/sprites/${name}.png`
+// ─── Hotspot click ────────────────────────────────────────────────────────────
+document.querySelectorAll('.hotspot').forEach(el => {
+  el.addEventListener('click', () => {
+    const hsId = el.id.replace('hs-', '')
+    const agent = AGENTS.find(a => a.hs === hsId || a.id === hsId)
+    if (!agent) return
+    const s = STATE[agent.id]
+    const statusLabel = s.status === 'sit' ? 'Trabalhando' : 'Disponível'
+    const statusColor = s.status === 'sit' ? '#22c55e' : '#555'
+    document.getElementById('abox-content').innerHTML = `
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+        <div style="width:46px;height:46px;border-radius:12px;background:${agent.color}20;border:2px solid ${agent.color}60;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:${agent.color};flex-shrink:0">${agent.init}</div>
+        <div>
+          <div style="font-size:14px;font-weight:800;color:#f0f0f0">${agent.name}</div>
+          <div style="font-size:10px;color:#666;margin-top:2px">${agent.role} · ${agent.layer}</div>
+          <div style="display:flex;align-items:center;gap:4px;margin-top:4px">
+            <div style="width:5px;height:5px;border-radius:50%;background:${statusColor}"></div>
+            <span style="font-size:9px;color:${statusColor};font-weight:600">${statusLabel}</span>
+          </div>
+        </div>
+        <button onclick="closeModal()" style="margin-left:auto;background:none;border:none;color:#444;font-size:16px;cursor:pointer">×</button>
+      </div>
+      <div style="font-size:8px;color:#444;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">Task atual</div>
+      <div style="font-size:11px;color:#c4b8e0;line-height:1.65;padding:9px 11px;background:rgba(0,0,0,.6);border-radius:8px;border:1px solid rgba(255,255,255,.06)">${s.task || TASKS[agent.id]?.[0] || 'Disponível'}</div>
+    `
+    document.getElementById('amodal').classList.add('open')
   })
-}
+})
 
-// ─── Build characters ─────────────────────────────────────────────────────────
-async function buildChars() {
-  const layer = document.getElementById('chars-layer')
-  layer.innerHTML = ''
+function closeModal() { document.getElementById('amodal').classList.remove('open') }
 
-  for (const a of AGENTS) {
-    const url = await processSprite(a.sprite)
-    const s = STATE[a.id]
-
-    const wrap = document.createElement('div')
-    wrap.className = 'char-wrap'
-    wrap.id = `char-${a.id}`
-    wrap.style.left = a.pos.l + '%'
-    wrap.style.top  = a.pos.t + '%'
-    wrap.setAttribute('data-id', a.id)
-
-    // Sprite div
-    const sprite = document.createElement('div')
-    sprite.className = 'char-sprite state-sit'
-    sprite.style.backgroundImage = url ? `url('${url}')` : 'none'
-    sprite.style.backgroundSize  = `${SHEET_DISP_W}px ${SHEET_DISP_H}px`
-    sprite.style.backgroundPositionY = `-${ROW.sit * DISP_H}px`
-    sprite.style.setProperty('--f0', '0px')
-    sprite.style.setProperty('--f1', `-${DISP_W}px`)
-    sprite.style.setProperty('--f2', `-${DISP_W * 2}px`)
-    sprite.style.setProperty('--f3', `-${DISP_W * 3}px`)
-
-    // Label
-    const lbl = document.createElement('div')
-    lbl.className = 'char-label'
-    lbl.textContent = a.id
-    lbl.style.background = a.color + '22'
-    lbl.style.color = a.color
-    lbl.style.border = `1px solid ${a.color}40`
-
-    // Bubble
-    const bubble = document.createElement('div')
-    bubble.className = 'char-bubble'
-    bubble.textContent = s.task
-
-    // Working dot
-    const dot = document.createElement('div')
-    dot.className = 'working-dot'
-
-    wrap.appendChild(sprite)
-    wrap.appendChild(lbl)
-    wrap.appendChild(bubble)
-    wrap.appendChild(dot)
-    wrap.addEventListener('click', () => openModal(a.id))
-
-    layer.appendChild(wrap)
-    s.el = wrap
-    s.sprite = sprite
-  }
-
+// ─── Update hotspot task display ──────────────────────────────────────────────
+function setAgentTask(agentId, task) {
+  const agent = AGENTS.find(a => a.id === agentId)
+  if (!agent) return
+  STATE[agentId].task = task
+  STATE[agentId].status = 'sit'
+  const taskEl = document.getElementById(`bt-${agent.hs || agentId}`)
+  if (taskEl) taskEl.textContent = task
+  const hs = document.getElementById(`hs-${agent.hs || agentId}`)
+  if (hs) hs.classList.add('working')
   renderAgentList()
 }
 
-// ─── Agent state updates ──────────────────────────────────────────────────────
-function setAgent(id, status, task) {
-  const s = STATE[id]
-  if (!s) return
-  s.status = status
-  if (task) s.task = task
-
-  if (!s.el) return
-  const sprite = s.sprite
-  const wrap = s.el
-
-  // Set animation row
-  const rowY = ROW[status] !== undefined ? ROW[status] : ROW.sit
-  if (sprite) {
-    sprite.className = `char-sprite state-${status}`
-    sprite.style.backgroundPositionY = `-${rowY * DISP_H}px`
-  }
-
-  // Active styling
-  if (status === 'think' || status === 'sit') {
-    wrap.classList.add('working')
-  } else {
-    wrap.classList.remove('working')
-  }
-
-  // Update bubble
-  const bubble = wrap.querySelector('.char-bubble')
-  if (bubble) bubble.textContent = s.task
-
-  renderAgentList()
-}
-
-// ─── Agent list panel ─────────────────────────────────────────────────────────
+// ─── Right panel ─────────────────────────────────────────────────────────────
 function renderAgentList() {
   const el = document.getElementById('agent-list')
   if (!el) return
   el.innerHTML = AGENTS.map(a => {
     const s = STATE[a.id]
-    const working = s.status === 'sit' || s.status === 'think'
-    const statusClass = working ? 's-busy' : 's-online'
-    const statusLabel = working ? 'ATIVO' : 'ONLINE'
-    return `
-    <div class="arow" onclick="openModal('${a.id}')">
-      <div class="aav" style="background:${a.color}18;border-color:${a.color}50;color:${a.color}">${a.init}</div>
+    const busy = s.status === 'sit'
+    return `<div class="arow" onclick="document.getElementById('hs-${a.hs||a.id}')?.click()">
+      <div class="aav" style="background:${a.color}18;border:1px solid ${a.color}40;color:${a.color}">${a.init}</div>
       <div class="ainfo">
         <div class="aname">${a.name}</div>
         <div class="arole">${a.role}</div>
       </div>
-      <div class="a-status ${statusClass}">${statusLabel}</div>
+      <div class="astat ${busy?'s-busy':'s-on'}">${busy?'ATIVO':'ONLINE'}</div>
     </div>`
   }).join('')
 }
 
-// ─── Missions ─────────────────────────────────────────────────────────────────
 function renderMissions(list) {
   const el = document.getElementById('mission-list')
   const lbl = document.getElementById('mission-lbl')
   if (!list?.length) {
-    el.innerHTML = '<div style="font-size:10px;color:#2a2848;text-align:center;padding:16px 0">Nenhuma missão ativa</div>'
+    el.innerHTML = '<div style="font-size:10px;color:#333;text-align:center;padding:14px 0">Nenhuma missão ativa</div>'
     lbl.textContent = 'Aguardando missão'
     return
   }
-  const running = list.filter(m=>m.status==='running')
-  lbl.textContent = `${running.length} missão${running.length!==1?'ões':''} ativa${running.length!==1?'s':''}`
-  el.innerHTML = list.map(m => {
-    const c = m.status==='running'?'#f59e0b':m.status==='approved'?'#22c55e':'#4a4a6a'
-    const pct = Math.round((m.agents_done||0)/(m.agents_total||1)*100)
-    return `<div class="mrow" style="border-color:${c}20">
+  const running = list.filter(m => m.status === 'running')
+  lbl.textContent = `${running.length} missão${running.length !== 1 ? 'ões' : ''} ativa${running.length !== 1 ? 's' : ''}`
+  el.innerHTML = list.slice(0, 4).map(m => {
+    const c = m.status === 'running' ? '#f59e0b' : m.status === 'approved' ? '#22c55e' : '#444'
+    const pct = Math.round((m.agents_done || 0) / (m.agents_total || 1) * 100)
+    return `<div class="mrow">
       <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">
-        <span style="font-size:7.5px;font-weight:800;padding:1px 5px;border-radius:2px;background:${c}18;color:${c}">${m.level}</span>
-        <span style="font-size:7.5px;color:#3a3a5a">${m.agents_done||0}/${m.agents_total||'?'}</span>
+        <span class="mtag" style="background:${c}18;color:${c}">${m.level}</span>
+        <span style="font-size:7.5px;color:#444">${m.agents_done||0}/${m.agents_total||'?'}</span>
       </div>
-      <div class="mname">${m.title||'Missão'}</div>
+      <div class="mname">${m.title || 'Missão'}</div>
       <div class="mpb"><div class="mpbf" style="width:${pct}%;background:${c}"></div></div>
     </div>`
   }).join('')
 }
 
-// ─── Cost chart ───────────────────────────────────────────────────────────────
 function renderChart(data) {
-  const cv = document.getElementById('cost-chart')
+  const cv = document.getElementById('cost-cv')
   const ctx = cv.getContext('2d')
-  const w=cv.width, h=cv.height
-  ctx.clearRect(0,0,w,h)
+  const w = cv.width, h = cv.height
+  ctx.clearRect(0, 0, w, h)
   if (!data?.length) return
   const mx = Math.max(...data, 0.0001)
-  const step = w/(data.length-1||1)
+  const step = w / (data.length - 1 || 1)
   ctx.beginPath()
-  data.forEach((v,i)=>{
-    const x=i*step, y=h-(v/mx)*(h-4)-2
-    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y)
+  data.forEach((v, i) => {
+    const x = i * step, y = h - (v / mx) * (h - 4) - 2
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)
   })
-  ctx.strokeStyle='#c9a84c';ctx.lineWidth=1.5;ctx.stroke()
-  ctx.lineTo(w,h);ctx.lineTo(0,h);ctx.closePath()
-  ctx.fillStyle='rgba(201,168,76,.07)';ctx.fill()
+  ctx.strokeStyle = '#c9a84c'; ctx.lineWidth = 1.5; ctx.stroke()
+  ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath()
+  ctx.fillStyle = 'rgba(201,168,76,.07)'; ctx.fill()
 }
 
 // ─── Ticker ───────────────────────────────────────────────────────────────────
 let tickLog = []
 function renderTicker() {
-  const items = tickLog.length ? tickLog : [
+  const base = [
     {c:'#22c55e',t:'Sistema online — 7 agentes ativos'},
-    {c:'#c9a84c',t:'Aguardando missão do fundador'},
-    {c:'#6366f1',t:'Cérebro corporativo carregado'},
-    {c:'#10b981',t:'CTO na sala de tecnologia'},
-    {c:'#f59e0b',t:'COO alinhando operações'},
-    {c:'#e8622a',t:'CEO pronto para nova missão'},
+    {c:'#c9a84c',t:'CEO validou oportunidade de mercado'},
+    {c:'#10b981',t:'CTO: deploy feature em produção'},
+    {c:'#ec4899',t:'CMO: campanha Q3 ROAS 3.2x'},
+    {c:'#6366f1',t:'CFO: margem 68% confirmada'},
+    {c:'#f59e0b',t:'COO: sprint atualizado'},
   ]
-  const html = [...items,...items].map(e=>`<span class="tev"><span class="tdot" style="background:${e.c}"></span>${e.t}</span>`).join('')
+  const items = tickLog.length ? [...tickLog, ...base] : base
+  const html = [...items, ...items].map(e =>
+    `<span class="tev"><span class="tdot" style="background:${e.c}"></span>${e.t}</span>`
+  ).join('')
   const el = document.getElementById('tinn')
-  if(el) el.innerHTML = html
+  if (el) el.innerHTML = html
 }
-
-function pushTick(agentId, text) {
-  const a = AGENTS.find(a=>a.id===agentId)
-  tickLog.unshift({c:a?.color||'#c9a84c', t:`[${agentId}] ${text}`})
-  if(tickLog.length>10) tickLog.pop()
-  renderTicker()
-}
-
-// ─── Modal ────────────────────────────────────────────────────────────────────
-function openModal(id) {
-  const a = AGENTS.find(a=>a.id===id)
-  const s = STATE[id]
-  if(!a) return
-  const statusMap = {sit:'Trabalhando',idle:'Disponível',think:'Analisando',walk:'Caminhando'}
-  const statusColor = s.status==='sit'||s.status==='think'?'#22c55e':'#4a4a6a'
-  document.getElementById('modal-content').innerHTML = `
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
-      <div style="width:48px;height:48px;border-radius:12px;background:${a.color}20;border:2px solid ${a.color}50;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:${a.color};flex-shrink:0">${a.init}</div>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:14px;font-weight:800;color:#f0f0f0">${a.name}</div>
-        <div style="font-size:10px;color:#7a6e9a;margin-top:2px">${a.role}</div>
-        <div style="display:flex;align-items:center;gap:4px;margin-top:4px">
-          <div style="width:5px;height:5px;border-radius:50%;background:${statusColor}"></div>
-          <span style="font-size:9px;color:${statusColor};font-weight:600">${statusMap[s.status]||s.status}</span>
-        </div>
-      </div>
-      <button onclick="closeModal()" style="background:none;border:none;color:#4a4a6a;font-size:16px;cursor:pointer;flex-shrink:0">×</button>
-    </div>
-    <div style="font-size:8px;color:#4a4a6a;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">Task atual</div>
-    <div style="font-size:11px;color:#c4b8e0;line-height:1.6;padding:9px;background:rgba(0,0,0,.4);border-radius:7px;border:1px solid rgba(255,255,255,.05)">${s.task}</div>
-  `
-  document.getElementById('modal').classList.add('open')
-}
-function closeModal(){document.getElementById('modal').classList.remove('open')}
 
 // ─── Clock ────────────────────────────────────────────────────────────────────
-setInterval(()=>{
-  const el=document.getElementById('clk')
-  if(el) el.textContent=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'})
-},1000)
-document.getElementById('clk').textContent=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'})
+setInterval(() => {
+  const el = document.getElementById('clk')
+  if (el) el.textContent = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+}, 1000)
 
-// ─── Live simulation (task cycling, no walking) ───────────────────────────────
-const SIM = {
-  CEO:['A autonomia define o nosso sucesso.','Validando nova missão N4.','Oportunidade identificada — executar.'],
-  COO:['Sprint atualizado. Dependências ok.','Alinhando times para Q3.','Processos otimizados.'],
-  CFO:['CAC validado. Margem 68%.','Análise financeira Q3 concluída.','Projeção de receita revisada.'],
-  CTO:['Deploy de nova feature em prod.','Revisando arquitetura de microserviços.','Zero bugs críticos.'],
-  CMO:['ROAS 3.2x alcançado este mês.','Nova campanha Q3 aprovada.','Leads: 50/semana no funil.'],
-  CA:['Briefing executivo enviado.','Coordenando missão N4.','Report semanal para o founder.'],
-  SI:['Inteligência de mercado atualizada.','Análise competitiva concluída.','Tendências Q3 mapeadas.'],
-}
-
-function simTick() {
-  const ids = Object.keys(STATE)
-  const id = ids[Math.floor(Math.random()*ids.length)]
-  const tasks = SIM[id]||['Em execução']
-  const task = tasks[Math.floor(Math.random()*tasks.length)]
-  const roll = Math.random()
-
-  if (roll < 0.2) {
-    setAgent(id, 'think', task)
-    pushTick(id, task)
-  } else {
-    setAgent(id, 'sit', task)
-    if (Math.random() < 0.3) pushTick(id, task)
+// ─── Task cycling simulation ──────────────────────────────────────────────────
+function simCycle() {
+  const ids = Object.keys(TASKS)
+  const id = ids[Math.floor(Math.random() * ids.length)]
+  const tasks = TASKS[id]
+  const task = tasks[Math.floor(Math.random() * tasks.length)]
+  setAgentTask(id, task)
+  if (Math.random() < 0.4) {
+    tickLog.unshift({ c: AGENTS.find(a => a.id === id)?.color || '#c9a84c', t: `[${id}] ${task}` })
+    if (tickLog.length > 8) tickLog.pop()
+    renderTicker()
   }
-
-  setTimeout(simTick, 6000 + Math.random()*9000)
+  setTimeout(simCycle, 7000 + Math.random() * 10000)
 }
 
-// ─── Parent frame data ────────────────────────────────────────────────────────
+// ─── Receive live data from parent ────────────────────────────────────────────
 window.addEventListener('message', e => {
-  const d = e.data
-  if (!d || d.type !== 'factorhub-live-data') return
-  if (d.missions) renderMissions(d.missions)
-  if (d.usage) {
-    const costs = d.usage.slice(-14).map(u=>Number(u.custo_usd||0))
+  if (e.data?.type !== 'factorhub-live-data') return
+  if (e.data.missions) renderMissions(e.data.missions)
+  if (e.data.usage) {
+    const costs = e.data.usage.slice(-14).map(u => Number(u.custo_usd || 0))
     renderChart(costs)
-    const total = d.usage.reduce((s,u)=>s+Number(u.custo_usd||0),0)
-    const el=document.getElementById('total-cost')
-    if(el) el.textContent='$'+total.toFixed(4)
+    const total = e.data.usage.reduce((s, u) => s + Number(u.custo_usd || 0), 0)
+    const el = document.getElementById('total-cost')
+    if (el) el.textContent = '$' + total.toFixed(4)
   }
-  if (d.agentStatuses) {
-    Object.entries(d.agentStatuses).forEach(([id,info])=>{
-      setAgent(id, info.status||'sit', info.task)
+  if (e.data.agentStatuses) {
+    Object.entries(e.data.agentStatuses).forEach(([id, info]) => {
+      setAgentTask(id, info.task || '')
     })
   }
 })
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
-renderChart([0,0.002,0.001,0.005,0.003,0.009,0.006,0.014,0.008,0.018,0.012,0.024,0.016,0.028])
+document.getElementById('clk').textContent = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+renderAgentList()
 renderMissions([])
 renderTicker()
-buildChars().then(()=>{
-  // Everyone starts sitting and working
-  AGENTS.forEach(a=>{
-    const tasks = SIM[a.id]
-    setAgent(a.id,'sit',tasks[0])
-    pushTick(a.id, tasks[0])
-  })
-  setTimeout(simTick, 4000)
+renderChart([0, 0.002, 0.001, 0.005, 0.003, 0.009, 0.006, 0.014, 0.008, 0.018, 0.012, 0.024, 0.016, 0.028])
+
+// Init tasks
+AGENTS.forEach(a => {
+  const tasks = TASKS[a.id]
+  setAgentTask(a.id, tasks[0])
 })
+
+setTimeout(simCycle, 5000)
 </script>
 </body>
 </html>

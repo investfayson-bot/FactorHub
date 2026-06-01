@@ -50,6 +50,58 @@ async function getToken(): Promise<string> {
   return sess.session?.access_token ?? ''
 }
 
+// ─── Agent Row (Linear-style list item) ──────────────────────────────────────
+
+function AgentRow({ agent, isRunning, totalTasks, onClick }: {
+  agent: AgentV2; isRunning: boolean; totalTasks: number; onClick: () => void
+}) {
+  const layerInfo = LAYER_TABS.find(t => t.id === agent.layer)
+  return (
+    <motion.button
+      onClick={onClick}
+      whileHover={{ backgroundColor: 'rgba(255,255,255,.025)' }}
+      style={{
+        display: 'grid', gridTemplateColumns: '1fr 120px 80px 70px 80px',
+        gap: 8, width: '100%', textAlign: 'left',
+        padding: '9px 12px', borderRadius: 7,
+        background: 'transparent', border: 'none', cursor: 'pointer',
+        alignItems: 'center', marginBottom: 2,
+        borderBottom: '1px solid var(--border)',
+      }}
+    >
+      {/* Agent name + role */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+        <div style={{ width: 30, height: 30, borderRadius: 8, background: `${agent.color}15`, border: `1.5px solid ${agent.color}50`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, color: agent.color, flexShrink: 0 }}>
+          {agent.initial}
+        </div>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{agent.name}</div>
+          <div style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{agent.role}</div>
+        </div>
+      </div>
+      {/* Layer */}
+      <div>
+        <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 4, background: `${layerInfo?.color ?? '#666'}15`, color: layerInfo?.color ?? '#666', letterSpacing: '.04em' }}>
+          {agent.layer} · {agent.layerLabel}
+        </span>
+      </div>
+      {/* Status */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+        <div style={{ width: 6, height: 6, borderRadius: '50%', background: isRunning ? '#22c55e' : 'var(--border-light)', flexShrink: 0 }} />
+        <span style={{ fontSize: 10, color: isRunning ? '#22c55e' : 'var(--text-dim)', fontWeight: isRunning ? 600 : 400 }}>
+          {isRunning ? 'Ativo' : 'Online'}
+        </span>
+      </div>
+      {/* Missions */}
+      <span style={{ fontSize: 11, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>
+        {totalTasks > 0 ? totalTasks : '—'}
+      </span>
+      {/* Cost placeholder */}
+      <span style={{ fontSize: 10, color: 'var(--text-dim)' }}>—</span>
+    </motion.button>
+  )
+}
+
 // ─── Agent Card ───────────────────────────────────────────────────────────────
 
 function AgentCard({ agent, isRunning, totalTasks, onClick }: {
@@ -610,39 +662,45 @@ export default function AgentesPage() {
         </div>
       )}
 
-      {/* Grid */}
+      {/* List — Linear style */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '0 24px 24px' }}>
+        {/* Table header */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px 80px 70px 80px', gap: 8, padding: '6px 12px', marginBottom: 4 }}>
+          {['Agente', 'Camada', 'Status', 'Missões', 'Custo'].map(h => (
+            <span key={h} style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '.07em' }}>{h}</span>
+          ))}
+        </div>
+
         {activeTab === 'ALL' ? (
           LAYER_ORDER.map(layer => {
             const layerAgents = visible.filter(a => a.layer === layer)
             if (!layerAgents.length) return null
             const info = LAYER_TABS.find(t => t.id === layer)!
             return (
-              <div key={layer} style={{ marginBottom: 22 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                  <div style={{ width: 3, height: 12, borderRadius: 2, background: info.color }} />
-                  <span style={{ fontSize: 9, fontWeight: 800, color: info.color, letterSpacing: '.07em', textTransform: 'uppercase' }}>{info.label}</span>
-                  <span style={{ fontSize: 9, color: '#3a3055' }}>{layerAgents.length} agentes</span>
-                  <div style={{ flex: 1, height: 1, background: '#1e1a2e' }} />
+              <div key={layer} style={{ marginBottom: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px 4px' }}>
+                  <div style={{ width: 2, height: 10, borderRadius: 1, background: info.color }} />
+                  <span style={{ fontSize: 8.5, fontWeight: 700, color: info.color, letterSpacing: '.08em', textTransform: 'uppercase' }}>{info.label}</span>
+                  <span style={{ fontSize: 8.5, color: 'var(--text-dim)' }}>{layerAgents.length}</span>
+                  <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 7 }}>
-                  {layerAgents.map(agent => (
-                    <AgentCard
-                      key={agent.id}
-                      agent={agent}
-                      isRunning={missionMap[agent.id]?.isRunning ?? false}
-                      totalTasks={missionMap[agent.id]?.total ?? 0}
-                      onClick={() => openAgent(agent)}
-                    />
+                {layerAgents.map(agent => (
+                  <AgentRow
+                    key={agent.id}
+                    agent={agent}
+                    isRunning={missionMap[agent.id]?.isRunning ?? false}
+                    totalTasks={missionMap[agent.id]?.total ?? 0}
+                    onClick={() => openAgent(agent)}
+                  />
                   ))}
                 </div>
               </div>
             )
           })
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 7, paddingTop: 2 }}>
+          <div>
             {visible.map(agent => (
-              <AgentCard
+              <AgentRow
                 key={agent.id}
                 agent={agent}
                 isRunning={missionMap[agent.id]?.isRunning ?? false}

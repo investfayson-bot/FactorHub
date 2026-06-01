@@ -2,33 +2,33 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── FactorHub OS — Dark Purple · Gold Theme ────────────────── */
+/* ── FactorHub OS — Supabase Dark Theme ────────────────── */
 :root {
-  --bg:           #0a0812;
-  --surface:      #0f0d18;
-  --surface-2:    #14101f;
-  --surface-3:    #1c1730;
-  --border:       #1e1a2e;
-  --border-light: #2a2245;
-  --text:         #f0f0f0;
-  --foreground:   #f0f0f0;
-  --text-muted:   #7a6e9a;
-  --muted:        #7a6e9a;
-  --text-dim:     #3a3055;
-  --accent:       #c9a84c;
-  --accent-dim:   rgba(201,168,76,.08);
-  --green:        #22c55e;
-  --red:          #ef4444;
+  --bg:           #101010;
+  --surface:      #181818;
+  --surface-2:    #1e1e1e;
+  --surface-3:    #242424;
+  --border:       #2e2e2e;
+  --border-light: #3a3a3a;
+  --text:         #ededed;
+  --foreground:   #ededed;
+  --text-muted:   #888;
+  --muted:        #888;
+  --text-dim:     #444;
+  --accent:       #3ecf8e;       /* Supabase green */
+  --accent-dim:   rgba(62,207,142,.08);
+  --green:        #3ecf8e;
+  --red:          #f44;
   --gold:         #f59e0b;
-  --teal:         #06b6d4;
-  --teal-dim:     rgba(6,182,212,.08);
+  --teal:         #3ecf8e;
+  --teal-dim:     rgba(62,207,142,.08);
   --purple:       #8b5cf6;
   --indigo:       #6366f1;
   --sidebar-w:    216px;
-  --radius:       10px;
-  --radius-sm:    6px;
+  --radius:       8px;
+  --radius-sm:    5px;
 
-  /* layer colours — kept for agent identity, never for BG */
+  /* layer colours — agent identity only */
   --c1: #e05a28;
   --c2: #0d9488;
   --c3: #6366f1;

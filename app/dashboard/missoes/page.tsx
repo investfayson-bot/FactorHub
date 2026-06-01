@@ -407,6 +407,12 @@ export default function MissoesPage() {
   const [forceCancelling, setForceCancelling] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
+  // Receber prefill de Ideias
+  useEffect(() => {
+    const prefill = sessionStorage.getItem('factohub-mission-prefill')
+    if (prefill) { setMissionText(prefill); sessionStorage.removeItem('factohub-mission-prefill') }
+  }, [setMissionText])
+
   // Missões travadas no DB (running no DB mas React state = idle)
   const stuckMissions = state === 'idle'
     ? missions.filter(m => m.status === 'running')
@@ -672,16 +678,24 @@ export default function MissoesPage() {
 
             <div style={{ display: 'flex', gap: 10 }}>
               <button onClick={approveMission}
-                style={{ flex: 1, padding: '12px', borderRadius: 8, background: '#10b981', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 700 }}>
-                <i className="fa-solid fa-check" style={{ marginRight: 6 }} />Aprovar e salvar
+                style={{ flex: 1, padding: '12px', borderRadius: 8, background: 'var(--green)', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 700 }}>
+                <i className="fa-solid fa-check" style={{ marginRight: 6 }} />Aprovar
+              </button>
+              <button
+                onClick={() => {
+                  const text = encodeURIComponent(missionText.slice(0, 120))
+                  window.location.href = `/dashboard/projetos?from=missao&nome=${text}`
+                }}
+                style={{ padding: '12px 16px', borderRadius: 8, background: 'rgba(99,102,241,.15)', color: '#6366f1', border: '1px solid rgba(99,102,241,.3)', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 700 }}>
+                <i className="fa-solid fa-diagram-project" style={{ marginRight: 6 }} />Criar Projeto
               </button>
               <button onClick={archiveMission}
-                style={{ padding: '12px 20px', borderRadius: 8, background: 'var(--surface-2)', color: 'var(--text-muted)', border: '1px solid var(--border)', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 600 }}>
+                style={{ padding: '12px 16px', borderRadius: 8, background: 'var(--surface-2)', color: 'var(--text-muted)', border: '1px solid var(--border)', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 600 }}>
                 Arquivar
               </button>
               <button onClick={newMission}
-                style={{ padding: '12px 20px', borderRadius: 8, background: 'var(--accent)', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 700 }}>
-                Nova missão
+                style={{ padding: '12px 16px', borderRadius: 8, background: 'var(--accent)', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 700 }}>
+                Nova
               </button>
             </div>
           </motion.div>
