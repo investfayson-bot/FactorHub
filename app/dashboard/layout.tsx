@@ -144,31 +144,22 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
           <div className="sb-logo-sub">OS · v2.0</div>
         </div>
 
-        {/* Cérebro health indicator */}
-        <Link
-          href="/dashboard/cerebro"
-          style={{
-            display: 'flex', alignItems: 'center', gap: 8,
-            margin: '0 10px 12px',
-            padding: '8px 10px',
-            borderRadius: 8,
-            background: cerebroPct < 50 ? 'rgba(239,68,68,.08)' : 'var(--surface-2)',
-            border: `0.5px solid ${cerebroPct < 50 ? 'rgba(239,68,68,.3)' : 'var(--border)'}`,
-            textDecoration: 'none',
-            transition: 'all .15s',
-          }}
-        >
-          <i className="fa-solid fa-brain" style={{ fontSize: 11, color: pctColor }} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-              <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '.05em', textTransform: 'uppercase' }}>Cérebro</span>
-              <span style={{ fontSize: 9, fontWeight: 700, color: pctColor }}>{cerebroPct}%</span>
-            </div>
-            <div style={{ height: 3, borderRadius: 2, background: 'var(--surface-3)', overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${cerebroPct}%`, background: pctColor, borderRadius: 2, transition: 'width .5s' }} />
-            </div>
-          </div>
-        </Link>
+        {/* Cérebro dot — minimal inline indicator */}
+        {cerebroPct < 50 && (
+          <Link
+            href="/dashboard/cerebro"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              margin: '0 10px 8px', padding: '5px 8px', borderRadius: 6,
+              background: 'rgba(245,158,11,.06)', border: '0.5px solid rgba(245,158,11,.2)',
+              textDecoration: 'none', fontSize: 10, color: '#f59e0b', fontWeight: 600,
+            }}
+          >
+            <i className="fa-solid fa-triangle-exclamation" style={{ fontSize: 9 }} />
+            <span style={{ flex: 1 }}>Cérebro {cerebroPct}%</span>
+            <span style={{ fontSize: 9, color: 'rgba(245,158,11,.6)' }}>Completar →</span>
+          </Link>
+        )}
 
         <nav className="sb-nav">
           {NAV.map((group) => (
@@ -296,21 +287,18 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
           <div className="topbar-av" onClick={sair} title="Sair">{initials}</div>
         </div>
 
-        {/* Cerebro alert banner */}
-        {cerebroPct < 50 && (
+        {/* Cerebro alert — only shows on dashboard, dismissible */}
+        {cerebroPct < 20 && pathname === '/dashboard' && (
           <div style={{
-            display: 'flex', alignItems: 'center', gap: 10,
-            padding: '8px 20px',
-            background: 'rgba(245,158,11,.08)',
-            borderBottom: '1px solid rgba(245,158,11,.2)',
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '6px 20px', fontSize: 11,
+            background: 'rgba(245,158,11,.05)',
+            borderBottom: '1px solid rgba(245,158,11,.12)',
           }}>
-            <i className="fa-solid fa-triangle-exclamation" style={{ fontSize: 11, color: '#f59e0b' }} />
-            <span style={{ fontSize: 12, color: '#f59e0b', flex: 1 }}>
-              Cérebro {cerebroPct}% preenchido — agentes operam sem contexto completo.
+            <i className="fa-solid fa-circle-info" style={{ fontSize: 10, color: '#f59e0b' }} />
+            <span style={{ color: 'var(--text-muted)', flex: 1 }}>
+              Cérebro vazio — <Link href="/dashboard/cerebro" style={{ color: '#f59e0b', textDecoration: 'none', fontWeight: 600 }}>preencher agora</Link> para ativar contexto dos agentes.
             </span>
-            <Link href="/dashboard/cerebro" style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b', textDecoration: 'none' }}>
-              Preencher agora →
-            </Link>
           </div>
         )}
 
