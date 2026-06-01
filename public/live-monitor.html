@@ -5,7 +5,7 @@
 <title>FactorHub OS — Live Monitor</title>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-html,body{width:100%;height:100%;overflow:hidden;background:#060408;font-family:'Courier New',monospace;color:#e0e0f0}
+html,body{width:100%;height:100%;overflow:hidden;background:url('https://hebbkx1anhila5yf.public.blob.vercel-storage.com/ChatGPT%20Image%20May%2031%2C%202026%2C%2005_38_37%20PM-lTfCuprOYQMmKTGCbuMaZdf4aQ503n.png') center/cover no-repeat fixed #060408;font-family:'Courier New',monospace;color:#e0e0f0}
 #cv{position:fixed;top:44px;left:0;display:block}
 #top{position:fixed;top:0;left:0;right:0;height:44px;background:#06040f;border-bottom:1px solid #1a1535;display:flex;align-items:center;padding:0 16px;gap:14px;z-index:100}
 .logo{font-size:14px;font-weight:900;letter-spacing:.14em}.logo span{color:#e8622a}
@@ -140,7 +140,7 @@ const MISSIONS=[{name:'Análise de Mercado',level:'N2',color:'#e8622a',prog:72},
 const CHARTS=[{label:'Crescimento',val:78,color:'#4ade80'},{label:'Conversões',val:61,color:'#e8622a'},{label:'Campanhas',val:45,color:'#5b9bd5'}]
 
 // HD Canvas
-const canvas=document.getElementById('cv'),ctx=canvas.getContext('2d',{alpha:false})
+const canvas=document.getElementById('cv'),ctx=canvas.getContext('2d',{alpha:true})
 let DPR=1,CW=1,CH=1
 function resize(){
   CW=window.innerWidth-200; CH=window.innerHeight-80
@@ -341,7 +341,7 @@ function serverRack(px,py){
 
 // Draw office
 function drawOffice(){
-  ctx.fillStyle='#060408';ctx.fillRect(0,0,CW,CH)
+  ctx.clearRect(0,0,CW,CH);ctx.fillStyle='rgba(6,4,8,0.72)';ctx.fillRect(0,0,CW,CH)
   // Floors
   for(let gx=-1;gx<6;gx++)for(let gy=-1;gy<5;gy++)tile(gx,gy,(gx+gy)%2===0?'#1a1208':'#160f06')
   for(let gx=6;gx<12;gx++)for(let gy=-1;gy<5;gy++)tile(gx,gy,(gx+gy)%2===0?'#0d1a0d':'#0b160b')
