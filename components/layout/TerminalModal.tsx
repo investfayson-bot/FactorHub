@@ -9,7 +9,7 @@ type Line = { type: 'cmd' | 'ok' | 'err' | 'info' | 'agent' | 'hint' | 'stream';
 const agents = Object.values(AGENTS_V2)
 
 const LAYER_COLORS: Record<string, string> = {
-  C1: '#e8622a', C2: '#14b8a6', C3: '#3ecf8e', C4: '#eab308', CA: '#a855f7',
+  C1: '#e8622a', C2: '#84cc16', C3: '#3ecf8e', C4: '#eab308', CA: '#a855f7',
 }
 
 function findAgent(input: string): AgentV2 | null {
@@ -231,8 +231,8 @@ export default function TerminalModal({ open, onClose }: Props) {
             left: 'var(--sidebar-width, 220px)',
             right: 0,
             zIndex: 900,
-            background: '#0a0812',
-            borderTop: '1px solid #1e1a2e',
+            background: '#101010',
+            borderTop: '1px solid #2e2e2e',
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
@@ -247,7 +247,7 @@ export default function TerminalModal({ open, onClose }: Props) {
               cursor: 'ns-resize',
               flexShrink: 0,
               background: 'transparent',
-              borderTop: '1px solid #1e1a2e',
+              borderTop: '1px solid #2e2e2e',
             }}
           >
             <div style={{ margin: '1px auto', width: 36, height: 2, borderRadius: 2, background: '#2a2545' }} />
@@ -257,7 +257,7 @@ export default function TerminalModal({ open, onClose }: Props) {
           <div style={{
             display: 'flex', alignItems: 'center', gap: 8,
             padding: '5px 14px 5px 12px',
-            borderBottom: '1px solid #1e1a2e',
+            borderBottom: '1px solid #2e2e2e',
             flexShrink: 0,
             background: '#0d0b1a',
           }}>
@@ -265,7 +265,7 @@ export default function TerminalModal({ open, onClose }: Props) {
             <div style={{
               display: 'flex', alignItems: 'center', gap: 6,
               padding: '4px 12px', borderRadius: '4px 4px 0 0',
-              background: '#0a0812', borderBottom: '1px solid #0a0812',
+              background: '#101010', borderBottom: '1px solid #101010',
               marginBottom: -1,
             }}>
               <i className="fa-solid fa-terminal" style={{ fontSize: 9, color: '#e8622a' }} />
@@ -285,7 +285,7 @@ export default function TerminalModal({ open, onClose }: Props) {
               <motion.div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e' }}
                 animate={{ opacity: [1, 0.3, 1] }} transition={{ repeat: Infinity, duration: 0.9 }} />
             )}
-            <span style={{ fontSize: 9, fontWeight: 600, padding: '2px 6px', borderRadius: 4, background: '#1e1a2e', color: '#4b5563' }}>Ctrl+K</span>
+            <span style={{ fontSize: 9, fontWeight: 600, padding: '2px 6px', borderRadius: 4, background: '#2e2e2e', color: '#4b5563' }}>Ctrl+K</span>
             <button
               onClick={onClose}
               style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4b5563', fontSize: 12, padding: '2px 4px', lineHeight: 1 }}
@@ -310,7 +310,7 @@ export default function TerminalModal({ open, onClose }: Props) {
           <div style={{
             display: 'flex', alignItems: 'center', gap: 8,
             padding: '7px 14px',
-            borderTop: '1px solid #1e1a2e',
+            borderTop: '1px solid #2e2e2e',
             flexShrink: 0,
             background: '#0d0b1a',
           }}>

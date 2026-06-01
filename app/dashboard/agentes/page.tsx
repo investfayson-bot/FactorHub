@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AGENTS_V2, type AgentV2, type AgentLayer } from '@/lib/agents-v2'
 import { supabase } from '@/lib/supabase'
+import PageHeader from '@/components/layout/PageHeader'
 
 type LayerTab = AgentLayer | 'ALL'
 
@@ -29,7 +30,7 @@ type AgentStats = {
 const LAYER_TABS: { id: LayerTab; label: string; color: string }[] = [
   { id: 'ALL', label: 'Todos', color: '#3ecf8e' },
   { id: 'C1', label: 'Conselho', color: '#e8622a' },
-  { id: 'C2', label: 'Pesquisa', color: '#14b8a6' },
+  { id: 'C2', label: 'Pesquisa', color: '#84cc16' },
   { id: 'C3', label: 'Diretores', color: '#3ecf8e' },
   { id: 'C4', label: 'Especialistas', color: '#eab308' },
   { id: 'CA', label: 'Chief of Staff', color: '#a855f7' },
@@ -117,8 +118,8 @@ function AgentCard({ agent, isRunning, totalTasks, onClick }: {
       whileTap={{ scale: 0.97 }}
       transition={{ duration: 0.14 }}
       style={{
-        background: '#0f0d18',
-        border: `1px solid ${isRunning ? agent.color + '55' : '#1e1a2e'}`,
+        background: '#181818',
+        border: `1px solid ${isRunning ? agent.color + '55' : '#2e2e2e'}`,
         borderRadius: 10,
         padding: '14px 10px',
         cursor: 'pointer',
@@ -139,13 +140,13 @@ function AgentCard({ agent, isRunning, totalTasks, onClick }: {
         <div style={{ width: 42, height: 42, borderRadius: '50%', background: `${agent.color}15`, border: `2px solid ${agent.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, color: agent.color }}>
           {agent.initial}
         </div>
-        <div style={{ position: 'absolute', bottom: 0, right: 0, width: 9, height: 9, borderRadius: '50%', background: isRunning ? '#22c55e' : '#374151', border: '1.5px solid #0f0d18' }} />
+        <div style={{ position: 'absolute', bottom: 0, right: 0, width: 9, height: 9, borderRadius: '50%', background: isRunning ? '#22c55e' : '#374151', border: '1.5px solid #181818' }} />
       </div>
       <div style={{ width: '100%' }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: '#f0f0f0', lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: '#ededed', lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {agent.name}
         </div>
-        <div style={{ fontSize: 9, color: '#7a6e9a', marginTop: 1 }}>
+        <div style={{ fontSize: 9, color: '#888888', marginTop: 1 }}>
           {isRunning ? <span style={{ color: '#22c55e' }}>ativo</span> : totalTasks ? `${totalTasks} missões` : 'disponível'}
         </div>
       </div>
@@ -239,8 +240,8 @@ function AgentDrawer({ agent, stats, loading, onClose }: {
         transition={{ type: 'spring', stiffness: 320, damping: 32 }}
         style={{
           position: 'fixed', top: 46, right: 0, bottom: 0, zIndex: 201,
-          width: 460, background: '#0f0d18',
-          borderLeft: '1px solid #1e1a2e',
+          width: 460, background: '#181818',
+          borderLeft: '1px solid #2e2e2e',
           display: 'flex', flexDirection: 'column', overflow: 'hidden',
         }}
       >
@@ -248,7 +249,7 @@ function AgentDrawer({ agent, stats, loading, onClose }: {
         <div style={{ height: 3, background: `linear-gradient(90deg, ${agent.color}, ${agent.color}88)`, flexShrink: 0 }} />
 
         {/* Header */}
-        <div style={{ padding: '16px 20px 14px', borderBottom: '1px solid #1e1a2e', flexShrink: 0 }}>
+        <div style={{ padding: '16px 20px 14px', borderBottom: '1px solid #2e2e2e', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 14 }}>
             <div style={{ position: 'relative', flexShrink: 0 }}>
               <div style={{ width: 64, height: 64, borderRadius: '50%', background: `${agent.color}15`, border: `2.5px solid ${agent.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 800, color: agent.color }}>
@@ -258,19 +259,19 @@ function AgentDrawer({ agent, stats, loading, onClose }: {
                 <motion.div
                   animate={{ scale: [1, 1.3, 1] }}
                   transition={{ duration: 1.2, repeat: Infinity }}
-                  style={{ position: 'absolute', bottom: 2, right: 2, width: 14, height: 14, borderRadius: '50%', background: '#22c55e', border: '2px solid #0f0d18' }}
+                  style={{ position: 'absolute', bottom: 2, right: 2, width: 14, height: 14, borderRadius: '50%', background: '#22c55e', border: '2px solid #181818' }}
                 />
               )}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-                <span style={{ fontSize: 16, fontWeight: 700, color: '#f0f0f0' }}>{agent.name}</span>
+                <span style={{ fontSize: 16, fontWeight: 700, color: '#ededed' }}>{agent.name}</span>
                 <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 7px', borderRadius: 4, background: `${agent.color}20`, color: agent.color, letterSpacing: '.04em' }}>{agent.layer}</span>
               </div>
-              <div style={{ fontSize: 11, color: '#7a6e9a', marginBottom: 6, lineHeight: 1.4 }}>{agent.role}</div>
+              <div style={{ fontSize: 11, color: '#888888', marginBottom: 6, lineHeight: 1.4 }}>{agent.role}</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                 <div style={{ width: 5, height: 5, borderRadius: '50%', background: stats?.isRunning ? '#22c55e' : '#374151' }} />
-                <span style={{ fontSize: 10, color: stats?.isRunning ? '#22c55e' : '#7a6e9a', fontWeight: 600 }}>
+                <span style={{ fontSize: 10, color: stats?.isRunning ? '#22c55e' : '#888888', fontWeight: 600 }}>
                   {stats?.isRunning
                     ? (stats.currentMission ? `Missão: ${stats.currentMission.slice(0, 28)}…` : 'Em execução')
                     : 'Disponível'}
@@ -279,7 +280,7 @@ function AgentDrawer({ agent, stats, loading, onClose }: {
             </div>
             <button
               onClick={onClose}
-              style={{ background: '#14101f', border: '1px solid #1e1a2e', borderRadius: 7, cursor: 'pointer', color: '#7a6e9a', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+              style={{ background: '#1e1e1e', border: '1px solid #2e2e2e', borderRadius: 7, cursor: 'pointer', color: '#888888', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
             >
               <i className="fa-solid fa-xmark" style={{ fontSize: 10 }} />
             </button>
@@ -291,10 +292,10 @@ function AgentDrawer({ agent, stats, loading, onClose }: {
                 key={t}
                 onClick={() => setTab(t)}
                 style={{
-                  padding: '5px 12px', borderRadius: 6, border: `1px solid ${tab === t ? agent.color : '#1e1a2e'}`,
+                  padding: '5px 12px', borderRadius: 6, border: `1px solid ${tab === t ? agent.color : '#2e2e2e'}`,
                   fontSize: 11, fontWeight: 600, cursor: 'pointer',
                   background: tab === t ? `${agent.color}20` : 'transparent',
-                  color: tab === t ? agent.color : '#7a6e9a',
+                  color: tab === t ? agent.color : '#888888',
                   transition: 'all .15s',
                 }}
               >
@@ -315,24 +316,24 @@ function AgentDrawer({ agent, stats, loading, onClose }: {
                   { label: 'Esta semana', value: loading ? '—' : fmtNum(stats?.weekTasks ?? 0) },
                   { label: 'Total', value: loading ? '—' : fmtNum(stats?.totalTasks ?? 0) },
                 ].map(m => (
-                  <div key={m.label} style={{ background: '#14101f', border: '1px solid #1e1a2e', borderRadius: 8, padding: '10px 12px', textAlign: 'center' }}>
+                  <div key={m.label} style={{ background: '#1e1e1e', border: '1px solid #2e2e2e', borderRadius: 8, padding: '10px 12px', textAlign: 'center' }}>
                     <div style={{ fontSize: 20, fontWeight: 800, color: agent.color, fontFamily: "'JetBrains Mono', monospace", lineHeight: 1 }}>{m.value}</div>
-                    <div style={{ fontSize: 9, color: '#7a6e9a', marginTop: 4, letterSpacing: '.03em' }}>{m.label}</div>
+                    <div style={{ fontSize: 9, color: '#888888', marginTop: 4, letterSpacing: '.03em' }}>{m.label}</div>
                   </div>
                 ))}
               </div>
 
               {/* Cost row */}
-              <div style={{ background: '#14101f', border: '1px solid #1e1a2e', borderRadius: 8, padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ background: '#1e1e1e', border: '1px solid #2e2e2e', borderRadius: 8, padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <div style={{ fontSize: 9, color: '#7a6e9a', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '.06em' }}>Tokens acumulados</div>
-                  <div style={{ fontSize: 16, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: '#f0f0f0' }}>
+                  <div style={{ fontSize: 9, color: '#888888', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '.06em' }}>Tokens acumulados</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: '#ededed' }}>
                     {loading ? '—' : fmtNum(stats?.totalTokens ?? 0)}
                   </div>
                 </div>
-                <div style={{ width: 1, height: 32, background: '#1e1a2e' }} />
+                <div style={{ width: 1, height: 32, background: '#2e2e2e' }} />
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 9, color: '#7a6e9a', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '.06em' }}>Custo acumulado</div>
+                  <div style={{ fontSize: 9, color: '#888888', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '.06em' }}>Custo acumulado</div>
                   <div style={{ fontSize: 16, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: '#c9a84c' }}>
                     {loading ? '—' : fmtCost(stats?.totalCostUsd ?? 0)}
                   </div>
@@ -341,33 +342,33 @@ function AgentDrawer({ agent, stats, loading, onClose }: {
 
               {/* Last deliveries */}
               <div>
-                <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.08em', color: '#7a6e9a', textTransform: 'uppercase', marginBottom: 10 }}>
+                <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.08em', color: '#888888', textTransform: 'uppercase', marginBottom: 10 }}>
                   Últimas Entregas
                 </div>
                 {loading ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {[1, 2, 3].map(i => (
-                      <div key={i} style={{ height: 40, background: '#14101f', borderRadius: 7, animation: 'shimmer 1.4s infinite' }} />
+                      <div key={i} style={{ height: 40, background: '#1e1e1e', borderRadius: 7, animation: 'shimmer 1.4s infinite' }} />
                     ))}
                   </div>
                 ) : !stats?.recentDeliveries.length ? (
-                  <div style={{ fontSize: 12, color: '#3a3055', textAlign: 'center', padding: '24px 0' }}>
+                  <div style={{ fontSize: 12, color: '#555555', textAlign: 'center', padding: '24px 0' }}>
                     <i className="fa-regular fa-clock" style={{ marginBottom: 8, fontSize: 20, display: 'block' }} />
                     Nenhuma entrega ainda
                   </div>
                 ) : stats.recentDeliveries.map(d => {
                   const sb = STATUS_BADGE[d.missions?.status ?? 'completed']
                   return (
-                    <div key={d.id} style={{ borderBottom: '1px solid #1e1a2e', paddingBottom: 10, marginBottom: 10 }}>
+                    <div key={d.id} style={{ borderBottom: '1px solid #2e2e2e', paddingBottom: 10, marginBottom: 10 }}>
                       <button
                         onClick={() => setExpandedDelivery(expandedDelivery === d.id ? null : d.id)}
                         style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: 0, display: 'flex', alignItems: 'center', gap: 10 }}
                       >
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 11, fontWeight: 600, color: '#f0f0f0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          <div style={{ fontSize: 11, fontWeight: 600, color: '#ededed', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {d.missions?.title ?? 'Missão sem título'}
                           </div>
-                          <div style={{ fontSize: 10, color: '#7a6e9a', marginTop: 2 }}>
+                          <div style={{ fontSize: 10, color: '#888888', marginTop: 2 }}>
                             {fmtDate(d.created_at)} · {fmtNum(d.tokens_used ?? 0)} tk
                           </div>
                         </div>
@@ -376,10 +377,10 @@ function AgentDrawer({ agent, stats, loading, onClose }: {
                             {sb.label}
                           </span>
                         )}
-                        <i className={`fa-solid fa-chevron-${expandedDelivery === d.id ? 'up' : 'down'}`} style={{ fontSize: 9, color: '#3a3055', flexShrink: 0 }} />
+                        <i className={`fa-solid fa-chevron-${expandedDelivery === d.id ? 'up' : 'down'}`} style={{ fontSize: 9, color: '#555555', flexShrink: 0 }} />
                       </button>
                       {expandedDelivery === d.id && (
-                        <div style={{ marginTop: 8, padding: '10px 12px', background: '#0a0812', borderRadius: 6, border: '1px solid #1e1a2e', fontSize: 11, color: '#c4b8e0', lineHeight: 1.7, whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 220, overflowY: 'auto' }}>
+                        <div style={{ marginTop: 8, padding: '10px 12px', background: '#101010', borderRadius: 6, border: '1px solid #2e2e2e', fontSize: 11, color: '#c4b8e0', lineHeight: 1.7, whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 220, overflowY: 'auto' }}>
                           {d.output || 'Sem conteúdo registrado.'}
                         </div>
                       )}
@@ -397,39 +398,39 @@ function AgentDrawer({ agent, stats, loading, onClose }: {
           ) : tab === 'config' ? (
             <>
               {/* Model info */}
-              <div style={{ background: '#14101f', border: '1px solid #1e1a2e', borderRadius: 8, padding: '12px 14px', marginBottom: 4 }}>
-                <div style={{ fontSize: 9, color: '#7a6e9a', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 6 }}>Modelo de IA</div>
+              <div style={{ background: '#1e1e1e', border: '1px solid #2e2e2e', borderRadius: 8, padding: '12px 14px', marginBottom: 4 }}>
+                <div style={{ fontSize: 9, color: '#888888', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 6 }}>Modelo de IA</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#f0f0f0', fontFamily: "'JetBrains Mono', monospace" }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#ededed', fontFamily: "'JetBrains Mono', monospace" }}>
                     {agent.layer === 'C1' ? 'claude-sonnet-4-5' : 'claude-haiku-4-5'}
                   </div>
-                  <span style={{ fontSize: 8, fontWeight: 800, padding: '2px 6px', borderRadius: 3, background: agent.layer === 'C1' ? '#e8622a18' : '#0d948818', color: agent.layer === 'C1' ? '#e8622a' : '#0d9488' }}>
+                  <span style={{ fontSize: 8, fontWeight: 800, padding: '2px 6px', borderRadius: 3, background: agent.layer === 'C1' ? '#e8622a18' : '#84cc1618', color: agent.layer === 'C1' ? '#e8622a' : '#84cc16' }}>
                     {agent.layer === 'C1' ? 'Sonnet' : 'Haiku'}
                   </span>
                 </div>
-                <div style={{ fontSize: 10, color: '#7a6e9a', marginTop: 4 }}>
+                <div style={{ fontSize: 10, color: '#888888', marginTop: 4 }}>
                   {agent.layer === 'C1' ? 'Camada executiva — modelo premium' : 'Camada operacional — modelo rápido e econômico'}
                 </div>
               </div>
 
               {/* Layer + max tokens */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 4 }}>
-                <div style={{ background: '#14101f', border: '1px solid #1e1a2e', borderRadius: 8, padding: '10px 12px' }}>
-                  <div style={{ fontSize: 9, color: '#7a6e9a', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 4 }}>Camada</div>
+                <div style={{ background: '#1e1e1e', border: '1px solid #2e2e2e', borderRadius: 8, padding: '10px 12px' }}>
+                  <div style={{ fontSize: 9, color: '#888888', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 4 }}>Camada</div>
                   <div style={{ fontSize: 13, fontWeight: 800, color: agent.color, fontFamily: "'JetBrains Mono', monospace" }}>{agent.layer}</div>
-                  <div style={{ fontSize: 9, color: '#7a6e9a', marginTop: 2 }}>{agent.layerLabel}</div>
+                  <div style={{ fontSize: 9, color: '#888888', marginTop: 2 }}>{agent.layerLabel}</div>
                 </div>
-                <div style={{ background: '#14101f', border: '1px solid #1e1a2e', borderRadius: 8, padding: '10px 12px' }}>
-                  <div style={{ fontSize: 9, color: '#7a6e9a', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 4 }}>Max Tokens</div>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: '#f0f0f0', fontFamily: "'JetBrains Mono', monospace" }}>{agent.maxTokens.toLocaleString()}</div>
+                <div style={{ background: '#1e1e1e', border: '1px solid #2e2e2e', borderRadius: 8, padding: '10px 12px' }}>
+                  <div style={{ fontSize: 9, color: '#888888', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 4 }}>Max Tokens</div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: '#ededed', fontFamily: "'JetBrains Mono', monospace" }}>{agent.maxTokens.toLocaleString()}</div>
                 </div>
               </div>
 
               {/* System prompt */}
               <div>
-                <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.08em', color: '#7a6e9a', textTransform: 'uppercase', marginBottom: 8 }}>System Prompt</div>
+                <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.08em', color: '#888888', textTransform: 'uppercase', marginBottom: 8 }}>System Prompt</div>
                 <div style={{
-                  background: '#0a0812', border: '1px solid #1e1a2e', borderRadius: 8,
+                  background: '#101010', border: '1px solid #2e2e2e', borderRadius: 8,
                   padding: '12px', fontSize: 10.5, color: '#c4b8e0', lineHeight: 1.75,
                   whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 340, overflowY: 'auto',
                   fontFamily: "'JetBrains Mono', monospace",
@@ -441,7 +442,7 @@ function AgentDrawer({ agent, stats, loading, onClose }: {
           ) : (
             <>
               <div>
-                <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.08em', color: '#7a6e9a', textTransform: 'uppercase', marginBottom: 10 }}>
+                <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.08em', color: '#888888', textTransform: 'uppercase', marginBottom: 10 }}>
                   Tarefa para {agent.name.split(' ')[0]}
                 </div>
                 <textarea
@@ -451,22 +452,22 @@ function AgentDrawer({ agent, stats, loading, onClose }: {
                   placeholder={`Descreva a tarefa…`}
                   rows={4}
                   style={{
-                    width: '100%', background: '#14101f', border: '1px solid #1e1a2e',
+                    width: '100%', background: '#1e1e1e', border: '1px solid #2e2e2e',
                     borderRadius: 8, padding: '10px 12px', fontSize: 12,
-                    color: '#f0f0f0', resize: 'none', outline: 'none',
+                    color: '#ededed', resize: 'none', outline: 'none',
                     lineHeight: 1.6, fontFamily: 'inherit', display: 'block',
                     boxSizing: 'border-box',
                   }}
                 />
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
-                  <span style={{ fontSize: 9, color: '#3a3055' }}>Enter para enviar · Shift+Enter nova linha</span>
+                  <span style={{ fontSize: 9, color: '#555555' }}>Enter para enviar · Shift+Enter nova linha</span>
                   <button
                     onClick={() => void sendTask()}
                     disabled={taskLoading || !taskInput.trim()}
                     style={{
                       padding: '6px 16px', borderRadius: 6, border: 'none',
-                      background: taskLoading || !taskInput.trim() ? '#1e1a2e' : agent.color,
-                      color: taskLoading || !taskInput.trim() ? '#3a3055' : '#fff',
+                      background: taskLoading || !taskInput.trim() ? '#2e2e2e' : agent.color,
+                      color: taskLoading || !taskInput.trim() ? '#555555' : '#fff',
                       fontSize: 11, fontWeight: 700,
                       cursor: taskLoading || !taskInput.trim() ? 'not-allowed' : 'pointer',
                       display: 'flex', alignItems: 'center', gap: 6, transition: 'all .15s',
@@ -482,10 +483,10 @@ function AgentDrawer({ agent, stats, loading, onClose }: {
 
               {(streaming || taskResponse) && (
                 <div>
-                  <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.08em', color: '#7a6e9a', textTransform: 'uppercase', marginBottom: 8 }}>
+                  <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.08em', color: '#888888', textTransform: 'uppercase', marginBottom: 8 }}>
                     Resposta
                   </div>
-                  <div style={{ background: '#0a0812', border: '1px solid #1e1a2e', borderRadius: 8, padding: '14px', fontSize: 12, color: '#c4b8e0', lineHeight: 1.7, whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 420, overflowY: 'auto' }}>
+                  <div style={{ background: '#101010', border: '1px solid #2e2e2e', borderRadius: 8, padding: '14px', fontSize: 12, color: '#c4b8e0', lineHeight: 1.7, whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 420, overflowY: 'auto' }}>
                     {streaming || taskResponse}
                     {taskLoading && streaming && (
                       <motion.span
@@ -586,25 +587,22 @@ export default function AgentesPage() {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       {/* Header */}
       <div style={{ padding: '20px 24px 0', flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-          <div>
-            <h1 style={{ fontSize: 17, fontWeight: 700, color: '#f0f0f0', margin: 0, letterSpacing: '-.2px' }}>Squad de Agentes</h1>
-            <p style={{ fontSize: 11, color: '#7a6e9a', margin: '3px 0 0' }}>
-              {allAgents.length} agentes ·{' '}
-              {activeCount > 0
-                ? <span style={{ color: '#22c55e' }}>{activeCount} em execução</span>
-                : 'todos disponíveis'}
-            </p>
-          </div>
-          <div style={{ position: 'relative' }}>
-            <i className="fa-solid fa-magnifying-glass" style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', fontSize: 10, color: '#7a6e9a' }} />
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Buscar…"
-              style={{ background: '#14101f', border: '1px solid #1e1a2e', borderRadius: 7, padding: '6px 12px 6px 28px', fontSize: 11, color: '#f0f0f0', outline: 'none', width: 170 }}
-            />
-          </div>
+        <div style={{ marginBottom: 14 }}>
+          <PageHeader
+            title="Squad de Agentes"
+            subtitle={`${allAgents.length} agentes · ${activeCount > 0 ? `${activeCount} em execução` : 'todos disponíveis'}`}
+            action={
+              <div style={{ position: 'relative' }}>
+                <i className="fa-solid fa-magnifying-glass" style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', fontSize: 10, color: 'var(--text-muted)' }} />
+                <input
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Buscar…"
+                  style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 7, padding: '6px 12px 6px 28px', fontSize: 11, color: 'var(--text)', outline: 'none', width: 170 }}
+                />
+              </div>
+            }
+          />
         </div>
 
         {/* Layer tabs */}
@@ -615,10 +613,10 @@ export default function AgentesPage() {
               onClick={() => setActiveTab(tab.id)}
               style={{
                 flexShrink: 0, padding: '5px 12px', borderRadius: 6,
-                border: `1px solid ${activeTab === tab.id ? tab.color : '#1e1a2e'}`,
+                border: `1px solid ${activeTab === tab.id ? tab.color : '#2e2e2e'}`,
                 cursor: 'pointer', fontSize: 10, fontWeight: 600,
                 background: activeTab === tab.id ? `${tab.color}18` : 'transparent',
-                color: activeTab === tab.id ? tab.color : '#7a6e9a',
+                color: activeTab === tab.id ? tab.color : '#888888',
                 transition: 'all .15s',
               }}
             >
@@ -650,8 +648,8 @@ export default function AgentesPage() {
                   {a.initial}
                 </div>
                 <div style={{ textAlign: 'left' }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#f0f0f0' }}>{a.name}</div>
-                  <div style={{ fontSize: 9, color: '#7a6e9a', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#ededed' }}>{a.name}</div>
+                  <div style={{ fontSize: 9, color: '#888888', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {missionMap[a.id]?.currentMission ?? 'missão ativa'}
                   </div>
                 </div>
@@ -711,7 +709,7 @@ export default function AgentesPage() {
         )}
 
         {visible.length === 0 && (
-          <div style={{ textAlign: 'center', color: '#7a6e9a', padding: '60px 20px' }}>
+          <div style={{ textAlign: 'center', color: '#888888', padding: '60px 20px' }}>
             <i className="fa-solid fa-magnifying-glass" style={{ fontSize: 22, marginBottom: 10, display: 'block', opacity: 0.3 }} />
             <div style={{ fontSize: 13, fontWeight: 600 }}>Nenhum agente encontrado</div>
           </div>

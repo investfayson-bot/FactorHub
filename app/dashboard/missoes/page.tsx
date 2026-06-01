@@ -592,7 +592,7 @@ export default function MissoesPage() {
                   style={{ width: '100%', minHeight: 280, resize: 'vertical', background: 'transparent', border: 'none', padding: '16px 18px', fontSize: 14, color: 'var(--text)', fontFamily: 'inherit', outline: 'none', lineHeight: 1.7, boxSizing: 'border-box' }} />
                 <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)' }}>
                   <button onClick={startMission} disabled={!missionText.trim()}
-                    style={{ width: '100%', padding: '14px 24px', borderRadius: 10, background: missionText.trim() ? 'var(--accent)' : 'var(--surface-3)', color: missionText.trim() ? '#0a0812' : 'var(--text-dim)', border: 'none', cursor: missionText.trim() ? 'pointer' : 'default', fontSize: 15, fontWeight: 800, fontFamily: 'inherit', transition: 'all .15s' }}>
+                    style={{ width: '100%', padding: '14px 24px', borderRadius: 10, background: missionText.trim() ? 'var(--accent)' : 'var(--surface-3)', color: missionText.trim() ? '#101010' : 'var(--text-dim)', border: 'none', cursor: missionText.trim() ? 'pointer' : 'default', fontSize: 15, fontWeight: 800, fontFamily: 'inherit', transition: 'all .15s' }}>
                     <i className="fa-solid fa-rocket" style={{ marginRight: 8 }} />
                     Iniciar Missão {selectedLevel}
                   </button>

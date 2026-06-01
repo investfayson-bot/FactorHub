@@ -25,7 +25,7 @@ type AgentStat = {
 }
 
 const LEVEL_COLORS: Record<string, string> = {
-  N1: '#3ecf8e', N2: '#2dd4bf', N3: '#eab308', N4: '#f59e0b', N5: '#f44336',
+  N1: '#3ecf8e', N2: '#84cc16', N3: '#eab308', N4: '#f59e0b', N5: '#f44336',
 }
 
 async function getToken() {

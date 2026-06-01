@@ -18,7 +18,7 @@ type Mission = {
 }
 
 const LEVEL_COLORS: Record<string, string> = {
-  N1: '#3ecf8e', N2: '#2dd4bf', N3: '#eab308', N4: '#f59e0b', N5: '#f44336',
+  N1: '#3ecf8e', N2: '#84cc16', N3: '#eab308', N4: '#f59e0b', N5: '#f44336',
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -110,7 +110,7 @@ export default function TarefasPage() {
           { label: 'Concluídas', value: totais.concluidas, color: '#22c55e', icon: 'fa-circle-check' },
           { label: 'Em execução', value: totais.rodando, color: '#f59e0b', icon: 'fa-bolt' },
           { label: 'Total tokens', value: totais.tokens.toLocaleString('pt-BR'), color: '#3ecf8e', icon: 'fa-coins', mono: true },
-          { label: 'Custo (USD)', value: `$${totais.custo.toFixed(4)}`, color: '#0d9488', icon: 'fa-dollar-sign', mono: true },
+          { label: 'Custo (USD)', value: `$${totais.custo.toFixed(4)}`, color: '#84cc16', icon: 'fa-dollar-sign', mono: true },
         ].map(k => (
           <motion.div key={k.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
             <div className="card" style={{ padding: '14px 16px' }}>

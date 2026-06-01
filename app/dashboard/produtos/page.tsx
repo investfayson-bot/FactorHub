@@ -57,7 +57,7 @@ const PRODUCTS = [
     description: 'Sistema de gestão para imobiliária: CRM de clientes, agendamento, marketing, curadoria de imóveis, análise de métricas e redes sociais.',
     url: '#',
     repo: '',
-    color: '#2dd4bf',
+    color: '#f59e0b',
     icon: 'fa-building',
     status: 'next' as const,
     stack: ['Next.js', 'Supabase', 'FactorHub Agents'],
@@ -100,7 +100,7 @@ export default function ProdutosPage() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.07 }}
-            style={{ background: '#0f0d18', border: `1px solid ${isOpen ? p.color + '40' : '#1e1a2e'}`, borderRadius: 12, overflow: 'hidden', transition: 'border-color .2s' }}
+            style={{ background: '#181818', border: `1px solid ${isOpen ? p.color + '40' : '#2e2e2e'}`, borderRadius: 12, overflow: 'hidden', transition: 'border-color .2s' }}
           >
             {/* Header row */}
             <button
@@ -114,15 +114,15 @@ export default function ProdutosPage() {
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-                  <span style={{ fontSize: 15, fontWeight: 700, color: '#f0f0f0' }}>{p.name}</span>
+                  <span style={{ fontSize: 15, fontWeight: 700, color: '#ededed' }}>{p.name}</span>
                   <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 4, background: st.bg, color: st.color, border: `1px solid ${st.border}`, letterSpacing: '.05em' }}>
                     {st.label}
                   </span>
                   {p.sprints > 0 && (
-                    <span style={{ fontSize: 9, color: '#7a6e9a' }}>{p.sprints} sprints</span>
+                    <span style={{ fontSize: 9, color: '#888888' }}>{p.sprints} sprints</span>
                   )}
                 </div>
-                <div style={{ fontSize: 12, color: '#7a6e9a' }}>{p.tagline}</div>
+                <div style={{ fontSize: 12, color: '#888888' }}>{p.tagline}</div>
               </div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
                 {p.url !== '#' && (
@@ -141,13 +141,13 @@ export default function ProdutosPage() {
                   <Link
                     href="/dashboard/missoes"
                     onClick={e => e.stopPropagation()}
-                    style={{ fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 6, background: 'var(--accent)', color: '#0a0812', textDecoration: 'none' }}
+                    style={{ fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 6, background: 'var(--accent)', color: '#101010', textDecoration: 'none' }}
                   >
                     <i className="fa-solid fa-rocket" style={{ fontSize: 9, marginRight: 4 }} />
                     Iniciar missão
                   </Link>
                 )}
-                <i className={`fa-solid fa-chevron-${isOpen ? 'up' : 'down'}`} style={{ fontSize: 10, color: '#3a3055' }} />
+                <i className={`fa-solid fa-chevron-${isOpen ? 'up' : 'down'}`} style={{ fontSize: 10, color: '#555555' }} />
               </div>
             </button>
 
@@ -161,13 +161,13 @@ export default function ProdutosPage() {
                   transition={{ duration: 0.2 }}
                   style={{ overflow: 'hidden' }}
                 >
-                  <div style={{ padding: '0 20px 20px', borderTop: '1px solid #1e1a2e' }}>
+                  <div style={{ padding: '0 20px 20px', borderTop: '1px solid #2e2e2e' }}>
                     <p style={{ fontSize: 12, color: '#c4b8e0', lineHeight: 1.7, marginTop: 14, marginBottom: 16 }}>{p.description}</p>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                       {/* Features */}
                       <div>
-                        <div style={{ fontSize: 9, fontWeight: 700, color: '#7a6e9a', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>Funcionalidades</div>
+                        <div style={{ fontSize: 9, fontWeight: 700, color: '#888888', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>Funcionalidades</div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                           {p.features.map(f => (
                             <div key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 7 }}>
@@ -181,20 +181,20 @@ export default function ProdutosPage() {
                       {/* Stack + Pending */}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                         <div>
-                          <div style={{ fontSize: 9, fontWeight: 700, color: '#7a6e9a', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>Stack</div>
+                          <div style={{ fontSize: 9, fontWeight: 700, color: '#888888', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>Stack</div>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
                             {p.stack.map(s => (
-                              <span key={s} style={{ fontSize: 9, fontWeight: 600, padding: '2px 7px', borderRadius: 4, background: '#14101f', border: '1px solid #1e1a2e', color: '#9ca3af' }}>{s}</span>
+                              <span key={s} style={{ fontSize: 9, fontWeight: 600, padding: '2px 7px', borderRadius: 4, background: '#1e1e1e', border: '1px solid #2e2e2e', color: '#9ca3af' }}>{s}</span>
                             ))}
                           </div>
                         </div>
                         <div>
-                          <div style={{ fontSize: 9, fontWeight: 700, color: '#7a6e9a', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>Pendente</div>
+                          <div style={{ fontSize: 9, fontWeight: 700, color: '#888888', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>Pendente</div>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                             {p.pending.map(item => (
                               <div key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: 7 }}>
                                 <i className="fa-solid fa-circle" style={{ fontSize: 5, color: '#f59e0b', marginTop: 5, flexShrink: 0 }} />
-                                <span style={{ fontSize: 11, color: '#7a6e9a' }}>{item}</span>
+                                <span style={{ fontSize: 11, color: '#888888' }}>{item}</span>
                               </div>
                             ))}
                           </div>

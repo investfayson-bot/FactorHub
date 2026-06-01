@@ -46,7 +46,7 @@ const CEREBRO_FIELDS: {key: keyof CerebroRow; label: string}[] = [
   {key:'playbooks',label:'Playbooks'},
 ]
 const PROJ_STATUS_COLOR: Record<string,string> = {
-  ideia:'#f59e0b', planejamento:'#2dd4bf', desenvolvimento:'#a3a3a3', concluido:'#3ecf8e', pausado:'#555',
+  ideia:'#f59e0b', planejamento:'#84cc16', desenvolvimento:'#a3a3a3', concluido:'#3ecf8e', pausado:'#555',
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -243,7 +243,7 @@ export default function DashboardPage() {
   // Ideas by status
   const ideiasStatus = ['nova','aprovada','desenvolvendo','concluida','rejeitada'].map(s=>({
     s, count:ideias.filter(i=>i.status===s).length,
-    color:{nova:'#3ecf8e',aprovada:'#2dd4bf',desenvolvendo:'#a3a3a3',concluida:'#22c55e',rejeitada:'#f44'}[s]??'#555',
+    color:{nova:'#3ecf8e',aprovada:'#84cc16',desenvolvendo:'#a3a3a3',concluida:'#22c55e',rejeitada:'#f44'}[s]??'#555',
   }))
 
   // Agent × Project mapping
@@ -303,7 +303,7 @@ export default function DashboardPage() {
               ? <a key={a.label} href={a.href} target="_blank" rel="noreferrer" style={{display:'flex',alignItems:'center',gap:5,padding:'6px 12px',borderRadius:6,background:'var(--surface-2)',border:'1px solid var(--border)',color:'var(--text-muted)',textDecoration:'none',fontSize:11,fontWeight:600}}>
                   <i className={`fa-solid ${a.icon}`} style={{fontSize:9}}/>{a.label}
                 </a>
-              : <Link key={a.label} href={a.href} style={{display:'flex',alignItems:'center',gap:5,padding:'6px 12px',borderRadius:6,background:a.primary?'var(--accent)':'var(--surface-2)',border:a.primary?'none':'1px solid var(--border)',color:a.primary?'#0a0812':'var(--text-muted)',textDecoration:'none',fontSize:11,fontWeight:700}}>
+              : <Link key={a.label} href={a.href} style={{display:'flex',alignItems:'center',gap:5,padding:'6px 12px',borderRadius:6,background:a.primary?'var(--accent)':'var(--surface-2)',border:a.primary?'none':'1px solid var(--border)',color:a.primary?'#101010':'var(--text-muted)',textDecoration:'none',fontSize:11,fontWeight:700}}>
                   <i className={`fa-solid ${a.icon}`} style={{fontSize:9}}/>{a.label}
                 </Link>
           ))}

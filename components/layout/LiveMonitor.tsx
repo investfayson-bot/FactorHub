@@ -7,7 +7,7 @@ import { useMission } from '@/app/dashboard/mission-context'
 
 const LAYER_ORDER = ['C1', 'C2', 'C3', 'C4', 'CA'] as const
 const LAYER_COLORS: Record<string, string> = {
-  C1: '#e05a28', C2: '#0d9488', C3: '#3ecf8e', C4: '#d97706', CA: '#7c3aed',
+  C1: '#e05a28', C2: '#84cc16', C3: '#3ecf8e', C4: '#d97706', CA: '#7c3aed',
 }
 
 const agents = Object.values(AGENTS_V2)
