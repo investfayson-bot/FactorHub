@@ -29,6 +29,12 @@ export default function CriarPage() {
   const [view, setView] = useState<'preview' | 'code'>('preview')
   const codeRef = useRef<HTMLDivElement>(null)
 
+  // prefill vindo das Ideias
+  useEffect(() => {
+    const pf = sessionStorage.getItem('factohub-tool-prefill')
+    if (pf) { setPrompt(pf); sessionStorage.removeItem('factohub-tool-prefill') }
+  }, [])
+
   // autoscroll do código enquanto gera
   useEffect(() => {
     if (building && view === 'code' && codeRef.current) {

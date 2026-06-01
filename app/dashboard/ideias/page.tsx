@@ -109,6 +109,23 @@ export default function IdeiasPage() {
     setAnalisando(false)
   }
 
+  async function virarProjeto() {
+    if (!empresaId) return
+    const nome = texto.trim().slice(0, 80)
+    await supabase.from('hub_projetos').insert({
+      empresa_id: empresaId,
+      nome,
+      descricao: `Ideia: ${texto.trim()}\n\n--- ANÁLISE ---\n${resumo || output}`.slice(0, 4000),
+      status: 'planejamento', progresso: 0, categoria: 'Ideia',
+    })
+    window.location.href = '/dashboard/projetos'
+  }
+
+  function criarFerramenta() {
+    sessionStorage.setItem('factohub-tool-prefill', texto.trim())
+    window.location.href = '/dashboard/criar?from=ideia'
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 820 }}>
       <PageHeader
@@ -155,6 +172,21 @@ export default function IdeiasPage() {
               <div style={{ padding: '16px', borderTop: '1px solid var(--border)', background: 'var(--accent-dim)' }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>Síntese Executiva</div>
                 <div style={{ fontSize: 13, lineHeight: 1.7, color: 'var(--text)', whiteSpace: 'pre-wrap' }}>{resumo}</div>
+              </div>
+            )}
+
+            {/* PRÓXIMO PASSO — pra onde a ideia vai */}
+            {!analisando && (output || resumo) && (
+              <div style={{ padding: '14px 16px', borderTop: '1px solid var(--border)', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, marginRight: 4 }}>Próximo passo:</span>
+                <button onClick={() => void virarProjeto()}
+                  style={{ fontSize: 12, fontWeight: 700, padding: '8px 14px', borderRadius: 8, background: 'var(--accent)', color: '#0a0a0a', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+                  <i className="fa-solid fa-diagram-project" style={{ fontSize: 10, marginRight: 6 }} />Virar Projeto
+                </button>
+                <button onClick={() => criarFerramenta()}
+                  style={{ fontSize: 12, fontWeight: 700, padding: '8px 14px', borderRadius: 8, background: 'var(--surface-2)', color: 'var(--text)', border: '1px solid var(--border)', cursor: 'pointer', fontFamily: 'inherit' }}>
+                  <i className="fa-solid fa-wand-magic-sparkles" style={{ fontSize: 10, marginRight: 6 }} />Criar Ferramenta
+                </button>
               </div>
             )}
           </motion.div>
