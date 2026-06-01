@@ -23,7 +23,7 @@ function formatTokens(n: number) {
 }
 
 export default function LiveMonitor({ open, onClose }: Props) {
-  const { state, phases, currentAgentId, currentToken, selectedLevel, missionText, totalTokens, costUsd, completedSteps } = useMission()
+  const { state, phases, currentAgentId, currentToken, selectedLevel, missionText, totalTokens, costUsd, completedSteps, summary } = useMission()
   const feedRef = useRef<HTMLDivElement>(null)
   const [tick, setTick] = useState(0)
 
@@ -205,30 +205,49 @@ export default function LiveMonitor({ open, onClose }: Props) {
                         ref={feedRef}
                         style={{
                           fontFamily: "'DM Mono',monospace",
-                          fontSize: 10,
-                          color: 'var(--text-muted)',
-                          lineHeight: 1.6,
-                          background: 'var(--surface-2)',
+                          fontSize: 11.5,
+                          color: 'var(--text)',
+                          lineHeight: 1.7,
+                          background: '#0a0a0a',
                           border: '1px solid var(--border)',
                           borderRadius: 8,
-                          padding: '8px 10px',
-                          maxHeight: 120,
+                          padding: '12px 14px',
+                          minHeight: 200,
+                          maxHeight: 340,
                           overflowY: 'auto',
                           whiteSpace: 'pre-wrap',
                           wordBreak: 'break-word',
                         }}
                       >
-                        {currentToken || ''}
+                        {currentToken || 'Recebendo tokens…'}
                         {currentToken && (
                           <motion.span
                             animate={{ opacity: [1, 0] }}
                             transition={{ repeat: Infinity, duration: 0.5 }}
-                            style={{ display: 'inline-block', width: 6, height: 12, background: 'var(--text-muted)', marginLeft: 2, verticalAlign: 'middle' }}
+                            style={{ display: 'inline-block', width: 6, height: 13, background: a.color, marginLeft: 2, verticalAlign: 'middle' }}
                           />
                         )}
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {/* ── CA FINAL REPORT (highlight when done) ── */}
+              {state === 'completed' && summary && (
+                <div style={{ padding: '14px 16px' }}>
+                  <div style={{ borderRadius: 10, border: '1px solid var(--accent)', background: 'var(--accent-dim)', overflow: 'hidden' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderBottom: '1px solid var(--border)' }}>
+                      <div style={{ width: 24, height: 24, borderRadius: 6, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 900, color: '#0a0a0a' }}>CA</div>
+                      <div>
+                        <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--text)' }}>Chief of Staff — Síntese Final</div>
+                        <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>Relatório executivo da missão</div>
+                      </div>
+                    </div>
+                    <div style={{ padding: '12px 14px', fontSize: 12, lineHeight: 1.7, color: 'var(--text)', whiteSpace: 'pre-wrap', maxHeight: 360, overflowY: 'auto' }}>
+                      {summary}
+                    </div>
+                  </div>
                 </div>
               )}
 
