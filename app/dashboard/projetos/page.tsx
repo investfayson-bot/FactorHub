@@ -269,6 +269,12 @@ export default function ProjetosPage() {
                           {isSel && (
                             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} style={{ overflow: 'hidden', marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border)' }} onClick={e => e.stopPropagation()}>
                               {p.descricao && <div style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: 8 }}>{p.descricao}</div>}
+                              <button
+                                onClick={() => { sessionStorage.setItem('factohub-mission-prefill', `Executar o projeto: ${p.nome}.\n\n${p.descricao ?? ''}`); window.location.href = '/dashboard/missoes?from=projeto' }}
+                                style={{ width: '100%', fontSize: 10, fontWeight: 700, padding: '6px 8px', borderRadius: 6, background: 'var(--accent)', color: '#0a0a0a', border: 'none', cursor: 'pointer', fontFamily: 'inherit', marginBottom: 6 }}
+                              >
+                                <i className="fa-solid fa-bolt" style={{ fontSize: 9, marginRight: 5 }} />Executar projeto
+                              </button>
                               <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                                 {!p.decisao && (
                                   <>
