@@ -692,8 +692,7 @@ export default function AgentesPage() {
                     totalTasks={missionMap[agent.id]?.total ?? 0}
                     onClick={() => openAgent(agent)}
                   />
-                  ))}
-                </div>
+                ))}
               </div>
             )
           })
