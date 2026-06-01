@@ -17,12 +17,12 @@ type Mission = {
 }
 
 const LEVEL_COLORS: Record<string, string> = {
-  N1: '#0d9488', N2: '#e8622a', N3: '#6366f1', N4: '#7c3aed', N5: '#dc2626',
+  N1: '#3ecf8e', N2: '#2dd4bf', N3: '#eab308', N4: '#f59e0b', N5: '#f44336',
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  draft: '#8b5cf6', running: '#f59e0b', completed: '#3b82f6', awaiting_approval: '#3b82f6',
-  approved: '#22c55e', archived: '#64748b', error: '#ef4444',
+  draft: '#888', running: '#f59e0b', completed: '#3ecf8e', awaiting_approval: '#f59e0b',
+  approved: '#3ecf8e', archived: '#64748b', error: '#f44336',
 }
 const STATUS_LABELS: Record<string, string> = {
   draft: 'Rascunho', running: 'Em andamento', completed: 'Aguard. Aprovação',

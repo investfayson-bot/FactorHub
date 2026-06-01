@@ -24,7 +24,7 @@ type AgentStat = {
 }
 
 const LEVEL_COLORS: Record<string, string> = {
-  N1: '#0d9488', N2: '#e8622a', N3: '#6366f1', N4: '#7c3aed', N5: '#dc2626',
+  N1: '#3ecf8e', N2: '#2dd4bf', N3: '#eab308', N4: '#f59e0b', N5: '#f44336',
 }
 
 async function getToken() {
@@ -144,8 +144,8 @@ export default function UsoPage() {
         style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}
       >
         {[
-          { label: 'Missões executadas', value: totais.missions, icon: 'fa-rocket', color: '#e8622a' },
-          { label: 'Agentes ativos', value: totais.agents, icon: 'fa-robot', color: '#6366f1' },
+          { label: 'Missões executadas', value: totais.missions, icon: 'fa-rocket', color: '#3ecf8e' },
+          { label: 'Agentes ativos', value: totais.agents, icon: 'fa-robot', color: '#3ecf8e' },
           { label: 'Total tokens', value: totais.tokens.toLocaleString('pt-BR'), icon: 'fa-coins', color: '#f59e0b', mono: true },
           { label: 'Custo estimado (USD)', value: `$${totais.cost.toFixed(4)}`, icon: 'fa-dollar-sign', color: '#22c55e', mono: true },
         ].map(k => (

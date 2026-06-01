@@ -18,8 +18,8 @@ type Projeto = {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  ideia: '#F59E0B', planejamento: '#2563EB', desenvolvimento: '#7C3AED',
-  concluido: '#22C55E', pausado: '#64748B',
+  ideia: '#f59e0b', planejamento: '#2dd4bf', desenvolvimento: '#a3a3a3',
+  concluido: '#3ecf8e', pausado: '#64748b',
 }
 const DECISAO_COLORS: Record<string, string> = { aprovado: '#22c55e', rejeitado: '#ef4444' }
 const DECISAO_ICONS: Record<string, string> = { aprovado: 'fa-circle-check', rejeitado: 'fa-circle-xmark' }
