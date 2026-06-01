@@ -19,12 +19,21 @@ function cleanHtml(s: string) {
 
 type Msg = { role: 'user' | 'assistant'; content: string }
 
+type Criacao = { id: string; nome: string; setor: string; prompt: string | null; conteudo: string | null; conversa: Msg[]; status: string; updated_at: string }
+
+const SETORES = ['Geral', 'Marketing', 'Vendas', 'Financeiro', 'Análises', 'Atendimento', 'Eventos', 'Produto']
+
 export default function CriarPage() {
   const [input, setInput] = useState('')
   const [msgs, setMsgs] = useState<Msg[]>([])
   const [html, setHtml] = useState('')
   const [building, setBuilding] = useState(false)
   const [view, setView] = useState<'preview' | 'code'>('preview')
+  const [saved, setSaved] = useState<Criacao[]>([])
+  const [currentId, setCurrentId] = useState<string | null>(null)
+  const [setor, setSetor] = useState('Geral')
+  const [showProjects, setShowProjects] = useState(false)
+  const [savingMsg, setSavingMsg] = useState('')
   const codeRef = useRef<HTMLDivElement>(null)
   const chatRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -32,7 +41,44 @@ export default function CriarPage() {
   useEffect(() => {
     const pf = sessionStorage.getItem('factohub-tool-prefill')
     if (pf) { setInput(pf); sessionStorage.removeItem('factohub-tool-prefill') }
+    void loadSaved()
   }, [])
+
+  async function loadSaved() {
+    try {
+      const token = await getToken()
+      const res = await fetch('/api/hub/criacoes', { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      if (res.ok) { const { criacoes } = await res.json(); setSaved(criacoes ?? []) }
+    } catch { /* ignore */ }
+  }
+
+  async function salvar() {
+    if (!html && msgs.length === 0) return
+    const nome = currentId
+      ? (saved.find(c => c.id === currentId)?.nome ?? 'Projeto')
+      : (prompt('Nome do projeto:', msgs[0]?.content.slice(0, 50) || 'Novo projeto') || '').trim()
+    if (!currentId && !nome) return
+    setSavingMsg('Salvando...')
+    try {
+      const token = await getToken()
+      const res = await fetch('/api/hub/criacoes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ id: currentId ?? undefined, nome, setor, prompt: msgs[0]?.content ?? '', conteudo: cleanHtml(html), conversa: msgs }),
+      })
+      if (res.ok) { const { criacao } = await res.json(); setCurrentId(criacao.id); setSavingMsg('Salvo ✓'); void loadSaved(); setTimeout(() => setSavingMsg(''), 2000) }
+      else setSavingMsg('Erro ao salvar')
+    } catch { setSavingMsg('Erro') }
+  }
+
+  function abrirProjeto(c: Criacao) {
+    setCurrentId(c.id)
+    setMsgs(c.conversa ?? [])
+    setHtml(c.conteudo ?? '')
+    setSetor(c.setor ?? 'Geral')
+    setView('preview')
+    setShowProjects(false)
+  }
 
   useEffect(() => {
     if (building && view === 'code' && codeRef.current) codeRef.current.scrollTop = codeRef.current.scrollHeight
@@ -101,7 +147,7 @@ export default function CriarPage() {
   function openNewTab() {
     const w = window.open('', '_blank'); if (w) { w.document.write(cleanHtml(html)); w.document.close() }
   }
-  function novo() { setMsgs([]); setHtml(''); setInput(''); setView('preview') }
+  function novo() { setMsgs([]); setHtml(''); setInput(''); setView('preview'); setCurrentId(null); setSetor('Geral') }
 
   const SUG = [
     'Calculadora de comissão imobiliária com 3 planos para VN Prime',
@@ -115,10 +161,28 @@ export default function CriarPage() {
 
       {/* LEFT — chat */}
       <div className="card" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderBottom: '1px solid var(--border)', flexShrink: 0, position: 'relative' }}>
           <i className="fa-solid fa-wand-magic-sparkles" style={{ fontSize: 13, color: 'var(--accent)' }} />
-          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>FactorHub — Criar</span>
-          {msgs.length > 0 && <button onClick={novo} style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--text-muted)', background: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '3px 9px', cursor: 'pointer', fontFamily: 'inherit' }}>Novo</button>}
+          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>Criar</span>
+          <button onClick={() => setShowProjects(v => !v)} style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--text-muted)', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 9px', cursor: 'pointer', fontFamily: 'inherit' }}>
+            <i className="fa-solid fa-folder" style={{ fontSize: 9, marginRight: 4 }} />Projetos {saved.length > 0 ? `(${saved.length})` : ''}
+          </button>
+          <button onClick={novo} style={{ fontSize: 10, color: 'var(--text-muted)', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 9px', cursor: 'pointer', fontFamily: 'inherit' }}>+ Novo</button>
+
+          {/* dropdown projetos salvos */}
+          {showProjects && (
+            <div style={{ position: 'absolute', top: '100%', right: 8, marginTop: 4, width: 300, maxHeight: 360, overflowY: 'auto', background: 'var(--surface)', border: '1px solid var(--border-light)', borderRadius: 10, boxShadow: '0 8px 30px rgba(0,0,0,.5)', zIndex: 50 }}>
+              <div style={{ padding: '10px 12px', borderBottom: '1px solid var(--border)', fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em' }}>Meus Projetos</div>
+              {saved.length === 0
+                ? <div style={{ padding: 16, fontSize: 11, color: 'var(--text-dim)', textAlign: 'center' }}>Nenhum projeto salvo ainda</div>
+                : saved.map(c => (
+                  <button key={c.id} onClick={() => abrirProjeto(c)} style={{ width: '100%', textAlign: 'left', padding: '10px 12px', background: currentId === c.id ? 'var(--surface-2)' : 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', fontFamily: 'inherit' }}>
+                    <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.nome}</div>
+                    <div style={{ fontSize: 9, color: 'var(--text-dim)', marginTop: 2 }}>{c.setor} · {new Date(c.updated_at).toLocaleDateString('pt-BR')}</div>
+                  </button>
+                ))}
+            </div>
+          )}
         </div>
 
         {/* messages */}
@@ -173,10 +237,15 @@ export default function CriarPage() {
             <button onClick={() => setView('code')} style={{ fontSize: 10, fontWeight: 600, padding: '4px 10px', borderRadius: 6, border: `1px solid ${view === 'code' ? 'var(--accent)' : 'var(--border)'}`, background: view === 'code' ? 'var(--accent-dim)' : 'transparent', color: view === 'code' ? 'var(--accent)' : 'var(--text-muted)', cursor: 'pointer', fontFamily: 'inherit' }}>Código</button>
           </div>
           {building && <span style={{ fontSize: 10, color: 'var(--accent)', marginLeft: 8 }}>gerando...</span>}
-          {html && !building && (
-            <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
-              <button onClick={openNewTab} style={{ fontSize: 10, fontWeight: 600, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', fontFamily: 'inherit' }}><i className="fa-solid fa-arrow-up-right-from-square" style={{ fontSize: 9, marginRight: 4 }} />Abrir</button>
-              <button onClick={download} style={{ fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 6, border: 'none', background: 'var(--accent)', color: '#0a0a0a', cursor: 'pointer', fontFamily: 'inherit' }}><i className="fa-solid fa-download" style={{ fontSize: 9, marginRight: 4 }} />Baixar</button>
+          {(html || msgs.length > 0) && !building && (
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: 6, alignItems: 'center' }}>
+              {savingMsg && <span style={{ fontSize: 10, color: savingMsg.includes('Erro') ? '#f44' : '#3ecf8e', fontWeight: 600 }}>{savingMsg}</span>}
+              <select value={setor} onChange={e => setSetor(e.target.value)} style={{ fontSize: 10, padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--text-muted)', cursor: 'pointer', fontFamily: 'inherit', outline: 'none' }}>
+                {SETORES.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <button onClick={() => void salvar()} style={{ fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--accent)', background: 'var(--accent-dim)', color: 'var(--accent)', cursor: 'pointer', fontFamily: 'inherit' }}><i className="fa-solid fa-floppy-disk" style={{ fontSize: 9, marginRight: 4 }} />{currentId ? 'Salvar' : 'Salvar Projeto'}</button>
+              {html && <button onClick={openNewTab} style={{ fontSize: 10, fontWeight: 600, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', fontFamily: 'inherit' }}><i className="fa-solid fa-arrow-up-right-from-square" style={{ fontSize: 9, marginRight: 4 }} />Abrir</button>}
+              {html && <button onClick={download} style={{ fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 6, border: 'none', background: 'var(--accent)', color: '#0a0a0a', cursor: 'pointer', fontFamily: 'inherit' }}><i className="fa-solid fa-download" style={{ fontSize: 9, marginRight: 4 }} />Baixar</button>}
             </div>
           )}
         </div>
