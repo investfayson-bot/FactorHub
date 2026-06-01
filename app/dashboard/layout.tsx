@@ -26,6 +26,7 @@ const NAV: { label: string; items: NavItem[] }[] = [
     label: 'Principal',
     items: [
       { href: '/dashboard', icon: 'fa-grid-2', label: 'Dashboard', match: (p) => p === '/dashboard' || p === '/dashboard/' },
+      { href: '/dashboard/criar', icon: 'fa-wand-magic-sparkles', label: 'Criar Ferramenta', badge: 'NOVO', badgeColor: '#3ecf8e' },
       { href: '/dashboard/missoes', icon: 'fa-rocket', label: 'Missões' },
       { href: '/dashboard/cerebro', icon: 'fa-brain', label: 'Cérebro' },
     ],
@@ -75,6 +76,7 @@ const TITLES: Record<string, string> = {
   '/dashboard/ideias': 'Ideias',
   '/dashboard/configuracoes': 'Configurações',
   '/dashboard/produtos': 'Portfólio',
+  '/dashboard/criar': 'Criar Ferramenta',
 }
 
 function isActive(pathname: string, item: NavItem) {
