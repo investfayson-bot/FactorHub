@@ -34,7 +34,6 @@ const NAV: { label: string; items: NavItem[] }[] = [
     label: 'Squad',
     items: [
       { href: '/dashboard/agentes', icon: 'fa-robot', label: 'Agentes · Squad', badge: '27', badgeColor: '#2e2e2e' },
-      { href: '/dashboard/chat', icon: 'fa-comment-dots', label: 'Chat' },
     ],
   },
   {
@@ -46,7 +45,6 @@ const NAV: { label: string; items: NavItem[] }[] = [
   {
     label: 'Operação',
     items: [
-      { href: '/dashboard/tarefas', icon: 'fa-list-check', label: 'Tarefas' },
       { href: '/dashboard/projetos', icon: 'fa-diagram-project', label: 'Projetos' },
       { href: '/dashboard/ideias', icon: 'fa-lightbulb', label: 'Ideias' },
       { href: '/dashboard/uso', icon: 'fa-chart-bar', label: 'Consumo' },
