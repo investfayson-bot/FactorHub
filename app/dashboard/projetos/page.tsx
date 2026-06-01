@@ -193,128 +193,84 @@ export default function ProjetosPage() {
         )}
       </AnimatePresence>
 
-      {/* List */}
-      <motion.div className="card" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} style={{ overflow: 'hidden' }}>
-        {loading ? (
-          <div style={{ padding: 50, display: 'flex', justifyContent: 'center' }}>
-            <motion.div style={{ width: 22, height: 22, borderRadius: '50%', border: '2px solid var(--border)', borderTopColor: 'var(--accent)' }} animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }} />
-          </div>
-        ) : filtrados.length === 0 ? (
-          <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
-            <i className="fa-solid fa-diagram-project" style={{ fontSize: 28, marginBottom: 12, display: 'block', opacity: 0.3 }} />
-            <div style={{ fontSize: 13 }}>Nenhum projeto encontrado</div>
-            {!showForm && <button className="btn btn-primary btn-sm" style={{ marginTop: 14 }} onClick={abrirNovo}>Criar primeiro projeto</button>}
-          </div>
-        ) : (
-          <AnimatePresence initial={false}>
-            {filtrados.map((p, i) => {
-              const stColor = STATUS_COLORS[p.status] ?? '#888888'
-              const dcColor = p.decisao ? DECISAO_COLORS[p.decisao] : '#f59e0b'
-              const isSelected = selectedId === p.id
-              return (
-                <motion.div
-                  key={p.id}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.03, duration: 0.2 }}
-                  style={{ borderTop: i === 0 ? 'none' : '1px solid var(--border)' }}
-                >
-                  {/* Row */}
-                  <motion.div
-                    onClick={() => setSelectedId(isSelected ? null : p.id)}
-                    whileHover={{ backgroundColor: 'var(--surface-2)' }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', cursor: 'pointer' }}
-                  >
-                    {/* Decision indicator */}
-                    <div style={{ width: 4, alignSelf: 'stretch', borderRadius: 2, background: dcColor, flexShrink: 0 }} />
-
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{p.nome}</span>
-                        {p.decisao && (
-                          <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700, color: DECISAO_COLORS[p.decisao], background: `${DECISAO_COLORS[p.decisao]}15`, padding: '2px 7px', borderRadius: 20, flexShrink: 0 }}>
-                            <i className={`fa-solid ${DECISAO_ICONS[p.decisao]}`} style={{ fontSize: 9 }} />
-                            {p.decisao}
-                          </span>
-                        )}
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span className="status-pill" style={{ background: `${stColor}15`, color: stColor, fontSize: 10 }}>{p.status}</span>
-                        {p.categoria && <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{p.categoria}</span>}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <div style={{ width: 60, height: 3, background: 'var(--surface-3)', borderRadius: 2, overflow: 'hidden' }}>
-                            <div style={{ height: '100%', width: `${p.progresso}%`, background: stColor, borderRadius: 2 }} />
-                          </div>
-                          <span style={{ fontSize: 10, color: 'var(--text-muted)', fontFamily: "'DM Mono',monospace" }}>{p.progresso}%</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: 6, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
-                      {!p.decisao && (
-                        <>
-                          <motion.button
-                            className="btn btn-sm"
-                            onClick={() => { setDecisionModal({ projeto: p, tipo: 'aprovado' }); setObservacao('') }}
-                            whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                            style={{ background: '#22c55e15', color: '#22c55e', border: '1px solid #22c55e30', fontSize: 10, padding: '5px 10px', fontWeight: 700 }}
-                          >
-                            <i className="fa-solid fa-check" style={{ fontSize: 9 }} />Aprovar
-                          </motion.button>
-                          <motion.button
-                            className="btn btn-sm"
-                            onClick={() => { setDecisionModal({ projeto: p, tipo: 'rejeitado' }); setObservacao('') }}
-                            whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                            style={{ background: '#ef444415', color: '#ef4444', border: '1px solid #ef444430', fontSize: 10, padding: '5px 10px', fontWeight: 700 }}
-                          >
-                            <i className="fa-solid fa-xmark" style={{ fontSize: 9 }} />Rejeitar
-                          </motion.button>
-                        </>
-                      )}
-                      <button className="btn btn-ghost btn-sm" onClick={() => abrirEditar(p)} style={{ fontSize: 10 }}>Editar</button>
-                      <button className="btn btn-danger btn-sm" onClick={() => void excluir(p.id)} style={{ fontSize: 10 }}>Del</button>
-                    </div>
-                  </motion.div>
-
-                  {/* Expanded detail */}
-                  <AnimatePresence>
-                    {isSelected && (
+      {/* Kanban board */}
+      {loading ? (
+        <div style={{ padding: 50, display: 'flex', justifyContent: 'center' }}>
+          <motion.div style={{ width: 22, height: 22, borderRadius: '50%', border: '2px solid var(--border)', borderTopColor: 'var(--accent)' }} animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }} />
+        </div>
+      ) : itens.length === 0 ? (
+        <div className="card" style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+          <i className="fa-solid fa-diagram-project" style={{ fontSize: 28, marginBottom: 12, display: 'block', opacity: 0.3 }} />
+          <div style={{ fontSize: 13, marginBottom: 14 }}>Nenhum projeto ainda.</div>
+          <button className="btn btn-primary" onClick={abrirNovo}>Criar primeiro projeto</button>
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, alignItems: 'start' }}>
+          {(['ideia', 'planejamento', 'desenvolvimento', 'concluido', 'pausado'] as const).map(col => {
+            const colColor = STATUS_COLORS[col]
+            const colItems = filtrados.filter(p => p.status === col)
+            return (
+              <div key={col} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {/* Column header */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 2px' }}>
+                  <div style={{ width: 7, height: 7, borderRadius: '50%', background: colColor, flexShrink: 0 }} />
+                  <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{col}</span>
+                  <span style={{ fontSize: 9, color: 'var(--text-dim)', marginLeft: 'auto' }}>{colItems.length}</span>
+                </div>
+                {/* Cards */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                  {colItems.map(p => {
+                    const isSel = selectedId === p.id
+                    const dcColor = p.decisao ? DECISAO_COLORS[p.decisao] : '#f59e0b'
+                    return (
                       <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.25 }}
-                        style={{ overflow: 'hidden' }}
+                        key={p.id}
+                        layout
+                        initial={{ opacity: 0, scale: 0.96 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        onClick={() => setSelectedId(isSel ? null : p.id)}
+                        whileHover={{ y: -1 }}
+                        style={{ background: 'var(--surface)', border: `1px solid ${isSel ? colColor + '60' : 'var(--border)'}`, borderRadius: 8, padding: '10px 11px', cursor: 'pointer', transition: 'border-color .15s' }}
                       >
-                        <div style={{ padding: '0 16px 16px 36px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                          {p.descricao && (
-                            <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6, background: 'var(--surface-2)', borderRadius: 8, padding: '10px 14px', border: '1px solid var(--border)' }}>
-                              {p.descricao}
-                            </div>
-                          )}
-                          {p.observacao && (
-                            <div style={{ display: 'flex', gap: 8, background: `${dcColor}10`, border: `1px solid ${dcColor}30`, borderRadius: 8, padding: '10px 14px' }}>
-                              <i className={`fa-solid ${DECISAO_ICONS[p.decisao!]}`} style={{ fontSize: 12, color: dcColor, marginTop: 2, flexShrink: 0 }} />
-                              <div>
-                                <div style={{ fontSize: 10, fontWeight: 700, color: dcColor, marginBottom: 3, textTransform: 'uppercase', letterSpacing: 0.5 }}>Observação</div>
-                                <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.5 }}>{p.observacao}</div>
-                                {p.decidido_at && <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>{new Date(p.decidido_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}</div>}
-                              </div>
-                            </div>
-                          )}
-                          <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                            Criado em {new Date(p.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
-                          </div>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, marginBottom: 7 }}>
+                          <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text)', lineHeight: 1.4, flex: 1 }}>{p.nome}</span>
+                          {p.decisao && <i className={`fa-solid ${DECISAO_ICONS[p.decisao]}`} style={{ fontSize: 10, color: dcColor, flexShrink: 0, marginTop: 2 }} />}
                         </div>
+                        <div style={{ height: 3, background: 'var(--surface-3)', borderRadius: 2, overflow: 'hidden', marginBottom: 6 }}>
+                          <div style={{ height: '100%', width: `${p.progresso}%`, background: colColor, borderRadius: 2 }} />
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                          {p.categoria && <span style={{ fontSize: 8, padding: '1px 5px', borderRadius: 3, background: 'var(--surface-2)', color: 'var(--text-dim)' }}>{p.categoria}</span>}
+                          <span style={{ fontSize: 9, color: 'var(--text-dim)', marginLeft: 'auto', fontFamily: "'DM Mono',monospace" }}>{p.progresso}%</span>
+                        </div>
+
+                        {/* Expanded actions */}
+                        <AnimatePresence>
+                          {isSel && (
+                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} style={{ overflow: 'hidden', marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border)' }} onClick={e => e.stopPropagation()}>
+                              {p.descricao && <div style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: 8 }}>{p.descricao}</div>}
+                              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                                {!p.decisao && (
+                                  <>
+                                    <button onClick={() => { setDecisionModal({ projeto: p, tipo: 'aprovado' }); setObservacao('') }} style={{ fontSize: 9, fontWeight: 700, padding: '4px 8px', borderRadius: 5, background: '#22c55e15', color: '#22c55e', border: '1px solid #22c55e30', cursor: 'pointer', fontFamily: 'inherit' }}><i className="fa-solid fa-check" style={{ fontSize: 8, marginRight: 3 }} />Aprovar</button>
+                                    <button onClick={() => { setDecisionModal({ projeto: p, tipo: 'rejeitado' }); setObservacao('') }} style={{ fontSize: 9, fontWeight: 700, padding: '4px 8px', borderRadius: 5, background: '#ef444415', color: '#ef4444', border: '1px solid #ef444430', cursor: 'pointer', fontFamily: 'inherit' }}><i className="fa-solid fa-xmark" style={{ fontSize: 8, marginRight: 3 }} />Rejeitar</button>
+                                  </>
+                                )}
+                                <button onClick={() => abrirEditar(p)} style={{ fontSize: 9, padding: '4px 8px', borderRadius: 5, background: 'var(--surface-2)', color: 'var(--text-muted)', border: '1px solid var(--border)', cursor: 'pointer', fontFamily: 'inherit' }}><i className="fa-solid fa-pen" style={{ fontSize: 8 }} /></button>
+                                <button onClick={() => void excluir(p.id)} style={{ fontSize: 9, padding: '4px 8px', borderRadius: 5, background: 'rgba(244,68,68,.08)', color: '#f44', border: '1px solid rgba(244,68,68,.2)', cursor: 'pointer', fontFamily: 'inherit' }}><i className="fa-solid fa-trash" style={{ fontSize: 8 }} /></button>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
-              )
-            })}
-          </AnimatePresence>
-        )}
-      </motion.div>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
 
       {/* Decision Modal */}
       <AnimatePresence>
