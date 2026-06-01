@@ -26,31 +26,45 @@ html,body{width:100%;height:100%;overflow:hidden;background:#060408;font-family:
 .hotspot:hover{background:rgba(255,255,255,.06);outline:1.5px solid rgba(255,255,255,.15)}
 .hotspot.active{background:rgba(255,255,255,.08);outline:2px solid var(--color)}
 
-/* ── Speech bubble ── */
+/* ── Speech bubble — ALWAYS visible, compact one-liner ── */
 .bubble{
   position:absolute;
-  bottom:calc(100% + 6px);
+  bottom:calc(100% + 8px);
   left:50%;transform:translateX(-50%);
-  background:rgba(6,4,14,.95);
-  border:1px solid rgba(255,255,255,.12);
-  border-radius:10px;
-  padding:7px 11px;
-  font-size:10px;color:#e0e0f0;line-height:1.45;
-  white-space:nowrap;max-width:200px;white-space:normal;text-align:center;
-  pointer-events:none;opacity:0;transition:opacity .2s;
-  min-width:130px;
+  background:rgba(8,6,16,.94);
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:9px;
+  padding:6px 10px;
+  font-size:9.5px;color:#e8e8f4;line-height:1.4;
+  text-align:center;
+  pointer-events:none;
+  opacity:1;
+  width:max-content;max-width:150px;
   z-index:20;
-  box-shadow:0 4px 20px rgba(0,0,0,.5);
+  box-shadow:0 4px 18px rgba(0,0,0,.55);
+  animation:bubble-float 3.5s ease-in-out infinite;
 }
+@keyframes bubble-float{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-3px)}}
 .bubble::after{
   content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);
-  border:5px solid transparent;border-top-color:rgba(255,255,255,.12);
+  border:5px solid transparent;border-top-color:rgba(8,6,16,.94);
 }
-.hotspot:hover .bubble,.hotspot.active .bubble{opacity:1}
-
-.b-name{font-size:11px;font-weight:800;margin-bottom:2px}
-.b-role{font-size:9px;opacity:.55;margin-bottom:5px}
-.b-task{font-size:9.5px;color:#c4b8e0;font-style:italic}
+/* color dot on bubble left edge */
+.bubble::before{
+  content:'';position:absolute;left:7px;top:50%;transform:translateY(-50%);
+  width:4px;height:4px;border-radius:50%;background:var(--color);
+}
+.b-task{font-size:9.5px;color:#d8d8ea;padding-left:6px}
+/* Name label appears on hover */
+.b-name-tag{
+  position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);
+  margin-bottom:34px;
+  font-size:8px;font-weight:800;letter-spacing:.04em;
+  padding:2px 7px;border-radius:4px;
+  background:var(--color);color:#0a0812;
+  opacity:0;transition:opacity .15s;pointer-events:none;white-space:nowrap;z-index:21;
+}
+.hotspot:hover .b-name-tag{opacity:1}
 
 /* Working indicator */
 .working-ring{
@@ -146,37 +160,44 @@ html,body{width:100%;height:100%;overflow:hidden;background:#060408;font-family:
   <!-- Positions as % of viewport (bg-office-v2 is 1672×941, covers 100% viewport) -->
 
   <div class="hotspot" id="hs-CA"   style="left:8%;top:45%;--color:#c9a84c">
-    <div class="bubble"><div class="b-name" id="bn-CA">Chief of Staff</div><div class="b-role">Síntese executiva</div><div class="b-task" id="bt-CA">Coordenando agenda do founder.</div></div>
+    <div class="b-name-tag">Chief of Staff</div>
+    <div class="bubble"><span class="b-task" id="bt-CA">Coordenando agenda do founder.</span></div>
     <div class="working-ring"></div>
   </div>
 
   <div class="hotspot" id="hs-CEO"  style="left:18%;top:33%;--color:#e8622a">
-    <div class="bubble"><div class="b-name" id="bn-CEO">CEO Estratégico</div><div class="b-role">Decisões estratégicas · C1</div><div class="b-task" id="bt-CEO">A autonomia define o nosso sucesso.</div></div>
+    <div class="b-name-tag">CEO Estratégico</div>
+    <div class="bubble"><span class="b-task" id="bt-CEO">A autonomia define o nosso sucesso.</span></div>
     <div class="working-ring"></div>
   </div>
 
   <div class="hotspot" id="hs-COO"  style="left:25%;top:27%;--color:#f59e0b">
-    <div class="bubble"><div class="b-name" id="bn-COO">COO</div><div class="b-role">Operações · C1</div><div class="b-task" id="bt-COO">Sprint atualizado. Dependências ok.</div></div>
+    <div class="b-name-tag">COO</div>
+    <div class="bubble"><span class="b-task" id="bt-COO">Sprint atualizado. Dependências ok.</span></div>
     <div class="working-ring"></div>
   </div>
 
   <div class="hotspot" id="hs-CMO"  style="left:22%;top:47%;--color:#ec4899">
-    <div class="bubble"><div class="b-name" id="bn-CMO">CMO Growth</div><div class="b-role">Marketing e aquisição · C1</div><div class="b-task" id="bt-CMO">Nova campanha Q3 — ROAS 3.2x.</div></div>
+    <div class="b-name-tag">CMO Growth</div>
+    <div class="bubble"><span class="b-task" id="bt-CMO">Nova campanha Q3 — ROAS 3.2x.</span></div>
     <div class="working-ring"></div>
   </div>
 
   <div class="hotspot" id="hs-CSO"  style="left:36%;top:45%;--color:#8b5cf6">
-    <div class="bubble"><div class="b-name" id="bn-CSO">Dir. Comercial</div><div class="b-role">Estratégia comercial · C3</div><div class="b-task" id="bt-CSO">Funil de conversão revisado.</div></div>
+    <div class="b-name-tag">Dir. Comercial</div>
+    <div class="bubble"><span class="b-task" id="bt-CSO">Funil de conversão revisado.</span></div>
     <div class="working-ring"></div>
   </div>
 
   <div class="hotspot" id="hs-CTO"  style="left:49%;top:23%;--color:#10b981">
-    <div class="bubble"><div class="b-name" id="bn-CTO">CTO</div><div class="b-role">Arquitetura técnica · C1</div><div class="b-task" id="bt-CTO">Deploy de nova feature em produção.</div></div>
+    <div class="b-name-tag">CTO</div>
+    <div class="bubble"><span class="b-task" id="bt-CTO">Deploy de nova feature em produção.</span></div>
     <div class="working-ring"></div>
   </div>
 
   <div class="hotspot" id="hs-CFO"  style="left:66%;top:33%;--color:#6366f1">
-    <div class="bubble"><div class="b-name" id="bn-CFO">CFO</div><div class="b-role">Financeiro · C1</div><div class="b-task" id="bt-CFO">Margem 68% confirmada. CAC ok.</div></div>
+    <div class="b-name-tag">CFO</div>
+    <div class="bubble"><span class="b-task" id="bt-CFO">Margem 68% confirmada. CAC ok.</span></div>
     <div class="working-ring"></div>
   </div>
 
@@ -184,16 +205,41 @@ html,body{width:100%;height:100%;overflow:hidden;background:#060408;font-family:
 
 <!-- Top Bar -->
 <div id="topbar">
+  <button onclick="window.open('/dashboard','_top')" style="display:flex;align-items:center;gap:6px;padding:5px 11px;border-radius:6px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:#bbb;cursor:pointer;font-family:inherit;font-size:10px;font-weight:600;transition:all .12s" onmouseover="this.style.background='rgba(255,255,255,.1)';this.style.color='#fff'" onmouseout="this.style.background='rgba(255,255,255,.05)';this.style.color='#bbb'">
+    <span style="font-size:11px">←</span> Voltar ao Sistema
+  </button>
   <div class="pip"></div>
   <div class="logo"><span>FACTOR</span>HUB</div>
-  <div class="bdg b-g">Sistema Online</div>
+  <div class="bdg b-g">Live Monitor</div>
   <span id="mission-lbl" style="font-size:10px;color:#555">Aguardando missão</span>
   <div id="clk">--:--:--</div>
 </div>
 
 <!-- Right Panel -->
 <div id="panel">
+  <!-- Metrics quick-stats -->
   <div class="psec">
+    <div class="ptit">Métricas</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+      <div onclick="window.open('/dashboard/missoes','_top')" style="padding:8px 9px;border-radius:7px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.05);cursor:pointer">
+        <div id="met-missoes" style="font-size:16px;font-weight:800;color:#f0f0f0;line-height:1;font-variant-numeric:tabular-nums">0</div>
+        <div style="font-size:8px;color:#555;margin-top:3px">Missões ativas</div>
+      </div>
+      <div onclick="window.open('/dashboard/agentes','_top')" style="padding:8px 9px;border-radius:7px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.05);cursor:pointer">
+        <div id="met-agentes" style="font-size:16px;font-weight:800;color:#3ecf8e;line-height:1;font-variant-numeric:tabular-nums">7</div>
+        <div style="font-size:8px;color:#555;margin-top:3px">Agentes ativos</div>
+      </div>
+      <div onclick="window.open('/dashboard/uso','_top')" style="padding:8px 9px;border-radius:7px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.05);cursor:pointer">
+        <div id="met-custo" style="font-size:16px;font-weight:800;color:#c9a84c;line-height:1;font-variant-numeric:tabular-nums">$0</div>
+        <div style="font-size:8px;color:#555;margin-top:3px">Custo hoje</div>
+      </div>
+      <div onclick="window.open('/dashboard/tarefas','_top')" style="padding:8px 9px;border-radius:7px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.05);cursor:pointer">
+        <div id="met-tarefas" style="font-size:16px;font-weight:800;color:#6366f1;line-height:1;font-variant-numeric:tabular-nums">0</div>
+        <div style="font-size:8px;color:#555;margin-top:3px">Tarefas hoje</div>
+      </div>
+    </div>
+  </div>
+  <div class="psec" style="max-height:240px;overflow-y:auto">
     <div class="ptit">Agentes</div>
     <div id="agent-list"></div>
   </div>
@@ -206,12 +252,13 @@ html,body{width:100%;height:100%;overflow:hidden;background:#060408;font-family:
       <button class="see-all" onclick="window.open('/dashboard/missoes','_top')">Ver todas as missões →</button>
     </div>
     <div id="cost-wrap">
-      <div class="ptit">Consumo IA</div>
+      <div class="ptit">Consumo IA — 14 dias</div>
       <canvas id="cost-cv" width="238" height="42"></canvas>
       <div style="display:flex;justify-content:space-between;margin-top:5px">
         <span style="font-size:8px;color:#333">Total acumulado</span>
         <span id="total-cost" style="font-size:10px;font-weight:700;color:#c9a84c;font-variant-numeric:tabular-nums">$0.0000</span>
       </div>
+      <button class="see-all" onclick="window.open('/dashboard','_top')" style="margin-top:10px">Abrir dashboard completo →</button>
     </div>
   </div>
 </div>
@@ -319,12 +366,15 @@ function renderAgentList() {
 function renderMissions(list) {
   const el = document.getElementById('mission-list')
   const lbl = document.getElementById('mission-lbl')
+  const metM = document.getElementById('met-missoes')
   if (!list?.length) {
     el.innerHTML = '<div style="font-size:10px;color:#333;text-align:center;padding:14px 0">Nenhuma missão ativa</div>'
     lbl.textContent = 'Aguardando missão'
+    if (metM) metM.textContent = '0'
     return
   }
   const running = list.filter(m => m.status === 'running')
+  if (metM) metM.textContent = String(running.length)
   lbl.textContent = `${running.length} missão${running.length !== 1 ? 'ões' : ''} ativa${running.length !== 1 ? 's' : ''}`
   el.innerHTML = list.slice(0, 4).map(m => {
     const c = m.status === 'running' ? '#f59e0b' : m.status === 'approved' ? '#22c55e' : '#444'
@@ -398,23 +448,61 @@ function simCycle() {
   setTimeout(simCycle, 7000 + Math.random() * 10000)
 }
 
-// ─── Receive live data from parent ────────────────────────────────────────────
-window.addEventListener('message', e => {
-  if (e.data?.type !== 'factorhub-live-data') return
-  if (e.data.missions) renderMissions(e.data.missions)
-  if (e.data.usage) {
-    const costs = e.data.usage.slice(-14).map(u => Number(u.custo_usd || 0))
+// ─── Apply live data (shared) ─────────────────────────────────────────────────
+function applyLiveData(data) {
+  if (data.missions) renderMissions(data.missions)
+  if (data.usage) {
+    const todayStart = new Date(); todayStart.setHours(0,0,0,0)
+    const costs = data.usage.slice(-14).map(u => Number(u.custo_usd || 0))
     renderChart(costs)
-    const total = e.data.usage.reduce((s, u) => s + Number(u.custo_usd || 0), 0)
-    const el = document.getElementById('total-cost')
-    if (el) el.textContent = '$' + total.toFixed(4)
+    const total = data.usage.reduce((s, u) => s + Number(u.custo_usd || 0), 0)
+    const today = data.usage.filter(u => new Date(u.created_at) >= todayStart).reduce((s,u)=>s+Number(u.custo_usd||0),0)
+    const todayCount = data.usage.filter(u => new Date(u.created_at) >= todayStart).length
+    const el = document.getElementById('total-cost'); if (el) el.textContent = '$' + total.toFixed(4)
+    const mc = document.getElementById('met-custo'); if (mc) mc.textContent = today < 0.01 ? `$${(today*1000).toFixed(1)}m` : `$${today.toFixed(3)}`
+    const mt = document.getElementById('met-tarefas'); if (mt) mt.textContent = String(todayCount)
   }
-  if (e.data.agentStatuses) {
-    Object.entries(e.data.agentStatuses).forEach(([id, info]) => {
-      setAgentTask(id, info.task || '')
-    })
+  if (data.agentStatuses) {
+    Object.entries(data.agentStatuses).forEach(([id, info]) => setAgentTask(id, info.task || ''))
   }
+}
+
+window.addEventListener('message', e => {
+  if (e.data?.type === 'factorhub-live-data') applyLiveData(e.data)
 })
+
+// ─── Self-contained data fetch from Supabase ──────────────────────────────────
+const SUPABASE_URL = 'https://brpbwfforyrjrryfsrzf.supabase.co'
+
+function getSupabaseToken() {
+  // Supabase JS stores session in localStorage under sb-<ref>-auth-token
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i)
+    if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(key))
+        return parsed?.access_token || parsed?.[0] || null
+      } catch { return null }
+    }
+  }
+  return null
+}
+
+async function fetchLiveData() {
+  const token = getSupabaseToken()
+  if (!token) return  // not logged in — keep simulation
+  try {
+    const res = await fetch('/api/hub/missions-list', { headers: { Authorization: `Bearer ${token}` } })
+    if (res.ok) {
+      const { missions } = await res.json()
+      if (missions) {
+        // enrich with agent counts for progress bars
+        const enriched = missions.map(m => ({ ...m, agents_done: (m.agents_used||[]).length, agents_total: (m.agents_used||[]).length || 1 }))
+        renderMissions(enriched)
+      }
+    }
+  } catch { /* keep simulation */ }
+}
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 document.getElementById('clk').textContent = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
@@ -429,6 +517,8 @@ AGENTS.forEach(a => {
   setAgentTask(a.id, tasks[0])
 })
 
+fetchLiveData()
+setInterval(fetchLiveData, 15000)  // refresh every 15s
 setTimeout(simCycle, 5000)
 </script>
 </body>
