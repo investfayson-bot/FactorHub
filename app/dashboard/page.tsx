@@ -8,7 +8,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  AreaChart, Area, LineChart, Line, PieChart, Pie, Cell,
+  AreaChart, Area, LineChart, Line, Cell,
 } from 'recharts'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -30,7 +30,7 @@ type CerebroRow = {
 
 const S_COLOR: Record<string, string> = {
   completed:'#3ecf8e', running:'#f59e0b', approved:'#3ecf8e',
-  error:'#f44', archived:'#555', draft:'#666', awaiting_approval:'#8b5cf6',
+  error:'#f44', archived:'#555', draft:'#888', awaiting_approval:'#f59e0b',
 }
 const S_LABEL: Record<string, string> = {
   completed:'Concluída', running:'Em andamento', approved:'Aprovada',
@@ -46,7 +46,7 @@ const CEREBRO_FIELDS: {key: keyof CerebroRow; label: string}[] = [
   {key:'playbooks',label:'Playbooks'},
 ]
 const PROJ_STATUS_COLOR: Record<string,string> = {
-  ideia:'#f59e0b', planejamento:'#6366f1', desenvolvimento:'#8b5cf6', concluido:'#3ecf8e', pausado:'#555',
+  ideia:'#f59e0b', planejamento:'#2dd4bf', desenvolvimento:'#a3a3a3', concluido:'#3ecf8e', pausado:'#555',
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -223,7 +223,7 @@ export default function DashboardPage() {
   })
 
   const modelBreakdown = [
-    {name:'Sonnet (C1)',value:usage.filter(u=>u.modelo?.includes('sonnet')).reduce((s,u)=>s+Number(u.custo_usd??0),0),color:'#e8622a'},
+    {name:'Sonnet (C1)',value:usage.filter(u=>u.modelo?.includes('sonnet')).reduce((s,u)=>s+Number(u.custo_usd??0),0),color:'#eab308'},
     {name:'Haiku',value:usage.filter(u=>!u.modelo?.includes('sonnet')).reduce((s,u)=>s+Number(u.custo_usd??0),0),color:'#3ecf8e'},
   ]
 
@@ -243,7 +243,7 @@ export default function DashboardPage() {
   // Ideas by status
   const ideiasStatus = ['nova','aprovada','desenvolvendo','concluida','rejeitada'].map(s=>({
     s, count:ideias.filter(i=>i.status===s).length,
-    color:{nova:'#3ecf8e',aprovada:'#3b82f6',desenvolvendo:'#8b5cf6',concluida:'#22c55e',rejeitada:'#f44'}[s]??'#555',
+    color:{nova:'#3ecf8e',aprovada:'#2dd4bf',desenvolvendo:'#a3a3a3',concluida:'#22c55e',rejeitada:'#f44'}[s]??'#555',
   }))
 
   // Agent × Project mapping
@@ -267,11 +267,11 @@ export default function DashboardPage() {
   })
 
   const kpis = [
-    {label:'Missões ativas', value:activeMissions.length, sub:`${missions.length} total · ${approvedMissions.length} aprovadas`, icon:'fa-rocket', color:'#f59e0b', href:'/dashboard/missoes',
+    {label:'Missões ativas', value:activeMissions.length, sub:`${missions.length} total · ${approvedMissions.length} aprovadas`, icon:'fa-rocket', color:'#3ecf8e', href:'/dashboard/missoes',
      sparkData:Array.from({length:7},(_,i)=>missions.filter(m=>new Date(m.created_at).toDateString()===new Date(now-i*86400000).toDateString()).length).reverse()},
     {label:'Hoje', value:todayMissions.length, sub:`${agentsNow} agentes ativos agora`, icon:'fa-calendar-day', color:'#3ecf8e', href:'/dashboard/missoes'},
-    {label:'Agentes', value:26, sub:`${agentsNow} em execução · 26 disponíveis`, icon:'fa-robot', color:'#6366f1', href:'/dashboard/agentes'},
-    {label:'Custo hoje', value:fmtMoney(todayCost), sub:`proj. mês ${fmtMoney(projMes)} · total ${fmtMoney(totalCost)}`, icon:'fa-coins', color:'#c9a84c', href:'/dashboard/uso',
+    {label:'Agentes', value:26, sub:`${agentsNow} em execução · 26 disponíveis`, icon:'fa-robot', color:'#3ecf8e', href:'/dashboard/agentes'},
+    {label:'Custo hoje', value:fmtMoney(todayCost), sub:`proj. mês ${fmtMoney(projMes)} · total ${fmtMoney(totalCost)}`, icon:'fa-coins', color:'#3ecf8e', href:'/dashboard/uso',
      sparkData:costBy30.slice(-7).map(d=>d.sonnet+d.haiku)},
     {label:'Cérebro', value:`${cerebroPct}%`, sub:`${CEREBRO_FIELDS.filter(f=>cerebro?.[f.key]).length}/${CEREBRO_FIELDS.length} campos preenchidos`, icon:'fa-brain', color:cerebroPct<40?'#f44':cerebroPct<70?'#f59e0b':'#3ecf8e', href:'/dashboard/cerebro'},
   ]
@@ -493,8 +493,8 @@ export default function DashboardPage() {
               <AreaChart data={costBy30} margin={{top:4,right:0,bottom:0,left:0}}>
                 <defs>
                   <linearGradient id="gS" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#e8622a" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#e8622a" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#eab308" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#eab308" stopOpacity={0}/>
                   </linearGradient>
                   <linearGradient id="gH" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#3ecf8e" stopOpacity={0.3}/>
@@ -505,7 +505,7 @@ export default function DashboardPage() {
                 <XAxis dataKey="date" tick={{fontSize:7.5,fill:'var(--text-muted)'}} axisLine={false} tickLine={false} interval={7}/>
                 <YAxis hide/>
                 <Tooltip content={<Tip/>} cursor={{stroke:'var(--border)'}}/>
-                <Area type="monotone" dataKey="sonnet" name="Sonnet" stroke="#e8622a" strokeWidth={1.5} fill="url(#gS)" dot={false}/>
+                <Area type="monotone" dataKey="sonnet" name="Sonnet" stroke="#eab308" strokeWidth={1.5} fill="url(#gS)" dot={false}/>
                 <Area type="monotone" dataKey="haiku" name="Haiku" stroke="#3ecf8e" strokeWidth={1.5} fill="url(#gH)" dot={false}/>
               </AreaChart>
             </ResponsiveContainer>
@@ -652,7 +652,7 @@ export default function DashboardPage() {
                   <div style={{fontSize:9,color:'var(--text-muted)'}}>{(u.total_tokens??0).toLocaleString()} tk</div>
                 </div>
                 <div style={{fontSize:9,color:'var(--text-dim)',width:30,textAlign:'right',flexShrink:0}}>{timeAgo(u.created_at)}</div>
-                <div style={{fontSize:8,fontWeight:700,padding:'2px 6px',borderRadius:3,background:isSonnet?'#e8622a14':'#3ecf8e14',color:isSonnet?'#e8622a':'#3ecf8e',flexShrink:0,minWidth:40,textAlign:'center'}}>
+                <div style={{fontSize:8,fontWeight:700,padding:'2px 6px',borderRadius:3,background:isSonnet?'#eab30814':'#3ecf8e14',color:isSonnet?'#eab308':'#3ecf8e',flexShrink:0,minWidth:40,textAlign:'center'}}>
                   {isSonnet?'Sonnet':'Haiku'}
                 </div>
               </div>

@@ -7,10 +7,12 @@
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:100%;height:100%;overflow:hidden;background:#060408;font-family:'Inter',system-ui,sans-serif}
 
-/* ── Full-screen office background with characters already drawn ── */
+/* ── Office framed between bars — stretched to fill so hotspots align ── */
 #office{
-  position:fixed;inset:0;
-  background:url('/sprites/bg-office-v2.png') center/cover no-repeat;
+  position:fixed;top:44px;right:270px;bottom:34px;left:0;
+  background:url('/sprites/bg-office-v2.png') no-repeat;
+  background-size:100% 100%;
+  background-position:center;
 }
 
 /* ── Invisible hotspot over each character ── */
@@ -244,6 +246,27 @@ html,body{width:100%;height:100%;overflow:hidden;background:#060408;font-family:
     <div id="agent-list"></div>
   </div>
   <div id="pbody">
+    <!-- Projects -->
+    <div style="padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.06)">
+      <div class="ptit">Projetos</div>
+      <div id="project-list">
+        <div onclick="window.open('/dashboard/produtos','_top')" style="display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:7px;cursor:pointer;margin-bottom:3px;transition:background .1s" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+          <div style="width:8px;height:8px;border-radius:2px;background:#3ecf8e;flex-shrink:0"></div>
+          <div style="flex:1;min-width:0"><div style="font-size:10.5px;font-weight:700;color:#e0e0f0">FactorOne</div><div style="font-size:8px;color:#444">Finance OS · Live</div></div>
+          <span style="font-size:7px;font-weight:800;padding:2px 5px;border-radius:3px;background:rgba(62,207,142,.12);color:#3ecf8e">LIVE</span>
+        </div>
+        <div onclick="window.open('/dashboard/produtos','_top')" style="display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:7px;cursor:pointer;margin-bottom:3px;transition:background .1s" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+          <div style="width:8px;height:8px;border-radius:2px;background:#f59e0b;flex-shrink:0"></div>
+          <div style="flex:1;min-width:0"><div style="font-size:10.5px;font-weight:700;color:#e0e0f0">VN Prime</div><div style="font-size:8px;color:#444">Imobiliária · Próximo</div></div>
+          <span style="font-size:7px;font-weight:800;padding:2px 5px;border-radius:3px;background:rgba(245,158,11,.12);color:#f59e0b">DEV</span>
+        </div>
+        <div onclick="window.open('/dashboard/produtos','_top')" style="display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:7px;cursor:pointer;transition:background .1s" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+          <div style="width:8px;height:8px;border-radius:2px;background:#a3a3a3;flex-shrink:0"></div>
+          <div style="flex:1;min-width:0"><div style="font-size:10.5px;font-weight:700;color:#e0e0f0">LifeOS</div><div style="font-size:8px;color:#444">Assessor pessoal · Dev</div></div>
+          <span style="font-size:7px;font-weight:800;padding:2px 5px;border-radius:3px;background:rgba(163,163,163,.12);color:#a3a3a3">DEV</span>
+        </div>
+      </div>
+    </div>
     <div style="padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.06)">
       <div class="ptit">Missões</div>
       <div id="mission-list">
