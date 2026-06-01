@@ -55,6 +55,26 @@ export default function ProjetosPage() {
 
   useEffect(() => { void carregar() }, [carregar])
 
+  // "Virar Projeto" vindo das Tarefas — cria o projeto automaticamente
+  useEffect(() => {
+    if (!empresaId) return
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('from') === 'missao') {
+      const nome = params.get('nome')
+      if (nome) {
+        void (async () => {
+          await supabase.from('hub_projetos').insert({
+            nome: decodeURIComponent(nome), descricao: 'Criado a partir de uma missão aprovada',
+            status: 'planejamento', progresso: 0, categoria: 'Missão', empresa_id: empresaId,
+          })
+          // limpa a URL e recarrega
+          window.history.replaceState({}, '', '/dashboard/projetos')
+          void carregar()
+        })()
+      }
+    }
+  }, [empresaId, carregar])
+
   function abrirNovo() {
     setEditando(null)
     setForm({ nome: '', descricao: '', status: 'ideia', progresso: 0, categoria: '' })

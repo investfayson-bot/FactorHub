@@ -211,7 +211,7 @@ export default function DashboardPage() {
 
   const agentBarData = Object.entries(agentCounts)
     .sort((a,b)=>b[1]-a[1]).slice(0,12)
-    .map(([id,count])=>({name:id,count,cost:Number((agentCost[id]??0).toFixed(5)),color:AGENTS_V2[id]?.color??'var(--accent)'}))
+    .map(([id,count])=>({name:id,count,cost:Number((agentCost[id]??0).toFixed(5)),color:'#3ecf8e'}))
 
   // Cost charts
   const costBy30 = Array.from({length:30},(_,i)=>{
@@ -375,7 +375,7 @@ export default function DashboardPage() {
                             {(m.agents_used??[]).map(aid=>{
                               const a=AGENTS_V2[aid];if(!a)return null
                               return(
-                                <button key={aid} onClick={()=>router.push('/dashboard/agentes')} style={{fontSize:9,fontWeight:700,padding:'2px 7px',borderRadius:4,background:`${a.color}14`,color:a.color,border:`1px solid ${a.color}30`,cursor:'pointer',fontFamily:'inherit'}}>
+                                <button key={aid} onClick={()=>router.push('/dashboard/agentes')} style={{fontSize:9,fontWeight:700,padding:'2px 7px',borderRadius:4,background:'var(--surface-2)',color:'var(--text-muted)',border:'1px solid var(--border)',cursor:'pointer',fontFamily:'inherit'}}>
                                   {a.initial} {a.name.split(' ')[0]}
                                 </button>
                               )
@@ -438,7 +438,7 @@ export default function DashboardPage() {
                   <tr key={id} style={{borderBottom:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>router.push('/dashboard/agentes')}>
                     <td style={{padding:'9px 10px'}}>
                       <div style={{display:'flex',alignItems:'center',gap:8}}>
-                        <div style={{width:26,height:26,borderRadius:7,background:`${a.color}14`,border:`1px solid ${a.color}40`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:8,fontWeight:800,color:a.color,flexShrink:0}}>{a.initial}</div>
+                        <div style={{width:26,height:26,borderRadius:7,background:'var(--surface-2)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:8,fontWeight:800,color:'var(--text-muted)',flexShrink:0}}>{a.initial}</div>
                         <span style={{fontWeight:600,color:'var(--text)'}}>{a.name}</span>
                       </div>
                     </td>
@@ -579,7 +579,7 @@ export default function DashboardPage() {
                     </div>
                     <div style={{display:'flex',alignItems:'center',gap:5}}>
                       {projAgents.map(aid=>{const a=AGENTS_V2[aid];if(!a)return null;return(
-                        <div key={aid} title={a.name} style={{width:18,height:18,borderRadius:5,background:`${a.color}20`,border:`1px solid ${a.color}50`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:7,fontWeight:800,color:a.color}}>{a.initial}</div>
+                        <div key={aid} title={a.name} style={{width:18,height:18,borderRadius:5,background:'var(--surface-2)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:7,fontWeight:800,color:'var(--text-muted)'}}>{a.initial}</div>
                       )})}
                       {projAgents.length===0&&<span style={{fontSize:9,color:'var(--text-dim)'}}>Sem agentes vinculados</span>}
                     </div>
@@ -640,7 +640,7 @@ export default function DashboardPage() {
             const isSonnet=u.modelo?.includes('sonnet')
             return(
               <div key={i} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 16px',borderBottom:'1px solid var(--border)',transition:'background .1s'}} onClick={()=>router.push('/dashboard/agentes')}>
-                <div style={{width:24,height:24,borderRadius:6,background:`${a?.color??'var(--accent)'}14`,border:`1px solid ${a?.color??'var(--accent)'}35`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:8,fontWeight:800,color:a?.color??'var(--accent)',flexShrink:0}}>
+                <div style={{width:24,height:24,borderRadius:6,background:'var(--surface-2)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:8,fontWeight:800,color:'var(--text-muted)',flexShrink:0}}>
                   {a?.initial??u.agente_id.slice(0,2)}
                 </div>
                 <div style={{flex:1,minWidth:0}}>
