@@ -42,10 +42,10 @@ export async function POST(req: NextRequest) {
   const apiKey = process.env.OPENROUTER_API_KEY
   if (!apiKey) return new Response('OPENROUTER_API_KEY não configurada', { status: 500 })
 
-  const { user, supabase } = await getSupabaseUser(req)
+  const { user, admin } = await getSupabaseUser(req)
   if (!user) return new Response('Não autorizado', { status: 401 })
 
-  const { data: usrRow } = await supabase.from('usuarios').select('empresa_id').eq('id', user.id).maybeSingle()
+  const { data: usrRow } = await admin.from('usuarios').select('empresa_id').eq('id', user.id).maybeSingle()
   const empresaId = usrRow?.empresa_id ?? user.id
 
   const { agentId, messages } = (await req.json()) as { agentId?: string; messages?: ChatMsg[] }
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Build system prompt — cérebro context + agent profile
-  const { formatted: cerebroFormatted } = await getCerebroContext(empresaId, supabase)
+  const { formatted: cerebroFormatted } = await getCerebroContext(empresaId, admin)
   const systemPrompt = [
     cerebroFormatted ? `[CÉREBRO DA EMPRESA]\n${cerebroFormatted}` : '',
     `[PERFIL DO AGENTE]\nVocê é o ${agent.name} — ${agent.role}.`,
@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
       let buf = ''
 
       const logUsage = async (p: number, c: number, cost: number) => {
-        await supabase.from('hub_uso_agentes').insert({
+        await admin.from('hub_uso_agentes').insert({
           empresa_id: empresaId,
           agente_id: agent.id,
           modelo: model,

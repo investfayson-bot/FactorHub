@@ -3,7 +3,7 @@ import { getSupabaseUser } from '@/lib/supabase-route'
 
 export async function GET(req: NextRequest) {
   try {
-    const { user, supabase } = await getSupabaseUser(req)
+    const { user, supabase, admin } = await getSupabaseUser(req)
     if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
     const { data: usrRow } = await supabase.from('usuarios').select('empresa_id').eq('id', user.id).maybeSingle()
@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const { user, supabase } = await getSupabaseUser(req)
+    const { user, supabase, admin } = await getSupabaseUser(req)
     if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
     const { missionId, status } = (await req.json()) as { missionId: string; status: string }
@@ -51,7 +51,7 @@ export async function PATCH(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const { user, supabase } = await getSupabaseUser(req)
+    const { user, supabase, admin } = await getSupabaseUser(req)
     if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
     const { missionId } = (await req.json()) as { missionId: string }

@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
     return new Response('OPENROUTER_API_KEY não configurada', { status: 500 })
   }
 
-  const { user, supabase } = await getSupabaseUser(req)
+  const { user, supabase, admin } = await getSupabaseUser(req)
   if (!user) return new Response('Não autorizado', { status: 401 })
 
   const { data: usrRow } = await supabase

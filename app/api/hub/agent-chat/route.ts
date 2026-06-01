@@ -7,7 +7,7 @@ export const runtime = 'nodejs'
 export const maxDuration = 60
 
 export async function POST(req: NextRequest) {
-  const { user, supabase } = await getSupabaseUser(req)
+  const { user, supabase, admin } = await getSupabaseUser(req)
   if (!user) return new Response('Unauthorized', { status: 401 })
 
   const { agentId, messages } = await req.json()

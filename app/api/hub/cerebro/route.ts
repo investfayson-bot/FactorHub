@@ -12,13 +12,13 @@ const CEREBRO_COLUMNS = [
 
 export async function GET(req: NextRequest) {
   try {
-    const { user, supabase } = await getSupabaseUser(req)
+    const { user, admin } = await getSupabaseUser(req)
     if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
-    const { data: usrRow } = await supabase.from('usuarios').select('empresa_id').eq('id', user.id).maybeSingle()
+    const { data: usrRow } = await admin.from('usuarios').select('empresa_id').eq('id', user.id).maybeSingle()
     const empresaId = usrRow?.empresa_id ?? user.id
 
-    const { data, error } = await supabase.from('hub_cerebro').select('*').eq('empresa_id', empresaId).maybeSingle()
+    const { data, error } = await admin.from('hub_cerebro').select('*').eq('empresa_id', empresaId).maybeSingle()
     if (error) return NextResponse.json({ error: error.message }, { status: 400 })
     return NextResponse.json({ cerebro: data ?? null })
   } catch (error: unknown) {
@@ -28,20 +28,19 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { user, supabase } = await getSupabaseUser(req)
+    const { user, admin } = await getSupabaseUser(req)
     if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
-    const { data: usrRow } = await supabase.from('usuarios').select('empresa_id').eq('id', user.id).maybeSingle()
+    const { data: usrRow } = await admin.from('usuarios').select('empresa_id').eq('id', user.id).maybeSingle()
     const empresaId = usrRow?.empresa_id ?? user.id
 
     const rawBody = (await req.json()) as Record<string, unknown>
 
-    // Only send known columns — prevents errors if DB schema is behind
     const body = Object.fromEntries(
       Object.entries(rawBody).filter(([k]) => (CEREBRO_COLUMNS as readonly string[]).includes(k))
     )
 
-    const { data, error } = await supabase.from('hub_cerebro').upsert({
+    const { data, error } = await admin.from('hub_cerebro').upsert({
       empresa_id: empresaId,
       ...body,
       updated_at: new Date().toISOString(),
