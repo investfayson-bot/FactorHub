@@ -306,14 +306,24 @@ function HistoryTable({
                         {isBusy ? '...' : 'Reativar'}
                       </button>
                     )}
-                    {/* Draft — re-run immediately */}
-                    {(m.status === 'draft' || m.status === 'completed' || m.status === 'awaiting_approval') && !isDeleting && (
+                    {/* Editar / Re-executar — qualquer missão exceto rodando */}
+                    {m.status !== 'running' && !isArchived && !isDeleting && (
                       <button
                         onClick={() => onRerun(m.title)}
-                        title="Editar e reexecutar"
+                        title="Carregar no editor e reexecutar"
                         style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 5, background: 'var(--accent-dim)', color: 'var(--accent)', border: '1px solid var(--accent)', cursor: 'pointer', fontFamily: 'inherit' }}
                       >
                         <i className="fa-solid fa-pen" style={{ fontSize: 8, marginRight: 4 }} />Editar
+                      </button>
+                    )}
+                    {/* Aprovada — virar projeto manual (caso queira de novo) */}
+                    {m.status === 'approved' && !isDeleting && (
+                      <button
+                        onClick={() => { window.location.href = `/dashboard/projetos?from=missao&nome=${encodeURIComponent(m.title)}` }}
+                        title="Criar projeto desta missão"
+                        style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 5, background: 'rgba(62,207,142,.12)', color: '#3ecf8e', border: '1px solid rgba(62,207,142,.3)', cursor: 'pointer', fontFamily: 'inherit' }}
+                      >
+                        <i className="fa-solid fa-diagram-project" style={{ fontSize: 8, marginRight: 4 }} />Projeto
                       </button>
                     )}
                     {!isDeleting ? (
