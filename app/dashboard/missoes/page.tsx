@@ -242,8 +242,8 @@ const STATUS_LABELS: Record<string, string> = {
 const STATUS_COLORS: Record<string, string> = {
   draft: '#8b5cf6',
   running: '#f59e0b',
-  completed: '#3b82f6',
-  awaiting_approval: '#3b82f6',
+  completed: '#3ecf8e',
+  awaiting_approval: '#3ecf8e',
   approved: '#10b981',
   archived: '#6b7280',
   error: '#ef4444',
@@ -706,7 +706,7 @@ export default function MissoesPage() {
                   const text = encodeURIComponent(missionText.slice(0, 120))
                   window.location.href = `/dashboard/projetos?from=missao&nome=${text}`
                 }}
-                style={{ padding: '12px 16px', borderRadius: 8, background: 'rgba(99,102,241,.15)', color: '#6366f1', border: '1px solid rgba(99,102,241,.3)', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 700 }}>
+                style={{ padding: '12px 16px', borderRadius: 8, background: 'rgba(99,102,241,.15)', color: '#3ecf8e', border: '1px solid rgba(99,102,241,.3)', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 700 }}>
                 <i className="fa-solid fa-diagram-project" style={{ marginRight: 6 }} />Criar Projeto
               </button>
               <button onClick={archiveMission}

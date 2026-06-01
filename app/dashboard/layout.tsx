@@ -26,21 +26,21 @@ const NAV: { label: string; items: NavItem[] }[] = [
     label: 'Principal',
     items: [
       { href: '/dashboard', icon: 'fa-grid-2', label: 'Dashboard', match: (p) => p === '/dashboard' || p === '/dashboard/' },
-      { href: '/dashboard/missoes', icon: 'fa-rocket', label: 'Missões', badge: 'NOVO', badgeColor: '#e8622a' },
+      { href: '/dashboard/missoes', icon: 'fa-rocket', label: 'Missões' },
       { href: '/dashboard/cerebro', icon: 'fa-brain', label: 'Cérebro' },
     ],
   },
   {
     label: 'Squad',
     items: [
-      { href: '/dashboard/agentes', icon: 'fa-robot', label: 'Agentes · Squad', badge: '26', badgeColor: '#e8622a' },
+      { href: '/dashboard/agentes', icon: 'fa-robot', label: 'Agentes · Squad', badge: '26', badgeColor: '#2e2e2e' },
       { href: '/dashboard/chat', icon: 'fa-comment-dots', label: 'Chat' },
     ],
   },
   {
     label: 'Portfólio',
     items: [
-      { href: '/dashboard/produtos', icon: 'fa-box-open', label: 'Produtos', badge: '3', badgeColor: '#c9a84c' },
+      { href: '/dashboard/produtos', icon: 'fa-box-open', label: 'Produtos', badge: '3', badgeColor: '#2e2e2e' },
     ],
   },
   {
@@ -61,7 +61,7 @@ const NAV: { label: string; items: NavItem[] }[] = [
 ]
 
 const NAV_EXTERNAL: { href: string; icon: string; label: string; badge?: string; badgeColor?: string }[] = [
-  { href: '/live-monitor.html', icon: 'fa-display', label: 'Live Monitor', badge: 'NOVO', badgeColor: '#22c55e' },
+  { href: '/live-monitor.html', icon: 'fa-display', label: 'Live Monitor', badge: 'LIVE', badgeColor: '#3ecf8e' },
 ]
 
 const TITLES: Record<string, string> = {

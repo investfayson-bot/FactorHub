@@ -23,7 +23,7 @@
   --teal:         #3ecf8e;
   --teal-dim:     rgba(62,207,142,.08);
   --purple:       #8b5cf6;
-  --indigo:       #6366f1;
+  --indigo:       #3ecf8e;
   --sidebar-w:    216px;
   --radius:       8px;
   --radius-sm:    5px;
@@ -31,7 +31,7 @@
   /* layer colours — agent identity only */
   --c1: #e05a28;
   --c2: #0d9488;
-  --c3: #6366f1;
+  --c3: #3ecf8e;
   --c4: #d97706;
   --ca: #7c3aed;
 }

@@ -12,7 +12,7 @@ type Ideia = {
 
 const COLS: { id: string; label: string; color: string }[] = [
   { id: 'nova',        label: 'Nova',        color: '#3ecf8e' },
-  { id: 'aprovada',    label: 'Aprovada',    color: '#3b82f6' },
+  { id: 'aprovada',    label: 'Aprovada',    color: '#3ecf8e' },
   { id: 'desenvolvendo', label: 'Em Dev',   color: '#8b5cf6' },
   { id: 'concluida',   label: 'Concluída',  color: '#22c55e' },
   { id: 'rejeitada',   label: 'Rejeitada',  color: '#f44' },

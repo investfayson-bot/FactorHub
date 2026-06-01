@@ -27,19 +27,19 @@ type AgentStats = {
 }
 
 const LAYER_TABS: { id: LayerTab; label: string; color: string }[] = [
-  { id: 'ALL', label: 'Todos', color: '#c9a84c' },
+  { id: 'ALL', label: 'Todos', color: '#3ecf8e' },
   { id: 'C1', label: 'Conselho', color: '#e8622a' },
-  { id: 'C2', label: 'Pesquisa', color: '#0d9488' },
-  { id: 'C3', label: 'Diretores', color: '#6366f1' },
-  { id: 'C4', label: 'Especialistas', color: '#d97706' },
-  { id: 'CA', label: 'Chief of Staff', color: '#7c3aed' },
+  { id: 'C2', label: 'Pesquisa', color: '#14b8a6' },
+  { id: 'C3', label: 'Diretores', color: '#3ecf8e' },
+  { id: 'C4', label: 'Especialistas', color: '#eab308' },
+  { id: 'CA', label: 'Chief of Staff', color: '#a855f7' },
 ]
 
 const LAYER_ORDER: AgentLayer[] = ['C1', 'C2', 'C3', 'C4', 'CA']
 
 const STATUS_BADGE: Record<string, { label: string; color: string }> = {
   completed: { label: 'Concluída', color: '#22c55e' },
-  approved: { label: 'Aprovada', color: '#3b82f6' },
+  approved: { label: 'Aprovada', color: '#3ecf8e' },
   running: { label: 'Em andamento', color: '#f59e0b' },
   error: { label: 'Erro', color: '#ef4444' },
   archived: { label: 'Arquivada', color: '#6b6480' },

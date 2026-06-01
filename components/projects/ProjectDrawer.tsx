@@ -8,7 +8,7 @@ import { AGENTES } from '@/lib/hub-agentes'
 type Projeto = { id: string; nome: string; descricao: string | null; status: string; progresso: number; categoria: string | null; created_at: string }
 type Tarefa = { id: string; titulo: string; agente_id: string; status: string; resultado: string | null; custo_usd: number; created_at: string }
 
-const ST: Record<string, string> = { ideia: '#F59E0B', planejamento: '#2563EB', desenvolvimento: '#7C3AED', concluido: '#22C55E', pausado: '#64748B' }
+const ST: Record<string, string> = { ideia: '#F59E0B', planejamento: '#3ecf8e', desenvolvimento: '#7C3AED', concluido: '#22C55E', pausado: '#64748B' }
 const statusColor: Record<string, string> = { concluida: 'var(--green)', executando: 'var(--gold)', erro: 'var(--red)' }
 const statusBg: Record<string, string> = { concluida: 'rgba(34,197,94,.12)', executando: 'rgba(245,158,11,.12)', erro: 'rgba(239,68,68,.12)' }
 const TABS = ['Visão Geral', 'Tarefas IA', 'Criar Tarefa']

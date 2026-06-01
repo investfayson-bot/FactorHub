@@ -9,7 +9,7 @@ type Line = { type: 'cmd' | 'ok' | 'err' | 'info' | 'agent' | 'hint' | 'stream';
 const agents = Object.values(AGENTS_V2)
 
 const LAYER_COLORS: Record<string, string> = {
-  C1: '#e8622a', C2: '#0d9488', C3: '#6366f1', C4: '#d97706', CA: '#7c3aed',
+  C1: '#e8622a', C2: '#14b8a6', C3: '#3ecf8e', C4: '#eab308', CA: '#a855f7',
 }
 
 function findAgent(input: string): AgentV2 | null {

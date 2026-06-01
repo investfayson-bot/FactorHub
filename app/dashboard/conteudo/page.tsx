@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 
 type Conteudo = { id: string; titulo: string; formato: string; plataforma: string; status: string; data_publicacao: string | null; created_at: string }
 
-const ST: Record<string, string> = { ideia: '#F59E0B', producao: '#2563EB', revisao: '#7C3AED', agendado: '#0D9488', publicado: '#22C55E' }
+const ST: Record<string, string> = { ideia: '#F59E0B', producao: '#3ecf8e', revisao: '#7C3AED', agendado: '#0D9488', publicado: '#22C55E' }
 const fadeUp = { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { duration: 0.25 } } }
 
 export default function ConteudoPage() {

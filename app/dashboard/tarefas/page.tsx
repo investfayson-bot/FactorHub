@@ -98,7 +98,7 @@ export default function TarefasPage() {
           { label: 'Total de missões', value: totais.total, color: '#e8622a', icon: 'fa-rocket' },
           { label: 'Concluídas', value: totais.concluidas, color: '#22c55e', icon: 'fa-circle-check' },
           { label: 'Em execução', value: totais.rodando, color: '#f59e0b', icon: 'fa-bolt' },
-          { label: 'Total tokens', value: totais.tokens.toLocaleString('pt-BR'), color: '#6366f1', icon: 'fa-coins', mono: true },
+          { label: 'Total tokens', value: totais.tokens.toLocaleString('pt-BR'), color: '#3ecf8e', icon: 'fa-coins', mono: true },
           { label: 'Custo (USD)', value: `$${totais.custo.toFixed(4)}`, color: '#0d9488', icon: 'fa-dollar-sign', mono: true },
         ].map(k => (
           <motion.div key={k.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>

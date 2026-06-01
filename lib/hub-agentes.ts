@@ -37,7 +37,7 @@ Responda em português brasileiro. Máximo 250 palavras. Nunca use emojis.`,
     id: 'pm',
     nome: 'Product Manager',
     especialidade: 'Gestão de projetos, roadmap e OKRs',
-    cor: '#2563EB',
+    cor: '#3ecf8e',
     inicial: 'PM',
     system: `Você é o Product Manager do FactorHub.
 

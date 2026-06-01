@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 
 type Evento = { id: string; titulo: string; descricao: string | null; tipo: string; data_inicio: string | null; data_fim: string | null; local: string | null; nicho: string | null; status: string; created_at: string }
 
-const ST: Record<string, string> = { planejado: '#2563EB', confirmado: '#22C55E', em_andamento: '#7C3AED', concluido: '#0D9488', cancelado: '#EF4444' }
+const ST: Record<string, string> = { planejado: '#3ecf8e', confirmado: '#22C55E', em_andamento: '#7C3AED', concluido: '#0D9488', cancelado: '#EF4444' }
 const fadeUp = { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { duration: 0.25 } } }
 
 export default function EventosPage() {

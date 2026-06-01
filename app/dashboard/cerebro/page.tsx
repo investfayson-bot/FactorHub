@@ -65,7 +65,7 @@ const LAYERS = [
     id: 'produto',
     label: 'Produto',
     icon: 'fa-box',
-    color: '#2563EB',
+    color: '#3ecf8e',
     desc: 'O que você vende',
     fields: [
       { key: 'produto_principal', label: 'Produto / Serviço principal', placeholder: 'Ex: SaaS de gestão + consultoria estratégica', type: 'input' },
