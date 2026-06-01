@@ -272,8 +272,9 @@ export function MissionProvider({ children }: { children: ReactNode }) {
       headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       body: JSON.stringify({ missionId, status: 'approved' }),
     })
-    loadMissions()
-  }, [missionId, loadMissions])
+    await loadMissions()
+    newMission()
+  }, [missionId, loadMissions, newMission])
 
   const archiveMission = useCallback(async () => {
     if (!missionId) return

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { AGENTES, type Agente } from '@/lib/hub-agentes'
+import { AGENTS_V2, type AgentV2 } from '@/lib/agents-v2'
 import { supabase } from '@/lib/supabase'
 
 type Role = 'user' | 'assistant'
@@ -15,17 +15,34 @@ async function getToken() {
   return data.session?.access_token
 }
 
-function AgentAvatar({ agente, size = 28 }: { agente?: Agente; size?: number }) {
+function getSugestoes(agent: AgentV2): string[] {
+  return [
+    `Faça uma análise de ${agent.role} para o meu negócio`,
+    `Quais são suas prioridades para os próximos 30 dias?`,
+    `Me dê um diagnóstico rápido com recomendações práticas`,
+  ]
+}
+
+function AgentAvatar({ agente, size = 28 }: { agente?: AgentV2; size?: number }) {
   if (!agente) return null
   return (
-    <div style={{ width: size, height: size, borderRadius: Math.round(size * 0.25), background: agente.cor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.35, fontWeight: 800, color: '#fff', flexShrink: 0 }}>
-      {agente.inicial}
+    <div style={{ width: size, height: size, borderRadius: Math.round(size * 0.25), background: agente.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.35, fontWeight: 800, color: '#fff', flexShrink: 0 }}>
+      {agente.initial}
     </div>
   )
 }
 
+const LAYER_ORDER = ['C1', 'C2', 'C3', 'C4', 'CA'] as const
+const LAYER_LABELS: Record<string, string> = {
+  C1: 'Executive Council',
+  C2: 'Research & Intel',
+  C3: 'Directors',
+  C4: 'Specialists',
+  CA: 'Chief of Staff',
+}
+
 export default function ChatPage() {
-  const [ativo, setAtivo] = useState<Agente>(AGENTES[0])
+  const [ativo, setAtivo] = useState<AgentV2>(Object.values(AGENTS_V2)[0])
   const [histories, setHistories] = useState<Record<string, Msg[]>>({})
   const [unread, setUnread] = useState<Record<string, number>>({})
   const [showScrollBtn, setShowScrollBtn] = useState(false)
@@ -36,7 +53,6 @@ export default function ChatPage() {
   const scrollPositions = useRef<Record<string, number>>({})
   const atBottomRef = useRef(true)
   const ativoRef = useRef(ativo)
-  const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const abortRef = useRef<AbortController | null>(null)
 
@@ -45,14 +61,14 @@ export default function ChatPage() {
   const msgs = histories[ativo.id] ?? []
   const streamingContent = streaming ? (msgs[msgs.length - 1]?.content ?? '') : ''
 
-  // Auto-scroll when at bottom and content changes
+  // Auto-scroll when at bottom
   useEffect(() => {
     if (!atBottomRef.current) return
     const el = scrollRef.current
     if (el) el.scrollTop = el.scrollHeight
   }, [msgs.length, streamingContent])
 
-  // Restore or reset scroll when switching agents
+  // Restore scroll position when switching agents (top=0 for new conversations)
   useEffect(() => {
     const el = scrollRef.current
     if (!el) return
@@ -78,7 +94,7 @@ export default function ChatPage() {
     if (el) el.scrollTop = el.scrollHeight
   }
 
-  function switchAgent(a: Agente) {
+  function switchAgent(a: AgentV2) {
     if (a.id === ativo.id) return
     scrollPositions.current[ativo.id] = scrollRef.current?.scrollTop ?? 0
     setUnread(prev => ({ ...prev, [a.id]: 0 }))
@@ -86,7 +102,7 @@ export default function ChatPage() {
     if (!histories[a.id]?.length) {
       setHistories(prev => ({
         ...prev,
-        [a.id]: [{ id: uid(), role: 'assistant', agentId: a.id, content: `Olá! Sou ${a.nome}. ${a.especialidade}. Como posso ajudar?` }],
+        [a.id]: [{ id: uid(), role: 'assistant', agentId: a.id, content: `Olá! Sou ${a.name}. ${a.role}. Como posso ajudar?` }],
       }))
     }
     setTimeout(() => inputRef.current?.focus(), 80)
@@ -99,15 +115,14 @@ export default function ChatPage() {
     const mention = text.match(/@(\w+)/)
     let targetAgent = ativo
     if (mention) {
-      const found = AGENTES.find(a => a.id === mention[1].toLowerCase())
+      const found = AGENTS_V2[mention[1].toUpperCase()]
       if (found && found.id !== ativo.id) targetAgent = found
     }
-    const targetId = targetAgent.id
 
+    const targetId = targetAgent.id
     const userMsg: Msg = { id: uid(), role: 'user', content: text }
     const assistantId = uid()
     const assistantMsg: Msg = { id: assistantId, role: 'assistant', agentId: targetId, content: '', streaming: true }
-
     const currentHistory = histories[targetId] ?? []
 
     setHistories(prev => ({
@@ -123,7 +138,6 @@ export default function ChatPage() {
       if (el) el.scrollTop = el.scrollHeight
     }, 30)
 
-    // Last 5 messages only — cost reduction
     const apiHistory = [...currentHistory, userMsg]
       .filter(m => (m.role === 'user' || m.role === 'assistant') && m.content?.trim())
       .map(m => ({ role: m.role, content: m.content }))
@@ -192,7 +206,6 @@ export default function ChatPage() {
       if (targetId !== ativoRef.current.id) {
         setUnread(prev => ({ ...prev, [targetId]: (prev[targetId] ?? 0) + 1 }))
       }
-
     } catch (e: unknown) {
       if ((e as Error).name !== 'AbortError') {
         setHistories(prev => ({
@@ -217,56 +230,69 @@ export default function ChatPage() {
     setHistories(prev => ({ ...prev, [ativo.id]: [] }))
   }
 
+  const agentsByLayer = LAYER_ORDER.map(layer => ({
+    layer,
+    label: LAYER_LABELS[layer],
+    agents: Object.values(AGENTS_V2).filter(a => a.layer === layer),
+  }))
+
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: 0, height: 'calc(100vh - 60px)', overflow: 'hidden', borderRadius: 12, border: '0.5px solid var(--border)', background: 'var(--surface)' }}>
 
       {/* Agent sidebar */}
       <div style={{ borderRight: '0.5px solid var(--border)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div style={{ padding: '12px 14px', borderBottom: '0.5px solid var(--border)' }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 8 }}>Agentes</div>
-          <div style={{ fontSize: 10, color: 'var(--text-dim)' }}>Use @agente para mencionar</div>
+        <div style={{ padding: '12px 14px', borderBottom: '0.5px solid var(--border)', flexShrink: 0 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 4 }}>Squad — 26 agentes</div>
+          <div style={{ fontSize: 9.5, color: 'var(--text-dim)' }}>Use @ID para mencionar</div>
         </div>
-        <div style={{ flex: 1, overflowY: 'auto', padding: '6px 8px' }}>
-          {AGENTES.map((a, i) => {
-            const sel = a.id === ativo.id
-            const badge = unread[a.id] ?? 0
-            const msgCount = (histories[a.id] ?? []).filter(m => m.role === 'assistant').length
-            return (
-              <motion.button
-                key={a.id}
-                onClick={() => switchAgent(a)}
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.04 }}
-                whileHover={{ x: 2 }}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left',
-                  padding: '8px 9px', borderRadius: 7, marginBottom: 2, cursor: 'pointer',
-                  background: sel ? `${a.cor}14` : 'transparent',
-                  border: `0.5px solid ${sel ? a.cor + '50' : 'transparent'}`,
-                  transition: 'all .12s',
-                }}
-              >
-                <div style={{ width: 26, height: 26, borderRadius: 6, background: a.cor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, color: '#fff', flexShrink: 0 }}>
-                  {a.inicial}
-                </div>
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ fontSize: 11.5, fontWeight: sel ? 600 : 500, color: sel ? 'var(--text)' : 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.nome}</div>
-                  <div style={{ fontSize: 9.5, color: 'var(--text-dim)', marginTop: 1 }}>
-                    @{a.id}{msgCount > 0 ? ` · ${msgCount} msg` : ''}
-                  </div>
-                </div>
-                {badge > 0 && !sel && (
-                  <div style={{ minWidth: 16, height: 16, borderRadius: 8, background: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 800, color: '#fff', padding: '0 4px', flexShrink: 0 }}>
-                    {badge}
-                  </div>
-                )}
-                {sel && <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#22c55e', marginLeft: 'auto', flexShrink: 0 }} />}
-              </motion.button>
-            )
-          })}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '4px 8px 8px' }}>
+          {agentsByLayer.map(({ layer, label, agents }) => (
+            <div key={layer}>
+              <div style={{ fontSize: 8.5, fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '.1em', padding: '8px 4px 4px' }}>
+                {label}
+              </div>
+              {agents.map((a, i) => {
+                const sel = a.id === ativo.id
+                const badge = unread[a.id] ?? 0
+                const msgCount = (histories[a.id] ?? []).filter(m => m.role === 'assistant').length
+                return (
+                  <motion.button
+                    key={a.id}
+                    onClick={() => switchAgent(a)}
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.02 }}
+                    whileHover={{ x: 2 }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 7, width: '100%', textAlign: 'left',
+                      padding: '6px 8px', borderRadius: 6, marginBottom: 1, cursor: 'pointer',
+                      background: sel ? `${a.color}14` : 'transparent',
+                      border: `0.5px solid ${sel ? a.color + '50' : 'transparent'}`,
+                      transition: 'all .12s',
+                    }}
+                  >
+                    <div style={{ width: 22, height: 22, borderRadius: 5, background: a.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 7.5, fontWeight: 800, color: '#fff', flexShrink: 0 }}>
+                      {a.initial}
+                    </div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontSize: 10.5, fontWeight: sel ? 600 : 500, color: sel ? 'var(--text)' : 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.name}</div>
+                      <div style={{ fontSize: 8.5, color: 'var(--text-dim)', marginTop: 1 }}>
+                        @{a.id}{msgCount > 0 ? ` · ${msgCount} msg` : ''}
+                      </div>
+                    </div>
+                    {badge > 0 && !sel && (
+                      <div style={{ minWidth: 15, height: 15, borderRadius: 8, background: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 7.5, fontWeight: 800, color: '#fff', padding: '0 3px', flexShrink: 0 }}>
+                        {badge}
+                      </div>
+                    )}
+                    {sel && <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#22c55e', marginLeft: 'auto', flexShrink: 0 }} />}
+                  </motion.button>
+                )
+              })}
+            </div>
+          ))}
         </div>
-        <div style={{ padding: '10px 12px', borderTop: '0.5px solid var(--border)' }}>
+        <div style={{ padding: '10px 12px', borderTop: '0.5px solid var(--border)', flexShrink: 0 }}>
           <button onClick={clearChat} className="btn btn-ghost btn-sm" style={{ width: '100%', fontSize: 11 }}>
             <i className="fa-solid fa-trash-can" style={{ fontSize: 10 }} />Limpar conversa
           </button>
@@ -278,18 +304,18 @@ export default function ChatPage() {
 
         {/* Topbar */}
         <div style={{ padding: '12px 18px', borderBottom: '0.5px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 8, background: ativo.cor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: '#fff' }}>
-            {ativo.inicial}
+          <div style={{ width: 32, height: 32, borderRadius: 8, background: ativo.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: '#fff' }}>
+            {ativo.initial}
           </div>
           <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{ativo.nome}</div>
-            <div style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>{ativo.especialidade}</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{ativo.name}</div>
+            <div style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>{ativo.role}</div>
           </div>
           <AnimatePresence>
             {streaming && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <motion.div style={{ width: 6, height: 6, borderRadius: '50%', background: ativo.cor }}
+                <motion.div style={{ width: 6, height: 6, borderRadius: '50%', background: ativo.color }}
                   animate={{ scale: [1, 1.4, 1] }} transition={{ repeat: Infinity, duration: 0.8 }} />
                 <span style={{ fontSize: 10.5, color: 'var(--text-muted)', fontWeight: 600 }}>respondendo...</span>
                 <button onClick={() => { abortRef.current?.abort(); setStreaming(false) }}
@@ -299,8 +325,8 @@ export default function ChatPage() {
               </motion.div>
             )}
           </AnimatePresence>
-          <div style={{ marginLeft: streaming ? 0 : 'auto', fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 5, background: `${ativo.cor}15`, color: ativo.cor }}>
-            IA
+          <div style={{ marginLeft: streaming ? 0 : 'auto', fontSize: 9.5, fontWeight: 700, padding: '3px 8px', borderRadius: 5, background: `${ativo.color}15`, color: ativo.color }}>
+            {LAYER_LABELS[ativo.layer]}
           </div>
         </div>
 
@@ -309,19 +335,19 @@ export default function ChatPage() {
           {msgs.length === 0 && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
               style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 16 }}>
-              <div style={{ width: 56, height: 56, borderRadius: 14, background: ativo.cor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 800, color: '#fff' }}>
-                {ativo.inicial}
+              <div style={{ width: 56, height: 56, borderRadius: 14, background: ativo.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 800, color: '#fff' }}>
+                {ativo.initial}
               </div>
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>{ativo.nome}</div>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)', maxWidth: 320 }}>{ativo.especialidade}</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>{ativo.name}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', maxWidth: 320 }}>{ativo.role}</div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%', maxWidth: 400 }}>
-                {ativo.sugestoes.map(s => (
+                {getSugestoes(ativo).map(s => (
                   <motion.button key={s} onClick={() => { setInput(s); inputRef.current?.focus() }}
                     whileHover={{ x: 4 }}
                     style={{ padding: '10px 14px', borderRadius: 8, textAlign: 'left', cursor: 'pointer', background: 'var(--surface-2)', border: '0.5px solid var(--border)', fontSize: 12, color: 'var(--text-muted)', fontFamily: 'inherit' }}>
-                    <i className="fa-solid fa-chevron-right" style={{ fontSize: 9, color: ativo.cor, marginRight: 8 }} />
+                    <i className="fa-solid fa-chevron-right" style={{ fontSize: 9, color: ativo.color, marginRight: 8 }} />
                     {s}
                   </motion.button>
                 ))}
@@ -331,7 +357,7 @@ export default function ChatPage() {
 
           <AnimatePresence initial={false}>
             {msgs.map((m) => {
-              const agente = AGENTES.find(a => a.id === m.agentId)
+              const agente = m.agentId ? AGENTS_V2[m.agentId] : undefined
               const isUser = m.role === 'user'
               return (
                 <motion.div key={m.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}
@@ -344,8 +370,8 @@ export default function ChatPage() {
                   )}
                   <div style={{ maxWidth: '75%' }}>
                     {!isUser && (
-                      <div style={{ fontSize: 10.5, fontWeight: 600, color: agente?.cor ?? 'var(--text-muted)', marginBottom: 5 }}>
-                        {agente?.nome ?? 'Agente'}
+                      <div style={{ fontSize: 10.5, fontWeight: 600, color: agente?.color ?? 'var(--text-muted)', marginBottom: 5 }}>
+                        {agente?.name ?? 'Agente'}
                       </div>
                     )}
                     <div style={{
@@ -358,7 +384,7 @@ export default function ChatPage() {
                     }}>
                       {m.content || (m.streaming && (
                         <motion.span animate={{ opacity: [1, 0, 1] }} transition={{ repeat: Infinity, duration: 0.7 }}
-                          style={{ display: 'inline-block', width: 8, height: 13, background: agente?.cor ?? 'var(--text-muted)', borderRadius: 2 }} />
+                          style={{ display: 'inline-block', width: 8, height: 13, background: agente?.color ?? 'var(--text-muted)', borderRadius: 2 }} />
                       ))}
                     </div>
                   </div>
@@ -366,10 +392,9 @@ export default function ChatPage() {
               )
             })}
           </AnimatePresence>
-          <div ref={bottomRef} />
         </div>
 
-        {/* Scroll-to-bottom button */}
+        {/* Scroll-to-bottom */}
         <AnimatePresence>
           {showScrollBtn && (
             <motion.button
@@ -378,10 +403,10 @@ export default function ChatPage() {
               style={{
                 position: 'absolute', bottom: 76, right: 20, zIndex: 10,
                 padding: '7px 14px', borderRadius: 20,
-                background: 'var(--surface)', border: `1px solid ${ativo.cor}40`,
-                boxShadow: `0 2px 16px rgba(0,0,0,.35), 0 0 0 1px ${ativo.cor}20`,
+                background: 'var(--surface)', border: `1px solid ${ativo.color}40`,
+                boxShadow: `0 2px 16px rgba(0,0,0,.35), 0 0 0 1px ${ativo.color}20`,
                 cursor: 'pointer', fontFamily: 'inherit', fontSize: 11, fontWeight: 700,
-                color: ativo.cor, display: 'flex', alignItems: 'center', gap: 6,
+                color: ativo.color, display: 'flex', alignItems: 'center', gap: 6,
               }}
             >
               <i className="fa-solid fa-arrow-down" style={{ fontSize: 9 }} />
@@ -392,13 +417,13 @@ export default function ChatPage() {
 
         {/* Input */}
         <div style={{ padding: '12px 16px', borderTop: '0.5px solid var(--border)', flexShrink: 0 }}>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', background: 'var(--surface-2)', borderRadius: 10, border: `0.5px solid ${streaming ? ativo.cor + '60' : 'var(--border)'}`, padding: '10px 14px', transition: 'border-color .2s' }}>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', background: 'var(--surface-2)', borderRadius: 10, border: `0.5px solid ${streaming ? ativo.color + '60' : 'var(--border)'}`, padding: '10px 14px', transition: 'border-color .2s' }}>
             <textarea
               ref={inputRef} value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={onKeyDown}
               disabled={streaming}
-              placeholder={`Mensagem para ${ativo.nome}… (Shift+Enter para nova linha)`}
+              placeholder={`Mensagem para ${ativo.name}… (Shift+Enter para nova linha)`}
               rows={1}
               style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--text)', fontSize: 13, fontFamily: 'inherit', resize: 'none', lineHeight: 1.5, maxHeight: 120, overflowY: 'auto' }}
               onInput={e => {
@@ -414,7 +439,7 @@ export default function ChatPage() {
               whileTap={!streaming && input.trim() ? { scale: 0.95 } : {}}
               style={{
                 width: 34, height: 34, borderRadius: 8, flexShrink: 0,
-                background: streaming || !input.trim() ? 'var(--surface-3)' : ativo.cor,
+                background: streaming || !input.trim() ? 'var(--surface-3)' : ativo.color,
                 border: 'none', cursor: streaming || !input.trim() ? 'not-allowed' : 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .15s',
               }}
@@ -426,7 +451,7 @@ export default function ChatPage() {
             </motion.button>
           </div>
           <div style={{ marginTop: 8 }}>
-            <span style={{ fontSize: 9.5, color: 'var(--text-dim)' }}>Enter para enviar · Shift+Enter nova linha · @agente para mencionar</span>
+            <span style={{ fontSize: 9.5, color: 'var(--text-dim)' }}>Enter para enviar · Shift+Enter nova linha · @ID para mencionar</span>
           </div>
         </div>
       </div>

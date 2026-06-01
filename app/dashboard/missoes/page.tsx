@@ -228,7 +228,7 @@ function AgentOutputPanel({
 const STATUS_LABELS: Record<string, string> = {
   draft: 'Rascunho',
   running: 'Em Andamento',
-  completed: 'Aguard. Aprovação',
+  completed: 'Concluída',
   awaiting_approval: 'Aguard. Aprovação',
   approved: 'Aprovada',
   archived: 'Arquivada',
@@ -250,10 +250,12 @@ function HistoryTable({
   missions,
   onReactivate,
   onDelete,
+  onRerun,
 }: {
   missions: MissionRecord[]
   onReactivate: (id: string) => Promise<void>
   onDelete: (id: string) => Promise<void>
+  onRerun: (title: string) => void
 }) {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
@@ -318,6 +320,14 @@ function HistoryTable({
                         style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 5, background: 'rgba(139,92,246,.15)', color: '#8b5cf6', border: '1px solid rgba(139,92,246,.3)', cursor: 'pointer', fontFamily: 'inherit' }}
                       >
                         {isBusy ? '...' : 'Reativar'}
+                      </button>
+                    )}
+                    {m.status === 'draft' && !isDeleting && (
+                      <button
+                        onClick={() => onRerun(m.title)}
+                        style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 5, background: 'rgba(16,185,129,.15)', color: '#10b981', border: '1px solid rgba(16,185,129,.3)', cursor: 'pointer', fontFamily: 'inherit' }}
+                      >
+                        Re-executar
                       </button>
                     )}
                     {!isDeleting ? (
@@ -578,7 +588,12 @@ export default function MissoesPage() {
       {state === 'idle' && (
         <div style={card}>
           <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '.05em', textTransform: 'uppercase', marginBottom: 14 }}>Histórico de Missões</div>
-          <HistoryTable missions={missions} onReactivate={reactivateMission} onDelete={deleteMission} />
+          <HistoryTable
+            missions={missions}
+            onReactivate={reactivateMission}
+            onDelete={deleteMission}
+            onRerun={(title) => { setMissionText(title); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+          />
         </div>
       )}
     </div>
