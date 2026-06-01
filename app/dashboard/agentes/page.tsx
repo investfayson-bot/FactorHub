@@ -660,53 +660,56 @@ export default function AgentesPage() {
         </div>
       )}
 
-      {/* List — Linear style */}
+      {/* Kanban board — columns by layer */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '0 24px 24px' }}>
-        {/* Table header */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px 80px 70px 80px', gap: 8, padding: '6px 12px', marginBottom: 4 }}>
-          {['Agente', 'Camada', 'Status', 'Missões', 'Custo'].map(h => (
-            <span key={h} style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '.07em' }}>{h}</span>
-          ))}
-        </div>
-
-        {activeTab === 'ALL' ? (
-          LAYER_ORDER.map(layer => {
-            const layerAgents = visible.filter(a => a.layer === layer)
-            if (!layerAgents.length) return null
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, alignItems: 'start' }}>
+          {LAYER_ORDER.map(layer => {
             const info = LAYER_TABS.find(t => t.id === layer)!
+            const layerAgents = visible.filter(a => a.layer === layer)
             return (
-              <div key={layer} style={{ marginBottom: 8 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px 4px' }}>
-                  <div style={{ width: 2, height: 10, borderRadius: 1, background: info.color }} />
-                  <span style={{ fontSize: 8.5, fontWeight: 700, color: info.color, letterSpacing: '.08em', textTransform: 'uppercase' }}>{info.label}</span>
-                  <span style={{ fontSize: 8.5, color: 'var(--text-dim)' }}>{layerAgents.length}</span>
-                  <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+              <div key={layer} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 2px' }}>
+                  <div style={{ width: 7, height: 7, borderRadius: '50%', background: info.color, flexShrink: 0 }} />
+                  <span style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.05em' }}>{info.label}</span>
+                  <span style={{ fontSize: 9, color: 'var(--text-dim)', marginLeft: 'auto' }}>{layerAgents.length}</span>
                 </div>
-                {layerAgents.map(agent => (
-                  <AgentRow
-                    key={agent.id}
-                    agent={agent}
-                    isRunning={missionMap[agent.id]?.isRunning ?? false}
-                    totalTasks={missionMap[agent.id]?.total ?? 0}
-                    onClick={() => openAgent(agent)}
-                  />
-                ))}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                  {layerAgents.map(agent => {
+                    const isRunning = missionMap[agent.id]?.isRunning ?? false
+                    const total = missionMap[agent.id]?.total ?? 0
+                    return (
+                      <motion.div
+                        key={agent.id}
+                        layout
+                        initial={{ opacity: 0, scale: 0.96 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        onClick={() => openAgent(agent)}
+                        whileHover={{ y: -1 }}
+                        style={{ background: 'var(--surface)', border: `1px solid ${isRunning ? agent.color + '60' : 'var(--border)'}`, borderRadius: 8, padding: '10px', cursor: 'pointer', transition: 'border-color .15s' }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 7 }}>
+                          <div style={{ width: 28, height: 28, borderRadius: 7, background: `${agent.color}15`, border: `1.5px solid ${agent.color}50`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8.5, fontWeight: 800, color: agent.color, flexShrink: 0 }}>{agent.initial}</div>
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{agent.name}</div>
+                          </div>
+                        </div>
+                        <div style={{ fontSize: 9, color: 'var(--text-muted)', lineHeight: 1.4, marginBottom: 7, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{agent.role}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                          <div style={{ width: 5, height: 5, borderRadius: '50%', background: isRunning ? '#3ecf8e' : 'var(--border-light)' }} />
+                          <span style={{ fontSize: 8.5, color: isRunning ? '#3ecf8e' : 'var(--text-dim)' }}>{isRunning ? 'Ativo' : 'Online'}</span>
+                          {total > 0 && <span style={{ fontSize: 8.5, color: 'var(--text-dim)', marginLeft: 'auto' }}>{total} missões</span>}
+                        </div>
+                      </motion.div>
+                    )
+                  })}
+                  {layerAgents.length === 0 && (
+                    <div style={{ fontSize: 9, color: 'var(--text-dim)', textAlign: 'center', padding: '12px 0', border: '1px dashed var(--border)', borderRadius: 7 }}>vazio</div>
+                  )}
+                </div>
               </div>
             )
-          })
-        ) : (
-          <div>
-            {visible.map(agent => (
-              <AgentRow
-                key={agent.id}
-                agent={agent}
-                isRunning={missionMap[agent.id]?.isRunning ?? false}
-                totalTasks={missionMap[agent.id]?.total ?? 0}
-                onClick={() => openAgent(agent)}
-              />
-            ))}
-          </div>
-        )}
+          })}
+        </div>
 
         {visible.length === 0 && (
           <div style={{ textAlign: 'center', color: '#888888', padding: '60px 20px' }}>
