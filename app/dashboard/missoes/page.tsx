@@ -473,7 +473,7 @@ export default function MissoesPage() {
   }
 
   return (
-    <div style={{ padding: '20px', maxWidth: 1200, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div style={{ padding: '4px 0', display: 'flex', flexDirection: 'column', gap: 18 }}>
 
       {/* ── STUCK MISSIONS BANNER ── */}
       <AnimatePresence>
@@ -555,50 +555,70 @@ export default function MissoesPage() {
       <AnimatePresence>
         {state === 'idle' && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={card}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
-                <div>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)', marginBottom: 4 }}>Nova Missão</div>
-                  <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Descreva o que precisa analisar, planejar ou executar. Pode incluir documentos e transcrições.</div>
+
+            {/* Hero header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '24px 28px', borderRadius: 14, background: 'linear-gradient(135deg, var(--surface) 0%, var(--surface-2) 100%)', border: '1px solid var(--border)', position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', top: -40, right: -20, width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(62,207,142,.08) 0%, transparent 70%)' }} />
+              <div style={{ width: 52, height: 52, borderRadius: 14, background: 'var(--accent-dim)', border: '1px solid var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <i className="fa-solid fa-rocket" style={{ fontSize: 22, color: 'var(--accent)' }} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--text)', letterSpacing: '-.5px', marginBottom: 4 }}>Nova Missão</div>
+                <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Descreva o que precisa analisar, planejar ou executar. Seus 26 agentes vão trabalhar em cadeia até a síntese executiva.</div>
+              </div>
+            </div>
+
+            {/* 2-column: textarea left, config right */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 16, alignItems: 'start' }}>
+
+              {/* LEFT — textarea */}
+              <div style={{ ...card, padding: 0, display: 'flex', flexDirection: 'column' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Briefing da Missão</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {uploadMsg && <span style={{ fontSize: 11, color: uploadMsg.includes('Erro') ? '#ef4444' : '#22c55e', fontWeight: 600 }}>{uploadMsg}</span>}
+                    <input ref={fileRef} type="file" accept=".pdf,.txt,.md,.csv" style={{ display: 'none' }}
+                      onChange={e => { const f = e.target.files?.[0]; if (f) handleFileUpload(f); e.target.value = '' }} />
+                    <button onClick={() => fileRef.current?.click()} disabled={uploading}
+                      style={{ padding: '5px 11px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--text-muted)', cursor: uploading ? 'not-allowed' : 'pointer', fontSize: 11, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {uploading
+                        ? <><i className="fa-solid fa-circle-notch fa-spin" style={{ fontSize: 10 }} />Extraindo...</>
+                        : <><i className="fa-solid fa-paperclip" style={{ fontSize: 11 }} />Anexar PDF/TXT</>}
+                    </button>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                  {uploadMsg && <span style={{ fontSize: 11, color: uploadMsg.includes('Erro') ? '#ef4444' : '#22c55e', fontWeight: 600 }}>{uploadMsg}</span>}
-                  <input ref={fileRef} type="file" accept=".pdf,.txt,.md,.csv" style={{ display: 'none' }}
-                    onChange={e => { const f = e.target.files?.[0]; if (f) handleFileUpload(f); e.target.value = '' }} />
-                  <button onClick={() => fileRef.current?.click()} disabled={uploading}
-                    style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--text-muted)', cursor: uploading ? 'not-allowed' : 'pointer', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    {uploading
-                      ? <><i className="fa-solid fa-circle-notch fa-spin" style={{ fontSize: 10 }} />Extraindo...</>
-                      : <><i className="fa-solid fa-paperclip" style={{ fontSize: 11 }} />Anexar</>}
+                <textarea value={missionText} onChange={e => setMissionText(e.target.value)}
+                  placeholder="Ex: Audite o site da VN Prime, identifique tudo que está pronto e o que precisa melhorar, e monte o roadmap de ferramentas que o FactorHub deve construir."
+                  style={{ width: '100%', minHeight: 280, resize: 'vertical', background: 'transparent', border: 'none', padding: '16px 18px', fontSize: 14, color: 'var(--text)', fontFamily: 'inherit', outline: 'none', lineHeight: 1.7, boxSizing: 'border-box' }} />
+                <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)' }}>
+                  <button onClick={startMission} disabled={!missionText.trim()}
+                    style={{ width: '100%', padding: '14px 24px', borderRadius: 10, background: missionText.trim() ? 'var(--accent)' : 'var(--surface-3)', color: missionText.trim() ? '#0a0812' : 'var(--text-dim)', border: 'none', cursor: missionText.trim() ? 'pointer' : 'default', fontSize: 15, fontWeight: 800, fontFamily: 'inherit', transition: 'all .15s' }}>
+                    <i className="fa-solid fa-rocket" style={{ marginRight: 8 }} />
+                    Iniciar Missão {selectedLevel}
                   </button>
                 </div>
               </div>
-              <textarea value={missionText} onChange={e => setMissionText(e.target.value)}
-                placeholder="Ex: Quero lançar um produto de assinatura para PMEs brasileiras. Analise viabilidade, mercado e monte um plano de lançamento."
-                style={{ width: '100%', minHeight: 120, resize: 'vertical', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '12px 14px', fontSize: 13, color: 'var(--text)', fontFamily: 'inherit', outline: 'none', lineHeight: 1.6, boxSizing: 'border-box' }} />
-            </div>
 
-            <div style={card}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '.05em', textTransform: 'uppercase', marginBottom: 12 }}>Profundidade de Análise</div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {Object.keys(MISSION_LEVELS).map(id => (
-                  <LevelCard key={id} id={id} selected={selectedLevel === id} onClick={() => setSelectedLevel(id)} />
-                ))}
+              {/* RIGHT — level + agents */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div style={card}>
+                  <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontSize: 11, fontWeight: 700, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Profundidade</div>
+                  <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {Object.keys(MISSION_LEVELS).map(id => (
+                      <LevelCard key={id} id={id} selected={selectedLevel === id} onClick={() => setSelectedLevel(id)} />
+                    ))}
+                  </div>
+                </div>
+                <div style={card}>
+                  <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontSize: 11, fontWeight: 700, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '.05em' }}>
+                    Agentes — {MISSION_LEVELS[selectedLevel].label}
+                  </div>
+                  <div style={{ padding: 14 }}>
+                    <AgentPreview level={selectedLevel} />
+                  </div>
+                </div>
               </div>
             </div>
-
-            <div style={card}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '.05em', textTransform: 'uppercase', marginBottom: 12 }}>
-                Agentes Ativados — {MISSION_LEVELS[selectedLevel].label}
-              </div>
-              <AgentPreview level={selectedLevel} />
-            </div>
-
-            <button onClick={startMission} disabled={!missionText.trim()}
-              style={{ padding: '14px 24px', borderRadius: 10, background: missionText.trim() ? 'var(--accent)' : 'var(--surface-3)', color: missionText.trim() ? '#fff' : 'var(--text-dim)', border: 'none', cursor: missionText.trim() ? 'pointer' : 'default', fontSize: 14, fontWeight: 800, fontFamily: 'inherit', transition: 'all .15s' }}>
-              <i className="fa-solid fa-rocket" style={{ marginRight: 8 }} />
-              Iniciar Missão {selectedLevel}
-            </button>
           </motion.div>
         )}
       </AnimatePresence>

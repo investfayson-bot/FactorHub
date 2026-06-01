@@ -12,7 +12,7 @@ const PRODUCTS = [
     description: 'Sistema financeiro completo para empresas: caixa, DRE, notas fiscais, equipe, fornecedores, CRM, logística e IA CFO.',
     url: 'https://factorone-mvp2.vercel.app',
     repo: 'investfayson-bot/factorone-mvp2',
-    color: '#6366f1',
+    color: '#3ecf8e',
     icon: 'fa-chart-line',
     status: 'live' as const,
     stack: ['Next.js 16', 'Supabase', 'Claude API', 'Stripe', 'Resend'],
@@ -56,7 +56,7 @@ const PRODUCTS = [
     description: 'Sistema de gestão para imobiliária: CRM de clientes, agendamento, marketing, curadoria de imóveis, análise de métricas e redes sociais.',
     url: '#',
     repo: '',
-    color: '#c9a84c',
+    color: '#2dd4bf',
     icon: 'fa-building',
     status: 'next' as const,
     stack: ['Next.js', 'Supabase', 'FactorHub Agents'],
@@ -76,14 +76,14 @@ const PRODUCTS = [
 const STATUS_CONFIG = {
   live: { label: 'Live', color: '#22c55e', bg: 'rgba(34,197,94,.1)', border: 'rgba(34,197,94,.25)' },
   dev: { label: 'Em Dev', color: '#f59e0b', bg: 'rgba(245,158,11,.1)', border: 'rgba(245,158,11,.25)' },
-  next: { label: 'Próximo', color: '#c9a84c', bg: 'rgba(201,168,76,.1)', border: 'rgba(201,168,76,.25)' },
+  next: { label: 'Próximo', color: '#f59e0b', bg: 'rgba(245,158,11,.1)', border: 'rgba(245,158,11,.25)' },
 }
 
 export default function ProdutosPage() {
   const [expanded, setExpanded] = useState<string | null>('vnprime')
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 900 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
       <div>
         <div style={{ fontSize: 15, fontWeight: 700, color: '#f0f0f0', marginBottom: 4 }}>Portfólio FALC INC</div>
@@ -142,7 +142,7 @@ export default function ProdutosPage() {
                   <Link
                     href="/dashboard/missoes"
                     onClick={e => e.stopPropagation()}
-                    style={{ fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 6, background: '#c9a84c', color: '#0a0812', textDecoration: 'none' }}
+                    style={{ fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 6, background: 'var(--accent)', color: '#0a0812', textDecoration: 'none' }}
                   >
                     <i className="fa-solid fa-rocket" style={{ fontSize: 9, marginRight: 4 }} />
                     Iniciar missão
