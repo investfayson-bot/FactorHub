@@ -375,17 +375,12 @@ export default function CerebroPage() {
           </div>
         </div>
 
-        {/* Progress bar */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ flex: 1, height: 4, background: 'var(--surface-2)', borderRadius: 2, overflow: 'hidden' }}>
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${completion}%` }}
-              transition={{ duration: 0.6, ease: 'easeOut' }}
-              style={{ height: '100%', background: 'var(--accent)', borderRadius: 2 }}
-            />
-          </div>
-          <span style={{ fontSize: 10.5, color: 'var(--text-muted)', fontWeight: 600, minWidth: 32 }}>{completion}%</span>
+        {/* Completion indicator — minimal, inline with title */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+          {[...Array(10)].map((_, i) => (
+            <div key={i} style={{ width: 16, height: 3, borderRadius: 2, background: i < Math.round(completion / 10) ? 'var(--accent)' : 'var(--surface-2)', transition: 'background .4s' }} />
+          ))}
+          <span style={{ fontSize: 10, color: completion < 40 ? '#ef4444' : completion < 70 ? '#f59e0b' : '#22c55e', fontWeight: 700, marginLeft: 4 }}>{completion}%</span>
         </div>
       </motion.div>
 

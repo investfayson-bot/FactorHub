@@ -105,6 +105,8 @@ function PhaseTimeline({ phases }: { phases: PhaseState[] }) {
 
 // ─── Agent Output Panel (with manual scroll control) ─────────────────────────
 
+// ─── Agent Plan List (Claude Code style) ────────────────────────────────────
+
 function AgentOutputPanel({
   steps, currentAgentId, currentToken,
 }: {
@@ -112,113 +114,116 @@ function AgentOutputPanel({
   currentAgentId: string | null
   currentToken: string
 }) {
-  const [selected, setSelected] = useState<string | null>(null)
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const userScrolledUp = useRef(false)
-  const bottomRef = useRef<HTMLDivElement>(null)
+  const [expanded, setExpanded] = useState<string | null>(null)
+  const liveScrollRef = useRef<HTMLDivElement>(null)
 
-  // Auto-follow active agent
+  // Auto-scroll the live stream only — never interrupt user reading other outputs
   useEffect(() => {
-    if (currentAgentId) {
-      setSelected(currentAgentId)
-      userScrolledUp.current = false
+    if (liveScrollRef.current) {
+      liveScrollRef.current.scrollTop = liveScrollRef.current.scrollHeight
     }
-  }, [currentAgentId])
+  }, [currentToken])
 
-  // Auto-scroll only if user hasn't manually scrolled up
-  useEffect(() => {
-    if (!userScrolledUp.current) {
-      bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }
-  }, [currentToken, selected])
+  // Show live agent at top if not in completed steps
+  const liveAgent = currentAgentId && !steps.find(s => s.agentId === currentAgentId)
+    ? AGENTS_V2[currentAgentId]
+    : null
 
-  function handleScroll() {
-    const el = scrollRef.current
-    if (!el) return
-    const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 40
-    userScrolledUp.current = !atBottom
+  function statusIcon(agentId: string) {
+    if (agentId === currentAgentId) return (
+      <motion.div style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <motion.div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }} animate={{ opacity: [1, 0.3, 1] }} transition={{ repeat: Infinity, duration: 0.8 }} />
+      </motion.div>
+    )
+    return <div style={{ width: 16, height: 16, borderRadius: '50%', background: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><i className="fa-solid fa-check" style={{ fontSize: 7, color: '#fff' }} /></div>
   }
-
-  function scrollToBottom() {
-    userScrolledUp.current = false
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }
-
-  const activeStep = selected ? steps.find(s => s.agentId === selected) : null
-  const isCurrentlyStreaming = selected === currentAgentId
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
-      {/* Agent tabs */}
-      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 10, paddingBottom: 10, borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-        {steps.map(s => (
-          <button key={s.agentId} onClick={() => { setSelected(s.agentId); userScrolledUp.current = false }}
-            style={{
-              padding: '3px 8px', borderRadius: 5,
-              background: selected === s.agentId ? `${s.color}20` : 'var(--surface-3)',
-              border: `0.5px solid ${selected === s.agentId ? `${s.color}60` : 'var(--border)'}`,
-              cursor: 'pointer', fontFamily: 'inherit',
-            }}>
-            <span style={{ fontSize: 9, fontWeight: 700, color: selected === s.agentId ? s.color : 'var(--text-muted)' }}>
-              {s.agentName}
-            </span>
-          </button>
-        ))}
-        {currentAgentId && !steps.find(s => s.agentId === currentAgentId) && (
-          <button onClick={() => { setSelected(currentAgentId); userScrolledUp.current = false }}
-            style={{ padding: '3px 8px', borderRadius: 5, background: 'var(--accent-dim)', border: '0.5px solid var(--accent)', cursor: 'pointer', fontFamily: 'inherit' }}>
-            <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--accent)' }}>
-              {AGENTS_V2[currentAgentId]?.name ?? currentAgentId} ●
-            </span>
-          </button>
-        )}
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
 
-      {/* Output area with manual scroll */}
-      <div ref={scrollRef} onScroll={handleScroll} style={{
-        flex: 1, overflow: 'auto', fontFamily: 'monospace',
-        fontSize: 12, lineHeight: 1.7, color: 'var(--text)',
-        whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-      }}>
-        {activeStep ? (
-          <>
-            {activeStep.output}
-            {isCurrentlyStreaming && currentToken && (
-              <span style={{ color: 'var(--accent)' }}>{currentToken}<span style={{ animation: 'blink 1s infinite' }}>▋</span></span>
-            )}
-          </>
-        ) : currentAgentId && selected === currentAgentId ? (
-          <>
-            <span style={{ color: 'var(--text-muted)' }}>Recebendo...</span>
-            {currentToken && <span style={{ color: 'var(--accent)' }}>{currentToken}</span>}
-          </>
-        ) : (
-          <span style={{ color: 'var(--text-dim)' }}>Selecione um agente para ver o output</span>
-        )}
-        <div ref={bottomRef} />
-      </div>
-
-      {/* Scroll-to-bottom button */}
+      {/* Live streaming agent — always pinned at top */}
       <AnimatePresence>
-        {userScrolledUp.current && (
-          <motion.button
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            onClick={scrollToBottom}
-            style={{
-              position: 'absolute', bottom: 8, right: 8,
-              padding: '6px 12px', borderRadius: 8,
-              background: 'var(--accent)', color: '#fff',
-              border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600,
-              display: 'flex', alignItems: 'center', gap: 4,
-            }}
+        {liveAgent && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            style={{ borderBottom: '1px solid var(--border)', flexShrink: 0, overflow: 'hidden' }}
           >
-            <i className="fa-solid fa-arrow-down" style={{ fontSize: 9 }} />
-            Ir para live
-          </motion.button>
+            <div style={{ padding: '10px 12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <motion.div style={{ width: 16, height: 16, borderRadius: '50%', border: `2px solid ${liveAgent.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <motion.div style={{ width: 6, height: 6, borderRadius: '50%', background: liveAgent.color }} animate={{ opacity: [1, 0.3, 1] }} transition={{ repeat: Infinity, duration: 0.8 }} />
+                </motion.div>
+                <span style={{ fontSize: 11, fontWeight: 700, color: liveAgent.color }}>{liveAgent.name}</span>
+                <span style={{ fontSize: 9, color: 'var(--text-dim)', fontWeight: 600 }}>escrevendo...</span>
+              </div>
+              <div ref={liveScrollRef} style={{ maxHeight: 120, overflow: 'hidden', fontFamily: 'monospace', fontSize: 11, lineHeight: 1.7, color: 'var(--text-muted)', whiteSpace: 'pre-wrap', wordBreak: 'break-word', padding: '8px', background: 'var(--surface-2)', borderRadius: 6, border: '1px solid var(--border)' }}>
+                {currentToken || ''}
+                <motion.span animate={{ opacity: [1, 0] }} transition={{ repeat: Infinity, duration: 0.5 }} style={{ display: 'inline-block', width: 2, height: 12, background: liveAgent.color, marginLeft: 2, verticalAlign: 'text-bottom' }} />
+              </div>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Completed steps — user controls scroll, no interruption */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
+        {steps.length === 0 && !liveAgent && (
+          <div style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--text-dim)', fontSize: 12 }}>
+            Aguardando agentes...
+          </div>
+        )}
+
+        {[...steps].reverse().map((step, i) => {
+          const agent = AGENTS_V2[step.agentId]
+          const isExpanded = expanded === step.agentId
+          return (
+            <motion.div
+              key={step.agentId}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.03 }}
+              style={{ borderBottom: '1px solid var(--border)' }}
+            >
+              <button
+                onClick={() => setExpanded(isExpanded ? null : step.agentId)}
+                style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'inherit' }}
+              >
+                {statusIcon(step.agentId)}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text)' }}>{step.agentName}</div>
+                  {!isExpanded && (
+                    <div style={{ fontSize: 10, color: 'var(--text-dim)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 2 }}>
+                      {step.output.slice(0, 80)}...
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                  <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 4, background: `${step.color}15`, color: step.color }}>{agent?.layer}</span>
+                  <i className={`fa-solid fa-chevron-${isExpanded ? 'up' : 'down'}`} style={{ fontSize: 8, color: 'var(--text-dim)' }} />
+                </div>
+              </button>
+
+              <AnimatePresence>
+                {isExpanded && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.18 }}
+                    style={{ overflow: 'hidden' }}
+                  >
+                    <div style={{ padding: '0 12px 12px 38px', fontFamily: 'monospace', fontSize: 11, lineHeight: 1.8, color: 'var(--text)', whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 400, overflowY: 'auto', borderLeft: `2px solid ${step.color}40`, marginLeft: 18 }}>
+                      {step.output}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          )
+        })}
+      </div>
     </div>
   )
 }
