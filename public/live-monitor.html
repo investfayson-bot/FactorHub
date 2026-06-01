@@ -96,30 +96,55 @@ html,body{width:100%;height:100%;overflow:hidden;background:#060408;font-family:
 
 /* ── Right Panel ── */
 #panel{
-  position:fixed;top:0;right:0;bottom:34px;width:300px;
-  background:rgba(6,4,14,.94);backdrop-filter:blur(16px);
-  border-left:1px solid rgba(255,255,255,.06);
+  position:fixed;top:0;right:0;bottom:34px;width:280px;
+  background:rgba(8,6,18,.96);backdrop-filter:blur(20px);
+  border-left:1px solid rgba(255,255,255,.07);
   display:flex;flex-direction:column;overflow:hidden;z-index:200;
 }
-.psec{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.05);flex-shrink:0}
-.ptitle{font-size:7.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#2a2848;margin-bottom:9px}
-.arow{display:flex;align-items:center;gap:7px;padding:5px 5px;border-radius:6px;cursor:pointer;transition:background .12s}
-.arow:hover{background:rgba(255,255,255,.03)}
-.aav{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:7.5px;font-weight:900;flex-shrink:0}
-.aname{font-size:9.5px;font-weight:700;color:#c4b8e0}
-.atask{font-size:8px;color:#3a3a5a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:152px}
-.adot{width:5px;height:5px;border-radius:50%;flex-shrink:0;margin-left:auto}
+.psec{padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0}
+.ptitle{font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#3a3564;margin-bottom:10px}
+/* Agent row — matches reference */
+.arow{
+  display:flex;align-items:center;gap:10px;
+  padding:7px 8px;border-radius:7px;cursor:pointer;
+  transition:background .12s;margin-bottom:3px;
+}
+.arow:hover{background:rgba(255,255,255,.04)}
+.aav{
+  width:32px;height:32px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:900;flex-shrink:0;
+  border-width:1px;border-style:solid;
+}
+.ainfo{flex:1;min-width:0}
+.aname{font-size:11px;font-weight:700;color:#e0e0f0;margin-bottom:1px}
+.arole{font-size:9px;color:#4a4a6a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.a-status{
+  font-size:7.5px;font-weight:800;letter-spacing:.06em;
+  padding:2px 6px;border-radius:3px;flex-shrink:0;
+}
+.s-online{background:rgba(34,197,94,.12);color:#22c55e;border:1px solid rgba(34,197,94,.2)}
+.s-busy  {background:rgba(232,98,42,.12); color:#e8622a;border:1px solid rgba(232,98,42,.2)}
 
 /* scrollable body */
 #panel-body{flex:1;overflow-y:auto}
 #panel-body::-webkit-scrollbar{width:3px}#panel-body::-webkit-scrollbar-thumb{background:#1a1535;border-radius:2px}
 
-.mrow{padding:7px 8px;border-radius:6px;margin-bottom:4px;border:1px solid transparent}
-.mname{font-size:10px;font-weight:600;color:#c4b8e0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px}
+/* Missions */
+.mrow{padding:8px 8px;border-radius:6px;margin-bottom:5px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05)}
+.mtag{font-size:7.5px;font-weight:800;padding:2px 6px;border-radius:3px;letter-spacing:.05em}
+.mname{font-size:10px;font-weight:600;color:#c4b8e0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:4px 0 5px}
 .mpb{height:2px;background:#14112a;border-radius:1px}
 .mpbf{height:100%;border-radius:1px;transition:width .5s}
+.see-all{
+  width:100%;padding:7px;border-radius:5px;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);
+  color:#4a4a6a;font-size:9.5px;font-weight:600;cursor:pointer;
+  font-family:inherit;letter-spacing:.04em;margin-top:8px;
+}
+.see-all:hover{background:rgba(255,255,255,.07);color:#7a6e9a}
 
-#cost-area{padding:12px 14px}
+#cost-area{padding:12px 16px}
 #cost-chart{width:100%;height:44px;border-radius:3px}
 .cost-row{display:flex;justify-content:space-between;align-items:center;margin-top:5px}
 
@@ -162,17 +187,18 @@ html,body{width:100%;height:100%;overflow:hidden;background:#060408;font-family:
     <div id="agent-list"></div>
   </div>
   <div id="panel-body">
-    <div style="padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.05)">
+    <div style="padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.06)">
       <div class="ptitle">Missões</div>
       <div id="mission-list">
         <div style="font-size:10px;color:#2a2848;text-align:center;padding:16px 0">Nenhuma missão ativa</div>
       </div>
+      <button class="see-all" onclick="window.open('/dashboard/missoes','_top')">Ver todas as missões →</button>
     </div>
     <div id="cost-area">
-      <div class="ptitle">Custo IA</div>
-      <canvas id="cost-chart" width="272" height="44"></canvas>
+      <div class="ptitle">Consumo IA — 14 dias</div>
+      <canvas id="cost-chart" width="248" height="44"></canvas>
       <div class="cost-row">
-        <span style="font-size:8.5px;color:#3a3a5a">Acumulado</span>
+        <span style="font-size:8.5px;color:#3a3a5a">Total acumulado</span>
         <span id="total-cost" style="font-size:10px;font-weight:700;color:#c9a84c;font-family:'Courier New',monospace">$0.0000</span>
       </div>
     </div>
@@ -192,19 +218,19 @@ html,body{width:100%;height:100%;overflow:hidden;background:#060408;font-family:
 // ─── Agent definitions ────────────────────────────────────────────────────────
 const AGENTS = [
   {id:'CEO',name:'CEO Estratégico',role:'Decisões estratégicas',layer:'C1',color:'#e8622a',sprite:'char-purple',init:'CE',
-   pos:{l:22,t:33}},
-  {id:'COO',name:'COO',role:'Operações e escalabilidade',layer:'C1',color:'#f59e0b',sprite:'char-blue',init:'CO',
-   pos:{l:31,t:26}},
+   pos:{l:17,t:33}},   // Strategy Room — desk esquerda
+  {id:'COO',name:'COO',role:'Operações e eficiência',layer:'C1',color:'#f59e0b',sprite:'char-blue',init:'CO',
+   pos:{l:24,t:27}},   // Strategy Room — desk direita
   {id:'CFO',name:'CFO',role:'Viabilidade financeira',layer:'C1',color:'#6366f1',sprite:'char-dark',init:'CF',
-   pos:{l:16,t:40}},
-  {id:'CTO',name:'CTO',role:'Arquitetura técnica',layer:'C1',color:'#10b981',sprite:'char-green',init:'CT',
-   pos:{l:56,t:23}},
-  {id:'CMO',name:'CMO',role:'Posicionamento e growth',layer:'C1',color:'#ec4899',sprite:'char-black',init:'CM',
-   pos:{l:29,t:49}},
-  {id:'CPO',name:'CPO',role:'Estratégia de produto',layer:'C1',color:'#8b5cf6',sprite:'char-pink',init:'CP',
-   pos:{l:20,t:56}},
+   pos:{l:22,t:47}},   // Growth Room
+  {id:'CTO',name:'CTO Arquitetura',role:'Decisões técnicas',layer:'C1',color:'#10b981',sprite:'char-green',init:'CT',
+   pos:{l:49,t:23}},   // Tech Room
+  {id:'CMO',name:'CMO Growth',role:'Marketing e aquisição',layer:'C1',color:'#ec4899',sprite:'char-black',init:'CM',
+   pos:{l:35,t:45}},   // Meeting Room
   {id:'CA',name:'Chief of Staff',role:'Síntese executiva',layer:'CA',color:'#c9a84c',sprite:'char-orange',init:'CA',
-   pos:{l:10,t:51}},
+   pos:{l:7,t:45}},    // Recepção
+  {id:'SI',name:'Strategic Intel',role:'Inteligência estratégica',layer:'C2',color:'#7c3aed',sprite:'char-pink',init:'SI',
+   pos:{l:66,t:33}},   // Kitchen
 ]
 
 // ─── Sprite sheet geometry ────────────────────────────────────────────────────
@@ -355,15 +381,17 @@ function renderAgentList() {
   if (!el) return
   el.innerHTML = AGENTS.map(a => {
     const s = STATE[a.id]
-    const active = s.status === 'sit' || s.status === 'think'
+    const working = s.status === 'sit' || s.status === 'think'
+    const statusClass = working ? 's-busy' : 's-online'
+    const statusLabel = working ? 'ATIVO' : 'ONLINE'
     return `
     <div class="arow" onclick="openModal('${a.id}')">
-      <div class="aav" style="background:${a.color}20;border:1px solid ${a.color}40;color:${a.color}">${a.init}</div>
-      <div style="flex:1;min-width:0">
+      <div class="aav" style="background:${a.color}18;border-color:${a.color}50;color:${a.color}">${a.init}</div>
+      <div class="ainfo">
         <div class="aname">${a.name}</div>
-        <div class="atask">${STATE[a.id].task}</div>
+        <div class="arole">${a.role}</div>
       </div>
-      <div class="adot" style="background:${active?'#22c55e':'#2a2848'}"></div>
+      <div class="a-status ${statusClass}">${statusLabel}</div>
     </div>`
   }).join('')
 }
@@ -471,13 +499,13 @@ document.getElementById('clk').textContent=new Date().toLocaleTimeString('pt-BR'
 
 // ─── Live simulation (task cycling, no walking) ───────────────────────────────
 const SIM = {
-  CEO:['Validando nova oportunidade de mercado','Revisando plano estratégico Q3','Aprovando budget de expansão'],
-  COO:['Mapeando dependências do sprint','Otimizando processos','Coordenando equipes'],
-  CFO:['Modelando unit economics','Análise de fluxo de caixa','Revisando margens por produto'],
-  CTO:['Revisando arquitetura','Code review PR #47','Deploy em produção'],
-  CMO:['Campanha Q3 — análise de ROAS','Estratégia de conteúdo','Análise do funil de conversão'],
-  CPO:['Roadmap Q3 priorizado','Definindo user stories','Revisando métricas de produto'],
-  CA:['Síntese executiva','Coordenando agenda','Report semanal para founder'],
+  CEO:['A autonomia define o nosso sucesso.','Validando nova missão N4.','Oportunidade identificada — executar.'],
+  COO:['Sprint atualizado. Dependências ok.','Alinhando times para Q3.','Processos otimizados.'],
+  CFO:['CAC validado. Margem 68%.','Análise financeira Q3 concluída.','Projeção de receita revisada.'],
+  CTO:['Deploy de nova feature em prod.','Revisando arquitetura de microserviços.','Zero bugs críticos.'],
+  CMO:['ROAS 3.2x alcançado este mês.','Nova campanha Q3 aprovada.','Leads: 50/semana no funil.'],
+  CA:['Briefing executivo enviado.','Coordenando missão N4.','Report semanal para o founder.'],
+  SI:['Inteligência de mercado atualizada.','Análise competitiva concluída.','Tendências Q3 mapeadas.'],
 }
 
 function simTick() {
