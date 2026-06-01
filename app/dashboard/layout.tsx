@@ -39,6 +39,12 @@ const NAV: { label: string; items: NavItem[] }[] = [
     ],
   },
   {
+    label: 'Ferramentas',
+    items: [
+      { href: '/dashboard/atendimento', icon: 'fa-headset', label: 'Atendimento 24/7', badge: 'NOVO', badgeColor: '#3ecf8e' },
+    ],
+  },
+  {
     label: 'Portfólio',
     items: [
       { href: '/dashboard/produtos', icon: 'fa-box-open', label: 'Produtos', badge: '3', badgeColor: '#2e2e2e' },
@@ -79,6 +85,7 @@ const TITLES: Record<string, string> = {
   '/dashboard/produtos': 'Portfólio',
   '/dashboard/criar': 'Criar Ferramenta',
   '/dashboard/setores': 'Setores',
+  '/dashboard/atendimento': 'Atendimento 24/7',
 }
 
 function isActive(pathname: string, item: NavItem) {
