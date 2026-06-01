@@ -270,7 +270,7 @@ export default function DashboardPage() {
     {label:'Missões ativas', value:activeMissions.length, sub:`${missions.length} total · ${approvedMissions.length} aprovadas`, icon:'fa-rocket', color:'#3ecf8e', href:'/dashboard/missoes',
      sparkData:Array.from({length:7},(_,i)=>missions.filter(m=>new Date(m.created_at).toDateString()===new Date(now-i*86400000).toDateString()).length).reverse()},
     {label:'Hoje', value:todayMissions.length, sub:`${agentsNow} agentes ativos agora`, icon:'fa-calendar-day', color:'#3ecf8e', href:'/dashboard/missoes'},
-    {label:'Agentes', value:27, sub:`${agentsNow} em execução · 27 disponíveis`, icon:'fa-robot', color:'#3ecf8e', href:'/dashboard/agentes'},
+    {label:'Agentes', value:28, sub:`${agentsNow} em execução · 28 disponíveis`, icon:'fa-robot', color:'#3ecf8e', href:'/dashboard/agentes'},
     {label:'Custo hoje', value:fmtMoney(todayCost), sub:`proj. mês ${fmtMoney(projMes)} · total ${fmtMoney(totalCost)}`, icon:'fa-coins', color:'#3ecf8e', href:'/dashboard/uso',
      sparkData:costBy30.slice(-7).map(d=>d.sonnet+d.haiku)},
     {label:'Cérebro', value:`${cerebroPct}%`, sub:`${CEREBRO_FIELDS.filter(f=>cerebro?.[f.key]).length}/${CEREBRO_FIELDS.length} campos preenchidos`, icon:'fa-brain', color:cerebroPct<40?'#f44':cerebroPct<70?'#f59e0b':'#3ecf8e', href:'/dashboard/cerebro'},

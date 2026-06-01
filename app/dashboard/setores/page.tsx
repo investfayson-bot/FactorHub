@@ -32,6 +32,8 @@ const SETORES: Setor[] = [
     ferramentas: ['Gestão de eventos', 'Palestras', 'Inscrições', 'Pós-evento'] },
   { id: 'produto', nome: 'Produto', icon: 'fa-cube', desc: 'Roadmap, specs e construção', lead: 'CPO', equipe: ['DP', 'DV', 'DS'],
     ferramentas: ['Roadmap', 'Specs', 'MVP', 'Curadoria'] },
+  { id: 'juridico', nome: 'Jurídico', icon: 'fa-scale-balanced', desc: 'Minutas, contratos e due diligence', lead: 'JUR', equipe: ['CFO'],
+    ferramentas: ['Minutas', 'Contratos', 'Distratos', 'Due diligence', 'Pareceres'] },
   { id: 'tecnologia', nome: 'Tecnologia', icon: 'fa-microchip', desc: 'Arquitetura, deploy e integrações', lead: 'CTO', equipe: ['DV'],
     ferramentas: ['Arquitetura', 'Deploy', 'Integrações', 'Automações'] },
   { id: 'estrategia', nome: 'Estratégia', icon: 'fa-chess-king', desc: 'Decisões e direção da empresa', lead: 'CEO', equipe: ['CSO', 'CA'],

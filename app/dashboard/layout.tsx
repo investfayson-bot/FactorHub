@@ -35,7 +35,7 @@ const NAV: { label: string; items: NavItem[] }[] = [
     label: 'Squad',
     items: [
       { href: '/dashboard/setores', icon: 'fa-sitemap', label: 'Setores' },
-      { href: '/dashboard/agentes', icon: 'fa-robot', label: 'Agentes · Squad', badge: '27', badgeColor: '#2e2e2e' },
+      { href: '/dashboard/agentes', icon: 'fa-robot', label: 'Agentes · Squad', badge: '28', badgeColor: '#2e2e2e' },
     ],
   },
   {
