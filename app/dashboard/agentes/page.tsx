@@ -528,6 +528,7 @@ export default function AgentesPage() {
     return matchLayer && matchSearch
   })
   const activeCount = Object.values(missionMap).filter(m => m.isRunning).length
+  const workingAgents = allAgents.filter(a => missionMap[a.id]?.isRunning)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
@@ -574,6 +575,40 @@ export default function AgentesPage() {
           ))}
         </div>
       </div>
+
+      {/* Working Now strip */}
+      {workingAgents.length > 0 && (
+        <div style={{ margin: '0 24px 16px', padding: '12px 14px', borderRadius: 10, background: 'rgba(34,197,94,.05)', border: '1px solid rgba(34,197,94,.15)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
+            <motion.div style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e' }} animate={{ opacity: [1, 0.3, 1] }} transition={{ repeat: Infinity, duration: 0.9 }} />
+            <span style={{ fontSize: 10, fontWeight: 700, color: '#22c55e', textTransform: 'uppercase', letterSpacing: '.08em' }}>Trabalhando agora — {workingAgents.length} agente{workingAgents.length > 1 ? 's' : ''}</span>
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {workingAgents.map(a => (
+              <motion.button
+                key={a.id}
+                onClick={() => openAgent(a)}
+                whileHover={{ y: -1 }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', borderRadius: 8,
+                  background: `${a.color}10`, border: `1px solid ${a.color}40`, cursor: 'pointer',
+                }}
+              >
+                <div style={{ width: 26, height: 26, borderRadius: 7, background: `${a.color}20`, border: `1.5px solid ${a.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 800, color: a.color }}>
+                  {a.initial}
+                </div>
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#f0f0f0' }}>{a.name}</div>
+                  <div style={{ fontSize: 9, color: '#7a6e9a', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {missionMap[a.id]?.currentMission ?? 'missão ativa'}
+                  </div>
+                </div>
+                <motion.div style={{ width: 5, height: 5, borderRadius: '50%', background: '#22c55e', marginLeft: 4, flexShrink: 0 }} animate={{ opacity: [1, 0.2, 1] }} transition={{ repeat: Infinity, duration: 0.8 }} />
+              </motion.button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Grid */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '0 24px 24px' }}>

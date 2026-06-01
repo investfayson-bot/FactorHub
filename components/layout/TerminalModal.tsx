@@ -27,12 +27,12 @@ function extractTask(input: string): string {
 function lineColor(type: Line['type']): string {
   switch (type) {
     case 'cmd': return '#e8622a'
-    case 'ok': return '#22c55e'
-    case 'err': return '#ef4444'
-    case 'agent': return '#f59e0b'
-    case 'hint': return '#6b7280'
+    case 'ok': return '#4ade80'
+    case 'err': return '#f87171'
+    case 'agent': return '#fbbf24'
+    case 'hint': return '#4b5563'
     case 'stream': return '#e2e8f0'
-    default: return '#94a3b8'
+    default: return '#9ca3af'
   }
 }
 
@@ -40,15 +40,17 @@ interface Props { open: boolean; onClose: () => void }
 
 export default function TerminalModal({ open, onClose }: Props) {
   const [lines, setLines] = useState<Line[]>([
-    { type: 'info', text: 'FactorHub Terminal v2 — 26 agentes ativos' },
-    { type: 'hint', text: 'Digite "help" para ver comandos. Ex: @CEO analise meu mercado' },
+    { type: 'info', text: 'FactorHub Terminal v2 — 26 agentes · Ctrl+K para abrir/fechar' },
+    { type: 'hint', text: 'Digite "help" · Ex: @CEO analise meu mercado · @CFO modele unit economics' },
   ])
   const [input, setInput] = useState('')
   const [running, setRunning] = useState(false)
   const [history, setHistory] = useState<string[]>([])
   const [histIdx, setHistIdx] = useState(-1)
+  const [height, setHeight] = useState(260)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const dragRef = useRef<{ startY: number; startH: number } | null>(null)
 
   useEffect(() => {
     if (open) setTimeout(() => inputRef.current?.focus(), 80)
@@ -57,6 +59,24 @@ export default function TerminalModal({ open, onClose }: Props) {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [lines])
+
+  // Drag-to-resize handle
+  function onDragStart(e: React.MouseEvent) {
+    e.preventDefault()
+    dragRef.current = { startY: e.clientY, startH: height }
+    function onMove(ev: MouseEvent) {
+      if (!dragRef.current) return
+      const delta = dragRef.current.startY - ev.clientY
+      setHeight(Math.min(600, Math.max(160, dragRef.current.startH + delta)))
+    }
+    function onUp() {
+      dragRef.current = null
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }
 
   const push = useCallback((...newLines: Line[]) => {
     setLines(prev => [...prev, ...newLines])
@@ -105,9 +125,13 @@ export default function TerminalModal({ open, onClose }: Props) {
           const d = line.slice(6).trim()
           if (d === '[DONE]') break
           try {
-            const token = JSON.parse(d).choices?.[0]?.delta?.content ?? ''
-            full += token
-            setLines(prev => { const n = [...prev]; n[n.length - 1] = { type: 'stream', text: full }; return n })
+            const parsed = JSON.parse(d)
+            // Support both OpenRouter format and our custom format
+            const token = parsed.token ?? parsed.choices?.[0]?.delta?.content ?? ''
+            if (token) {
+              full += token
+              setLines(prev => { const n = [...prev]; n[n.length - 1] = { type: 'stream', text: full }; return n })
+            }
           } catch { /* ignore */ }
         }
       }
@@ -132,7 +156,7 @@ export default function TerminalModal({ open, onClose }: Props) {
 
     if (cmd === 'help') {
       push(
-        { type: 'hint', text: '─── Comandos ──────────────────────────────' },
+        { type: 'hint', text: '─── Comandos ──────────────────────────────────────' },
         { type: 'hint', text: '  help              este menu' },
         { type: 'hint', text: '  ls                lista todos os 26 agentes' },
         { type: 'hint', text: '  ls c1|c2|c3|c4|ca filtra por camada' },
@@ -140,12 +164,11 @@ export default function TerminalModal({ open, onClose }: Props) {
         { type: 'hint', text: '  @CEO tarefa       conversa com agente' },
         { type: 'hint', text: '  run CEO tarefa    sintaxe alternativa' },
         { type: 'hint', text: '  clear             limpa o terminal' },
-        { type: 'hint', text: '─── Exemplos ──────────────────────────────' },
+        { type: 'hint', text: '─── Exemplos ───────────────────────────────────────' },
         { type: 'hint', text: '  @CEO valide esta oportunidade de negócio' },
         { type: 'hint', text: '  @CFO modele o unit economics do produto' },
         { type: 'hint', text: '  @CMO crie estratégia de lançamento' },
-        { type: 'hint', text: '  @MR pesquise mercado de SaaS para PMEs' },
-        { type: 'hint', text: '  @CW escreva headline para landing page' },
+        { type: 'hint', text: '  @CW escreva copy para landing page' },
       )
       return
     }
@@ -153,7 +176,7 @@ export default function TerminalModal({ open, onClose }: Props) {
     if (cmd === 'status') {
       push(
         { type: 'info', text: `FactorHub OS v2.0 — ${new Date().toLocaleDateString('pt-BR')}` },
-        { type: 'ok', text: `${agents.length} agentes (C1:7 C2:6 C3:8 C4:4 CA:1)` },
+        { type: 'ok', text: `${agents.length} agentes (C1:7 C2:6 C3:5 C4:7 CA:1)` },
         { type: 'info', text: 'OpenRouter · Supabase · Vercel — todos ativos' },
       )
       return
@@ -165,7 +188,7 @@ export default function TerminalModal({ open, onClose }: Props) {
       if (filter && !filtered.length) { push({ type: 'err', text: `Camada "${filter}" inválida. Use: c1, c2, c3, c4, ca` }); return }
       filtered.forEach(a => push({
         type: 'info',
-        text: `  @${a.id.padEnd(4)} [${a.layer}]  ${a.name.padEnd(22)} — ${a.role}`,
+        text: `  @${a.id.padEnd(5)} [${a.layer}]  ${a.name.padEnd(24)} — ${a.role}`,
       }))
       return
     }
@@ -198,63 +221,115 @@ export default function TerminalModal({ open, onClose }: Props) {
     <AnimatePresence>
       {open && (
         <motion.div
-          className="terminal-overlay"
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          transition={{ duration: 0.15 }}
-          onClick={e => { if (e.target === e.currentTarget) onClose() }}
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height, opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: 0.18, ease: 'easeOut' }}
+          style={{
+            position: 'fixed',
+            bottom: 0,
+            left: 'var(--sidebar-width, 220px)',
+            right: 0,
+            zIndex: 900,
+            background: '#0a0812',
+            borderTop: '1px solid #1e1a2e',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            fontFamily: "'DM Mono', 'JetBrains Mono', monospace",
+          }}
         >
-          <motion.div
-            className="terminal-box"
-            initial={{ opacity: 0, y: -24, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.96 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
+          {/* Drag handle */}
+          <div
+            onMouseDown={onDragStart}
+            style={{
+              height: 4,
+              cursor: 'ns-resize',
+              flexShrink: 0,
+              background: 'transparent',
+              borderTop: '1px solid #1e1a2e',
+            }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', borderBottom: '0.5px solid var(--border)', flexShrink: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#FF5F57', cursor: 'pointer' }} onClick={onClose} />
-                  <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#FEBC2E' }} />
-                  <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#28C840' }} />
-                </div>
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginLeft: 4 }}>FactorHub Terminal</span>
-                {Object.entries(LAYER_COLORS).map(([layer, color]) => (
-                  <span key={layer} style={{ fontSize: 8, fontWeight: 700, padding: '1px 5px', borderRadius: 3, background: `${color}20`, color, letterSpacing: 0.5 }}>{layer}</span>
-                ))}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                {running && (
-                  <motion.div style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e' }}
-                    animate={{ opacity: [1, 0.3, 1] }} transition={{ repeat: Infinity, duration: 1 }} />
-                )}
-                <span style={{ fontSize: 9, fontWeight: 600, padding: '2px 6px', borderRadius: 4, background: 'var(--surface-2)', color: 'var(--text-dim)' }}>CTRL+K</span>
-              </div>
+            <div style={{ margin: '1px auto', width: 36, height: 2, borderRadius: 2, background: '#2a2545' }} />
+          </div>
+
+          {/* Header */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '5px 14px 5px 12px',
+            borderBottom: '1px solid #1e1a2e',
+            flexShrink: 0,
+            background: '#0d0b1a',
+          }}>
+            {/* Tab */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '4px 12px', borderRadius: '4px 4px 0 0',
+              background: '#0a0812', borderBottom: '1px solid #0a0812',
+              marginBottom: -1,
+            }}>
+              <i className="fa-solid fa-terminal" style={{ fontSize: 9, color: '#e8622a' }} />
+              <span style={{ fontSize: 10, fontWeight: 600, color: '#c4b8e0' }}>Terminal</span>
             </div>
 
-            <div className="terminal-output">
-              {lines.map((l, i) => (
-                <div key={i} style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: lineColor(l.type), lineHeight: 1.6 }}>
-                  {l.type === 'stream' && !l.text
-                    ? <motion.span animate={{ opacity: [1, 0] }} transition={{ repeat: Infinity, duration: 0.6 }}>█</motion.span>
-                    : l.text}
-                </div>
+            {/* Layer badges */}
+            <div style={{ display: 'flex', gap: 4, marginLeft: 4 }}>
+              {Object.entries(LAYER_COLORS).map(([layer, color]) => (
+                <span key={layer} style={{ fontSize: 8, fontWeight: 700, padding: '1px 5px', borderRadius: 3, background: `${color}18`, color, letterSpacing: 0.5 }}>{layer}</span>
               ))}
-              <div ref={bottomRef} />
             </div>
 
-            <div className="terminal-input-row">
-              <span style={{ color: '#e8622a', fontWeight: 700, flexShrink: 0 }}>›</span>
-              <input
-                ref={inputRef}
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                onKeyDown={onKeyDown}
-                disabled={running}
-                placeholder={running ? 'Aguardando resposta...' : '@CEO analise · run CFO modele · ls c1 · help'}
-                style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--text)', fontSize: 12, fontFamily: "'DM Mono', monospace", opacity: running ? 0.5 : 1 }}
-              />
-            </div>
-          </motion.div>
+            <div style={{ flex: 1 }} />
+
+            {running && (
+              <motion.div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e' }}
+                animate={{ opacity: [1, 0.3, 1] }} transition={{ repeat: Infinity, duration: 0.9 }} />
+            )}
+            <span style={{ fontSize: 9, fontWeight: 600, padding: '2px 6px', borderRadius: 4, background: '#1e1a2e', color: '#4b5563' }}>Ctrl+K</span>
+            <button
+              onClick={onClose}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4b5563', fontSize: 12, padding: '2px 4px', lineHeight: 1 }}
+            >
+              ×
+            </button>
+          </div>
+
+          {/* Output */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '8px 14px', fontSize: 12, lineHeight: 1.7 }}>
+            {lines.map((l, i) => (
+              <div key={i} style={{ color: lineColor(l.type), whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                {l.type === 'stream' && !l.text
+                  ? <motion.span animate={{ opacity: [1, 0] }} transition={{ repeat: Infinity, duration: 0.6 }}>█</motion.span>
+                  : l.text}
+              </div>
+            ))}
+            <div ref={bottomRef} />
+          </div>
+
+          {/* Input */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '7px 14px',
+            borderTop: '1px solid #1e1a2e',
+            flexShrink: 0,
+            background: '#0d0b1a',
+          }}>
+            <span style={{ color: '#e8622a', fontWeight: 700, fontSize: 13, userSelect: 'none' }}>›</span>
+            <input
+              ref={inputRef}
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={onKeyDown}
+              disabled={running}
+              placeholder={running ? 'Aguardando resposta...' : '@CEO analise · @CFO modele · ls · help'}
+              style={{
+                flex: 1, background: 'transparent', border: 'none', outline: 'none',
+                color: '#e2e8f0', fontSize: 12,
+                fontFamily: "'DM Mono', 'JetBrains Mono', monospace",
+                opacity: running ? 0.5 : 1,
+              }}
+            />
+          </div>
         </motion.div>
       )}
     </AnimatePresence>

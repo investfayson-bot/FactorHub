@@ -38,6 +38,12 @@ const NAV: { label: string; items: NavItem[] }[] = [
     ],
   },
   {
+    label: 'Portfólio',
+    items: [
+      { href: '/dashboard/produtos', icon: 'fa-box-open', label: 'Produtos', badge: '3', badgeColor: '#c9a84c' },
+    ],
+  },
+  {
     label: 'Operação',
     items: [
       { href: '/dashboard/tarefas', icon: 'fa-list-check', label: 'Tarefas' },
@@ -70,6 +76,7 @@ const TITLES: Record<string, string> = {
   '/dashboard/projetos': 'Projetos',
   '/dashboard/ideias': 'Ideias',
   '/dashboard/configuracoes': 'Configurações',
+  '/dashboard/produtos': 'Portfólio',
 }
 
 function isActive(pathname: string, item: NavItem) {

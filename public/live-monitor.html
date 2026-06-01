@@ -139,6 +139,11 @@ const TASKS={CEO:['Validando missão Vigano','Revisão Q3','Aprovando expansão'
 const MISSIONS=[{name:'Análise de Mercado',level:'N2',color:'#e8622a',prog:72},{name:'Processo Financeiro',level:'N3',color:'#5b9bd5',prog:35},{name:'Campanha Q3 Ativa',level:'N1',color:'#4ade80',prog:80}]
 const CHARTS=[{label:'Crescimento',val:78,color:'#4ade80'},{label:'Conversões',val:61,color:'#e8622a'},{label:'Campanhas',val:45,color:'#5b9bd5'}]
 
+// Background image
+const bgImg=new Image()
+bgImg.crossOrigin='anonymous'
+bgImg.src='https://hebbkx1anhila5yf.public.blob.vercel-storage.com/ChatGPT%20Image%20May%2031%2C%202026%2C%2005_38_37%20PM-lTfCuprOYQMmKTGCbuMaZdf4aQ503n.png'
+
 // HD Canvas
 const canvas=document.getElementById('cv'),ctx=canvas.getContext('2d',{alpha:false})
 let DPR=1,CW=1,CH=1
@@ -342,6 +347,7 @@ function serverRack(px,py){
 // Draw office
 function drawOffice(){
   ctx.fillStyle='#060408';ctx.fillRect(0,0,CW,CH)
+  if(bgImg.complete&&bgImg.naturalWidth>0){ctx.save();ctx.globalAlpha=0.3;ctx.drawImage(bgImg,0,0,CW,CH);ctx.restore();ctx.fillStyle='rgba(6,4,8,0.6)';ctx.fillRect(0,0,CW,CH)}
   // Floors
   for(let gx=-1;gx<6;gx++)for(let gy=-1;gy<5;gy++)tile(gx,gy,(gx+gy)%2===0?'#1a1208':'#160f06')
   for(let gx=6;gx<12;gx++)for(let gy=-1;gy<5;gy++)tile(gx,gy,(gx+gy)%2===0?'#0d1a0d':'#0b160b')
