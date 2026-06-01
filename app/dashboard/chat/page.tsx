@@ -242,7 +242,7 @@ export default function ChatPage() {
       {/* Agent sidebar */}
       <div style={{ borderRight: '0.5px solid var(--border)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{ padding: '12px 14px', borderBottom: '0.5px solid var(--border)', flexShrink: 0 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 4 }}>Squad — 26 agentes</div>
+          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 4 }}>Squad — 27 agentes</div>
           <div style={{ fontSize: 9.5, color: 'var(--text-dim)' }}>Use @ID para mencionar</div>
         </div>
         <div style={{ flex: 1, overflowY: 'auto', padding: '4px 8px 8px' }}>

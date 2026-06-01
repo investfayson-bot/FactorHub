@@ -564,7 +564,7 @@ export default function MissoesPage() {
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--text)', letterSpacing: '-.5px', marginBottom: 4 }}>Nova Missão</div>
-                <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Descreva o que precisa analisar, planejar ou executar. Seus 26 agentes vão trabalhar em cadeia até a síntese executiva.</div>
+                <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Descreva o que precisa analisar, planejar ou executar. Seus 27 agentes vão trabalhar em cadeia até a síntese executiva.</div>
               </div>
             </div>
 

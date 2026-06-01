@@ -40,7 +40,7 @@ interface Props { open: boolean; onClose: () => void }
 
 export default function TerminalModal({ open, onClose }: Props) {
   const [lines, setLines] = useState<Line[]>([
-    { type: 'info', text: 'FactorHub Terminal v2 — 26 agentes · Ctrl+K para abrir/fechar' },
+    { type: 'info', text: 'FactorHub Terminal v2 — 27 agentes · Ctrl+K para abrir/fechar' },
     { type: 'hint', text: 'Digite "help" · Ex: @CEO analise meu mercado · @CFO modele unit economics' },
   ])
   const [input, setInput] = useState('')
@@ -158,7 +158,7 @@ export default function TerminalModal({ open, onClose }: Props) {
       push(
         { type: 'hint', text: '─── Comandos ──────────────────────────────────────' },
         { type: 'hint', text: '  help              este menu' },
-        { type: 'hint', text: '  ls                lista todos os 26 agentes' },
+        { type: 'hint', text: '  ls                lista todos os 27 agentes' },
         { type: 'hint', text: '  ls c1|c2|c3|c4|ca filtra por camada' },
         { type: 'hint', text: '  status            saúde do sistema' },
         { type: 'hint', text: '  @CEO tarefa       conversa com agente' },
@@ -176,7 +176,7 @@ export default function TerminalModal({ open, onClose }: Props) {
     if (cmd === 'status') {
       push(
         { type: 'info', text: `FactorHub OS v2.0 — ${new Date().toLocaleDateString('pt-BR')}` },
-        { type: 'ok', text: `${agents.length} agentes (C1:7 C2:6 C3:5 C4:7 CA:1)` },
+        { type: 'ok', text: `${agents.length} agentes (C1:7 C2:6 C3:5 C4:8 CA:1)` },
         { type: 'info', text: 'OpenRouter · Supabase · Vercel — todos ativos' },
       )
       return

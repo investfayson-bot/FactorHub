@@ -7,542 +7,174 @@
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:100%;height:100%;overflow:hidden;background:#060408;font-family:'Inter',system-ui,sans-serif}
 
-/* ── Office framed between bars — stretched to fill so hotspots align ── */
-#office{
-  position:fixed;top:44px;right:270px;bottom:34px;left:0;
-  background:url('/sprites/bg-office-v2.png') no-repeat;
-  background-size:100% 100%;
-  background-position:center;
+/* The full mockup image IS the interface */
+#stage{
+  position:fixed;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  background:#060408;
+}
+#scene{
+  position:relative;
+  width:100%;height:100%;
+  max-width:100vw;max-height:100vh;
+  background:url('/sprites/bg-office-v2.png') no-repeat center;
+  background-size:contain;
 }
 
-/* ── Invisible hotspot over each character ── */
-.hotspot{
+/* Invisible clickable hotspots — positioned over baked-in elements */
+.hot{
   position:absolute;
-  width:70px;height:90px;
-  transform:translate(-50%,-100%);
   cursor:pointer;
-  z-index:10;
   border-radius:8px;
-  transition:background .15s;
+  transition:background .15s, box-shadow .15s;
 }
-.hotspot:hover{background:rgba(255,255,255,.06);outline:1.5px solid rgba(255,255,255,.15)}
-.hotspot.active{background:rgba(255,255,255,.08);outline:2px solid var(--color)}
+.hot:hover{
+  background:rgba(62,207,142,.10);
+  box-shadow:0 0 0 1.5px rgba(62,207,142,.5), 0 0 22px rgba(62,207,142,.25);
+}
 
-/* ── Speech bubble — ALWAYS visible, compact one-liner ── */
-.bubble{
-  position:absolute;
-  bottom:calc(100% + 8px);
-  left:50%;transform:translateX(-50%);
-  background:rgba(8,6,16,.94);
-  border:1px solid rgba(255,255,255,.14);
-  border-radius:9px;
-  padding:6px 10px;
-  font-size:9.5px;color:#e8e8f4;line-height:1.4;
-  text-align:center;
-  pointer-events:none;
-  opacity:1;
-  width:max-content;max-width:150px;
-  z-index:20;
-  box-shadow:0 4px 18px rgba(0,0,0,.55);
-  animation:bubble-float 3.5s ease-in-out infinite;
+/* Ambient glow over monitor screens — pure motion, no edit to image */
+.glow{
+  position:absolute;border-radius:6px;pointer-events:none;
+  mix-blend-mode:screen;
 }
-@keyframes bubble-float{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-3px)}}
-.bubble::after{
-  content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);
-  border:5px solid transparent;border-top-color:rgba(8,6,16,.94);
-}
-/* color dot on bubble left edge */
-.bubble::before{
-  content:'';position:absolute;left:7px;top:50%;transform:translateY(-50%);
-  width:4px;height:4px;border-radius:50%;background:var(--color);
-}
-.b-task{font-size:9.5px;color:#d8d8ea;padding-left:6px}
-/* Name label appears on hover */
-.b-name-tag{
+.glow.cyan {background:radial-gradient(circle, rgba(62,207,142,.5) 0%, transparent 70%); animation:flick 3.2s ease-in-out infinite}
+.glow.amber{background:radial-gradient(circle, rgba(245,158,11,.4) 0%, transparent 70%); animation:flick 4.1s ease-in-out infinite}
+.glow.warm {background:radial-gradient(circle, rgba(232,98,42,.35) 0%, transparent 70%); animation:flick 5.0s ease-in-out infinite}
+@keyframes flick{0%,100%{opacity:.25}50%{opacity:.7}}
+
+/* Tooltip on hover */
+.tip{
   position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);
-  margin-bottom:34px;
-  font-size:8px;font-weight:800;letter-spacing:.04em;
-  padding:2px 7px;border-radius:4px;
-  background:var(--color);color:#0a0812;
-  opacity:0;transition:opacity .15s;pointer-events:none;white-space:nowrap;z-index:21;
+  background:rgba(6,4,14,.96);border:1px solid rgba(62,207,142,.3);
+  border-radius:8px;padding:7px 11px;white-space:nowrap;
+  opacity:0;transition:opacity .15s;pointer-events:none;z-index:30;
+  box-shadow:0 4px 18px rgba(0,0,0,.6);
 }
-.hotspot:hover .b-name-tag{opacity:1}
+.hot:hover .tip{opacity:1}
+.tip-name{font-size:11px;font-weight:800;color:#3ecf8e;margin-bottom:1px}
+.tip-sub{font-size:9px;color:#999}
 
-/* Working indicator */
-.working-ring{
-  position:absolute;bottom:8px;right:8px;
-  width:9px;height:9px;border-radius:50%;
-  background:#22c55e;border:1.5px solid rgba(6,4,14,.9);
-  display:none;
+/* Back button */
+#back{
+  position:fixed;top:14px;left:16px;z-index:200;
+  display:flex;align-items:center;gap:7px;
+  padding:7px 13px;border-radius:8px;
+  background:rgba(6,4,14,.85);backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,.12);
+  color:#ddd;cursor:pointer;font-family:inherit;font-size:11px;font-weight:600;
+  transition:all .12s;
 }
-.hotspot.working .working-ring{display:block;animation:ring-pulse 1.3s ease-out infinite}
-@keyframes ring-pulse{
-  0%{box-shadow:0 0 0 0 rgba(34,197,94,.7)}
-  70%{box-shadow:0 0 0 8px rgba(34,197,94,0)}
-  100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}
+#back:hover{background:rgba(62,207,142,.12);border-color:rgba(62,207,142,.4);color:#fff}
+
+/* Clock pill */
+#clock{
+  position:fixed;top:14px;right:16px;z-index:200;
+  padding:6px 12px;border-radius:8px;
+  background:rgba(6,4,14,.85);backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,.1);
+  font-size:11px;color:#3ecf8e;font-variant-numeric:tabular-nums;font-weight:600;
 }
 
-/* ── Top Bar ── */
-#topbar{
-  position:fixed;top:0;left:0;right:270px;height:44px;
-  background:rgba(6,4,14,.88);backdrop-filter:blur(14px);
-  border-bottom:1px solid rgba(255,255,255,.07);
-  display:flex;align-items:center;padding:0 16px;gap:12px;z-index:200;
-}
-.pip{width:7px;height:7px;border-radius:50%;background:#22c55e;animation:glow-p 1.6s ease-in-out infinite}
-@keyframes glow-p{0%,100%{box-shadow:0 0 4px #22c55e}50%{box-shadow:0 0 14px #22c55e,0 0 28px #22c55e44}}
-.logo{font-size:13px;font-weight:800;letter-spacing:.12em;color:#f0f0f0}.logo span{color:#888}
-.bdg{font-size:8px;font-weight:700;padding:2px 7px;border-radius:3px;letter-spacing:.05em}
-.b-g{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);color:#22c55e}
-.b-o{background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.2);color:#c9a84c}
-#clk{font-size:10px;color:#555;margin-left:auto;font-variant-numeric:tabular-nums}
-
-/* ── Right Panel ── */
-#panel{
-  position:fixed;top:0;right:0;bottom:34px;width:270px;
-  background:rgba(6,4,14,.95);backdrop-filter:blur(20px);
-  border-left:1px solid rgba(255,255,255,.07);
-  display:flex;flex-direction:column;overflow:hidden;z-index:200;
-}
-.psec{padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0}
-.ptit{font-size:7.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#333;margin-bottom:10px}
-
-.arow{
-  display:flex;align-items:center;gap:9px;
-  padding:6px 7px;border-radius:7px;cursor:pointer;
-  transition:background .1s;margin-bottom:2px;
-}
-.arow:hover{background:rgba(255,255,255,.04)}
-.aav{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:900;flex-shrink:0}
-.ainfo{flex:1;min-width:0}
-.aname{font-size:10.5px;font-weight:700;color:#e0e0f0;margin-bottom:1px}
-.arole{font-size:8.5px;color:#444;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.astat{font-size:7px;font-weight:800;letter-spacing:.06em;padding:2px 6px;border-radius:3px;flex-shrink:0}
-.s-on{background:rgba(34,197,94,.1);color:#22c55e;border:1px solid rgba(34,197,94,.18)}
-.s-busy{background:rgba(232,98,42,.1);color:#e8622a;border:1px solid rgba(232,98,42,.18)}
-
-#pbody{flex:1;overflow-y:auto}
-#pbody::-webkit-scrollbar{width:2px}#pbody::-webkit-scrollbar-thumb{background:#1a1a1a;border-radius:1px}
-
-.mrow{padding:8px;border-radius:6px;margin-bottom:5px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.04)}
-.mtag{font-size:7px;font-weight:800;padding:2px 6px;border-radius:3px;letter-spacing:.05em}
-.mname{font-size:10px;font-weight:600;color:#ccc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:4px 0 5px}
-.mpb{height:2px;background:#111;border-radius:1px}.mpbf{height:100%;border-radius:1px;transition:width .5s}
-.see-all{width:100%;padding:7px;border-radius:5px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);color:#444;font-size:9px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:8px;transition:all .1s}
-.see-all:hover{color:#777;background:rgba(255,255,255,.06)}
-
-/* Cost sparkline */
-#cost-wrap{padding:12px 16px}
-#cost-cv{width:100%;height:42px;border-radius:3px}
-
-/* ── Bottom Ticker ── */
-#ticker{
-  position:fixed;bottom:0;left:0;right:0;height:34px;
-  background:rgba(6,4,14,.92);border-top:1px solid rgba(255,255,255,.06);
-  display:flex;align-items:center;overflow:hidden;z-index:200;
-}
-.tlbl{padding:0 12px;font-size:7px;font-weight:700;letter-spacing:.1em;color:#c9a84c;white-space:nowrap;border-right:1px solid rgba(255,255,255,.06);text-transform:uppercase}
-.tinn{display:flex;animation:scroll-t 55s linear infinite;white-space:nowrap}
-@keyframes scroll-t{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-.tev{display:inline-flex;align-items:center;gap:5px;padding:0 20px;font-size:8.5px;color:#444}
-.tdot{width:3px;height:3px;border-radius:50%}
-
-/* ── Agent modal ── */
-#amodal{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center}
-#amodal.open{display:flex}
-.abox{background:#0d0d0d;border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:22px;width:340px}
+/* Modal */
+#modal{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center}
+#modal.open{display:flex}
+.mbox{background:#0d0d0d;border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:22px;width:360px}
 </style>
 </head>
 <body>
 
-<!-- Office background — bg-office-v2.png ALREADY has the characters drawn in -->
-<div id="office">
+<button id="back" onclick="window.open('/dashboard','_top')">← Voltar ao Sistema</button>
+<div id="clock">--:--:--</div>
 
-  <!-- HOTSPOTS — invisible clickable areas over each character in the image -->
-  <!-- Positions as % of viewport (bg-office-v2 is 1672×941, covers 100% viewport) -->
+<div id="stage">
+  <div id="scene" id="scene">
 
-  <div class="hotspot" id="hs-CA"   style="left:8%;top:45%;--color:#c9a84c">
-    <div class="b-name-tag">Chief of Staff</div>
-    <div class="bubble"><span class="b-task" id="bt-CA">Coordenando agenda do founder.</span></div>
-    <div class="working-ring"></div>
-  </div>
+    <!-- Ambient glows over the monitor screens (positions tuned to the rooms) -->
+    <div class="glow cyan"  style="left:30%;top:24%;width:90px;height:50px"></div>
+    <div class="glow amber" style="left:52%;top:20%;width:120px;height:60px"></div>
+    <div class="glow cyan"  style="left:75%;top:18%;width:130px;height:65px"></div>
+    <div class="glow warm"  style="left:11%;top:42%;width:60px;height:40px"></div>
+    <div class="glow cyan"  style="left:30%;top:48%;width:80px;height:45px"></div>
 
-  <div class="hotspot" id="hs-CEO"  style="left:18%;top:33%;--color:#e8622a">
-    <div class="b-name-tag">CEO Estratégico</div>
-    <div class="bubble"><span class="b-task" id="bt-CEO">A autonomia define o nosso sucesso.</span></div>
-    <div class="working-ring"></div>
-  </div>
-
-  <div class="hotspot" id="hs-COO"  style="left:25%;top:27%;--color:#f59e0b">
-    <div class="b-name-tag">COO</div>
-    <div class="bubble"><span class="b-task" id="bt-COO">Sprint atualizado. Dependências ok.</span></div>
-    <div class="working-ring"></div>
-  </div>
-
-  <div class="hotspot" id="hs-CMO"  style="left:22%;top:47%;--color:#ec4899">
-    <div class="b-name-tag">CMO Growth</div>
-    <div class="bubble"><span class="b-task" id="bt-CMO">Nova campanha Q3 — ROAS 3.2x.</span></div>
-    <div class="working-ring"></div>
-  </div>
-
-  <div class="hotspot" id="hs-CSO"  style="left:36%;top:45%;--color:#8b5cf6">
-    <div class="b-name-tag">Dir. Comercial</div>
-    <div class="bubble"><span class="b-task" id="bt-CSO">Funil de conversão revisado.</span></div>
-    <div class="working-ring"></div>
-  </div>
-
-  <div class="hotspot" id="hs-CTO"  style="left:49%;top:23%;--color:#10b981">
-    <div class="b-name-tag">CTO</div>
-    <div class="bubble"><span class="b-task" id="bt-CTO">Deploy de nova feature em produção.</span></div>
-    <div class="working-ring"></div>
-  </div>
-
-  <div class="hotspot" id="hs-CFO"  style="left:66%;top:33%;--color:#6366f1">
-    <div class="b-name-tag">CFO</div>
-    <div class="bubble"><span class="b-task" id="bt-CFO">Margem 68% confirmada. CAC ok.</span></div>
-    <div class="working-ring"></div>
-  </div>
-
-</div>
-
-<!-- Top Bar -->
-<div id="topbar">
-  <button onclick="window.open('/dashboard','_top')" style="display:flex;align-items:center;gap:6px;padding:5px 11px;border-radius:6px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:#bbb;cursor:pointer;font-family:inherit;font-size:10px;font-weight:600;transition:all .12s" onmouseover="this.style.background='rgba(255,255,255,.1)';this.style.color='#fff'" onmouseout="this.style.background='rgba(255,255,255,.05)';this.style.color='#bbb'">
-    <span style="font-size:11px">←</span> Voltar ao Sistema
-  </button>
-  <div class="pip"></div>
-  <div class="logo"><span>FACTOR</span>HUB</div>
-  <div class="bdg b-g">Live Monitor</div>
-  <span id="mission-lbl" style="font-size:10px;color:#555">Aguardando missão</span>
-  <div id="clk">--:--:--</div>
-</div>
-
-<!-- Right Panel -->
-<div id="panel">
-  <!-- Metrics quick-stats -->
-  <div class="psec">
-    <div class="ptit">Métricas</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-      <div onclick="window.open('/dashboard/missoes','_top')" style="padding:8px 9px;border-radius:7px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.05);cursor:pointer">
-        <div id="met-missoes" style="font-size:16px;font-weight:800;color:#f0f0f0;line-height:1;font-variant-numeric:tabular-nums">0</div>
-        <div style="font-size:8px;color:#555;margin-top:3px">Missões ativas</div>
-      </div>
-      <div onclick="window.open('/dashboard/agentes','_top')" style="padding:8px 9px;border-radius:7px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.05);cursor:pointer">
-        <div id="met-agentes" style="font-size:16px;font-weight:800;color:#3ecf8e;line-height:1;font-variant-numeric:tabular-nums">7</div>
-        <div style="font-size:8px;color:#555;margin-top:3px">Agentes ativos</div>
-      </div>
-      <div onclick="window.open('/dashboard/uso','_top')" style="padding:8px 9px;border-radius:7px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.05);cursor:pointer">
-        <div id="met-custo" style="font-size:16px;font-weight:800;color:#c9a84c;line-height:1;font-variant-numeric:tabular-nums">$0</div>
-        <div style="font-size:8px;color:#555;margin-top:3px">Custo hoje</div>
-      </div>
-      <div onclick="window.open('/dashboard/tarefas','_top')" style="padding:8px 9px;border-radius:7px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.05);cursor:pointer">
-        <div id="met-tarefas" style="font-size:16px;font-weight:800;color:#6366f1;line-height:1;font-variant-numeric:tabular-nums">0</div>
-        <div style="font-size:8px;color:#555;margin-top:3px">Tarefas hoje</div>
-      </div>
+    <!-- HOTSPOTS over each character in the office -->
+    <div class="hot" data-agent="CA"  style="left:9%;top:40%;width:70px;height:95px">
+      <div class="tip"><div class="tip-name">Chief of Staff</div><div class="tip-sub">Recepção · síntese executiva</div></div>
     </div>
-  </div>
-  <div class="psec" style="max-height:240px;overflow-y:auto">
-    <div class="ptit">Agentes</div>
-    <div id="agent-list"></div>
-  </div>
-  <div id="pbody">
-    <!-- Projects -->
-    <div style="padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.06)">
-      <div class="ptit">Projetos</div>
-      <div id="project-list">
-        <div onclick="window.open('/dashboard/produtos','_top')" style="display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:7px;cursor:pointer;margin-bottom:3px;transition:background .1s" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
-          <div style="width:8px;height:8px;border-radius:2px;background:#3ecf8e;flex-shrink:0"></div>
-          <div style="flex:1;min-width:0"><div style="font-size:10.5px;font-weight:700;color:#e0e0f0">FactorOne</div><div style="font-size:8px;color:#444">Finance OS · Live</div></div>
-          <span style="font-size:7px;font-weight:800;padding:2px 5px;border-radius:3px;background:rgba(62,207,142,.12);color:#3ecf8e">LIVE</span>
-        </div>
-        <div onclick="window.open('/dashboard/produtos','_top')" style="display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:7px;cursor:pointer;margin-bottom:3px;transition:background .1s" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
-          <div style="width:8px;height:8px;border-radius:2px;background:#f59e0b;flex-shrink:0"></div>
-          <div style="flex:1;min-width:0"><div style="font-size:10.5px;font-weight:700;color:#e0e0f0">VN Prime</div><div style="font-size:8px;color:#444">Imobiliária · Próximo</div></div>
-          <span style="font-size:7px;font-weight:800;padding:2px 5px;border-radius:3px;background:rgba(245,158,11,.12);color:#f59e0b">DEV</span>
-        </div>
-        <div onclick="window.open('/dashboard/produtos','_top')" style="display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:7px;cursor:pointer;transition:background .1s" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
-          <div style="width:8px;height:8px;border-radius:2px;background:#a3a3a3;flex-shrink:0"></div>
-          <div style="flex:1;min-width:0"><div style="font-size:10.5px;font-weight:700;color:#e0e0f0">LifeOS</div><div style="font-size:8px;color:#444">Assessor pessoal · Dev</div></div>
-          <span style="font-size:7px;font-weight:800;padding:2px 5px;border-radius:3px;background:rgba(163,163,163,.12);color:#a3a3a3">DEV</span>
-        </div>
-      </div>
+    <div class="hot" data-agent="CEO" style="left:24%;top:26%;width:75px;height:95px">
+      <div class="tip"><div class="tip-name">CEO Estratégico</div><div class="tip-sub">Strategy Room · C1</div></div>
     </div>
-    <div style="padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.06)">
-      <div class="ptit">Missões</div>
-      <div id="mission-list">
-        <div style="font-size:10px;color:#333;text-align:center;padding:16px 0">Nenhuma missão ativa</div>
-      </div>
-      <button class="see-all" onclick="window.open('/dashboard/missoes','_top')">Ver todas as missões →</button>
+    <div class="hot" data-agent="COO" style="left:31%;top:30%;width:70px;height:90px">
+      <div class="tip"><div class="tip-name">COO</div><div class="tip-sub">Strategy Room · operações</div></div>
     </div>
-    <div id="cost-wrap">
-      <div class="ptit">Consumo IA — 14 dias</div>
-      <canvas id="cost-cv" width="238" height="42"></canvas>
-      <div style="display:flex;justify-content:space-between;margin-top:5px">
-        <span style="font-size:8px;color:#333">Total acumulado</span>
-        <span id="total-cost" style="font-size:10px;font-weight:700;color:#c9a84c;font-variant-numeric:tabular-nums">$0.0000</span>
-      </div>
-      <button class="see-all" onclick="window.open('/dashboard','_top')" style="margin-top:10px">Abrir dashboard completo →</button>
+    <div class="hot" data-agent="CTO" style="left:49%;top:24%;width:75px;height:95px">
+      <div class="tip"><div class="tip-name">CTO</div><div class="tip-sub">Tech Room · arquitetura</div></div>
     </div>
+    <div class="hot" data-agent="CMO" style="left:28%;top:48%;width:75px;height:95px">
+      <div class="tip"><div class="tip-name">CMO Growth</div><div class="tip-sub">Growth Room · marketing</div></div>
+    </div>
+    <div class="hot" data-agent="CFO" style="left:68%;top:38%;width:70px;height:90px">
+      <div class="tip"><div class="tip-name">CFO</div><div class="tip-sub">Kitchen · financeiro</div></div>
+    </div>
+    <div class="hot" data-agent="MEETING" style="left:43%;top:54%;width:90px;height:70px">
+      <div class="tip"><div class="tip-name">Sala de Reunião</div><div class="tip-sub">Conselho reunido</div></div>
+    </div>
+
+    <!-- HOTSPOTS over baked-in right panel agent list → go to /agentes -->
+    <div class="hot" onclick="goAgentes()" style="left:85.5%;top:11%;width:14%;height:50%">
+      <div class="tip" style="left:auto;right:0;transform:none"><div class="tip-name">Squad de Agentes</div><div class="tip-sub">27 agentes · clique para abrir</div></div>
+    </div>
+    <!-- HOTSPOT over baked-in missions area → go to /missoes -->
+    <div class="hot" onclick="window.open('/dashboard/missoes','_top')" style="left:85.5%;top:64%;width:14%;height:30%">
+      <div class="tip" style="left:auto;right:0;transform:none"><div class="tip-name">Missões</div><div class="tip-sub">Ver todas as missões</div></div>
+    </div>
+
   </div>
 </div>
 
-<!-- Ticker -->
-<div id="ticker">
-  <div class="tlbl">Atividade</div>
-  <div style="flex:1;overflow:hidden"><div class="tinn" id="tinn"></div></div>
-</div>
-
-<!-- Agent click modal -->
-<div id="amodal" onclick="if(event.target===this)closeModal()">
-  <div class="abox" id="abox-content"></div>
+<!-- Agent modal -->
+<div id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="mbox" id="mbox"></div>
 </div>
 
 <script>
-// ─── Agent definitions ────────────────────────────────────────────────────────
-const AGENTS = [
-  {id:'CEO',name:'CEO Estratégico',role:'Decisões estratégicas',layer:'C1',color:'#e8622a',init:'CE',hs:'CEO'},
-  {id:'COO',name:'COO',role:'Operações e eficiência',layer:'C1',color:'#f59e0b',init:'CO',hs:'COO'},
-  {id:'CFO',name:'CFO',role:'Viabilidade financeira',layer:'C1',color:'#6366f1',init:'CF',hs:'CFO'},
-  {id:'CTO',name:'CTO',role:'Arquitetura técnica',layer:'C1',color:'#10b981',init:'CT',hs:'CTO'},
-  {id:'CMO',name:'CMO Growth',role:'Marketing e aquisição',layer:'C1',color:'#ec4899',init:'CM',hs:'CMO'},
-  {id:'CSO',name:'Dir. Comercial',role:'Estratégia comercial',layer:'C3',color:'#8b5cf6',init:'DC',hs:'CSO'},
-  {id:'CA',name:'Chief of Staff',role:'Síntese executiva',layer:'CA',color:'#c9a84c',init:'CA',hs:'CA'},
-]
-
-const STATE = {}
-AGENTS.forEach(a => {
-  STATE[a.id] = { status:'sit', task: '' }
-})
-
-const TASKS = {
-  CEO:['A autonomia define o nosso sucesso.','Validando nova oportunidade de mercado.','Aprovando plano estratégico Q3.'],
-  COO:['Sprint atualizado. Dependências ok.','Alinhando times para Q3.','Processos operacionais revisados.'],
-  CFO:['Margem 68% confirmada. CAC ok.','Modelando unit economics.','Análise de fluxo de caixa concluída.'],
-  CTO:['Deploy de nova feature em produção.','Revisando arquitetura de serviços.','Code review PR #47 aprovado.'],
-  CMO:['Nova campanha Q3 — ROAS 3.2x.','Estratégia de conteúdo aprovada.','Análise de funil de conversão.'],
-  CSO:['Funil de conversão revisado.','Pipeline de vendas atualizado.','Proposta comercial enviada.'],
-  CA:['Coordenando agenda do founder.','Briefing executivo enviado.','Report semanal preparado.'],
+const AGENTS = {
+  CEO:{name:'CEO Estratégico',role:'Decisões estratégicas e validação de oportunidades',layer:'C1',color:'#e8622a',init:'CE',task:'Validando a próxima oportunidade de mercado.'},
+  COO:{name:'COO',role:'Operações e escalabilidade',layer:'C1',color:'#f59e0b',init:'CO',task:'Sprint atualizado, dependências alinhadas.'},
+  CFO:{name:'CFO',role:'Viabilidade financeira e modelagem',layer:'C1',color:'#10b981',init:'CF',task:'Margem em 68%, CAC validado.'},
+  CTO:{name:'CTO',role:'Arquitetura técnica e build/buy',layer:'C1',color:'#10b981',init:'CT',task:'Deploy da nova feature em produção.'},
+  CMO:{name:'CMO Growth',role:'Marketing, posicionamento e aquisição',layer:'C1',color:'#ec4899',init:'CM',task:'Campanha Q3 com ROAS 3.2x.'},
+  CA: {name:'Chief of Staff',role:'Síntese executiva final',layer:'CA',color:'#a855f7',init:'CA',task:'Coordenando a agenda do founder.'},
+  MEETING:{name:'Sala de Reunião',role:'Conselho executivo reunido',layer:'C1',color:'#3ecf8e',init:'★',task:'Reunião estratégica em andamento.'},
 }
 
-// ─── Hotspot click ────────────────────────────────────────────────────────────
-document.querySelectorAll('.hotspot').forEach(el => {
-  el.addEventListener('click', () => {
-    const hsId = el.id.replace('hs-', '')
-    const agent = AGENTS.find(a => a.hs === hsId || a.id === hsId)
-    if (!agent) return
-    const s = STATE[agent.id]
-    const statusLabel = s.status === 'sit' ? 'Trabalhando' : 'Disponível'
-    const statusColor = s.status === 'sit' ? '#22c55e' : '#555'
-    document.getElementById('abox-content').innerHTML = `
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
-        <div style="width:46px;height:46px;border-radius:12px;background:${agent.color}20;border:2px solid ${agent.color}60;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:${agent.color};flex-shrink:0">${agent.init}</div>
-        <div>
-          <div style="font-size:14px;font-weight:800;color:#f0f0f0">${agent.name}</div>
-          <div style="font-size:10px;color:#666;margin-top:2px">${agent.role} · ${agent.layer}</div>
-          <div style="display:flex;align-items:center;gap:4px;margin-top:4px">
-            <div style="width:5px;height:5px;border-radius:50%;background:${statusColor}"></div>
-            <span style="font-size:9px;color:${statusColor};font-weight:600">${statusLabel}</span>
-          </div>
-        </div>
-        <button onclick="closeModal()" style="margin-left:auto;background:none;border:none;color:#444;font-size:16px;cursor:pointer">×</button>
+function openAgent(id){
+  const a = AGENTS[id]; if(!a) return
+  document.getElementById('mbox').innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+      <div style="width:48px;height:48px;border-radius:12px;background:${a.color}20;border:2px solid ${a.color}60;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:${a.color};flex-shrink:0">${a.init}</div>
+      <div style="flex:1"><div style="font-size:15px;font-weight:800;color:#f0f0f0">${a.name}</div><div style="font-size:10px;color:#888;margin-top:2px">${a.role} · ${a.layer}</div>
+        <div style="display:flex;align-items:center;gap:5px;margin-top:5px"><div style="width:5px;height:5px;border-radius:50%;background:#3ecf8e"></div><span style="font-size:9px;color:#3ecf8e;font-weight:600">Ativo</span></div>
       </div>
-      <div style="font-size:8px;color:#444;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">Task atual</div>
-      <div style="font-size:11px;color:#c4b8e0;line-height:1.65;padding:9px 11px;background:rgba(0,0,0,.6);border-radius:8px;border:1px solid rgba(255,255,255,.06)">${s.task || TASKS[agent.id]?.[0] || 'Disponível'}</div>
-    `
-    document.getElementById('amodal').classList.add('open')
-  })
+      <button onclick="closeModal()" style="background:none;border:none;color:#555;font-size:18px;cursor:pointer">×</button>
+    </div>
+    <div style="font-size:8px;color:#555;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">Task atual</div>
+    <div style="font-size:11px;color:#c4b8e0;line-height:1.6;padding:9px 11px;background:rgba(0,0,0,.5);border-radius:8px;border:1px solid rgba(255,255,255,.06);margin-bottom:12px">${a.task}</div>
+    <button onclick="goAgentes()" style="width:100%;padding:9px;border-radius:8px;background:var(--accent,#3ecf8e);color:#0a0812;border:none;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700">Abrir no Squad →</button>
+  `
+  document.getElementById('modal').classList.add('open')
+}
+function closeModal(){document.getElementById('modal').classList.remove('open')}
+function goAgentes(){window.open('/dashboard/agentes','_top')}
+
+document.querySelectorAll('.hot[data-agent]').forEach(el=>{
+  el.addEventListener('click',()=>openAgent(el.getAttribute('data-agent')))
 })
 
-function closeModal() { document.getElementById('amodal').classList.remove('open') }
-
-// ─── Update hotspot task display ──────────────────────────────────────────────
-function setAgentTask(agentId, task) {
-  const agent = AGENTS.find(a => a.id === agentId)
-  if (!agent) return
-  STATE[agentId].task = task
-  STATE[agentId].status = 'sit'
-  const taskEl = document.getElementById(`bt-${agent.hs || agentId}`)
-  if (taskEl) taskEl.textContent = task
-  const hs = document.getElementById(`hs-${agent.hs || agentId}`)
-  if (hs) hs.classList.add('working')
-  renderAgentList()
-}
-
-// ─── Right panel ─────────────────────────────────────────────────────────────
-function renderAgentList() {
-  const el = document.getElementById('agent-list')
-  if (!el) return
-  el.innerHTML = AGENTS.map(a => {
-    const s = STATE[a.id]
-    const busy = s.status === 'sit'
-    return `<div class="arow" onclick="document.getElementById('hs-${a.hs||a.id}')?.click()">
-      <div class="aav" style="background:${a.color}18;border:1px solid ${a.color}40;color:${a.color}">${a.init}</div>
-      <div class="ainfo">
-        <div class="aname">${a.name}</div>
-        <div class="arole">${a.role}</div>
-      </div>
-      <div class="astat ${busy?'s-busy':'s-on'}">${busy?'ATIVO':'ONLINE'}</div>
-    </div>`
-  }).join('')
-}
-
-function renderMissions(list) {
-  const el = document.getElementById('mission-list')
-  const lbl = document.getElementById('mission-lbl')
-  const metM = document.getElementById('met-missoes')
-  if (!list?.length) {
-    el.innerHTML = '<div style="font-size:10px;color:#333;text-align:center;padding:14px 0">Nenhuma missão ativa</div>'
-    lbl.textContent = 'Aguardando missão'
-    if (metM) metM.textContent = '0'
-    return
-  }
-  const running = list.filter(m => m.status === 'running')
-  if (metM) metM.textContent = String(running.length)
-  lbl.textContent = `${running.length} missão${running.length !== 1 ? 'ões' : ''} ativa${running.length !== 1 ? 's' : ''}`
-  el.innerHTML = list.slice(0, 4).map(m => {
-    const c = m.status === 'running' ? '#f59e0b' : m.status === 'approved' ? '#22c55e' : '#444'
-    const pct = Math.round((m.agents_done || 0) / (m.agents_total || 1) * 100)
-    return `<div class="mrow">
-      <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">
-        <span class="mtag" style="background:${c}18;color:${c}">${m.level}</span>
-        <span style="font-size:7.5px;color:#444">${m.agents_done||0}/${m.agents_total||'?'}</span>
-      </div>
-      <div class="mname">${m.title || 'Missão'}</div>
-      <div class="mpb"><div class="mpbf" style="width:${pct}%;background:${c}"></div></div>
-    </div>`
-  }).join('')
-}
-
-function renderChart(data) {
-  const cv = document.getElementById('cost-cv')
-  const ctx = cv.getContext('2d')
-  const w = cv.width, h = cv.height
-  ctx.clearRect(0, 0, w, h)
-  if (!data?.length) return
-  const mx = Math.max(...data, 0.0001)
-  const step = w / (data.length - 1 || 1)
-  ctx.beginPath()
-  data.forEach((v, i) => {
-    const x = i * step, y = h - (v / mx) * (h - 4) - 2
-    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)
-  })
-  ctx.strokeStyle = '#c9a84c'; ctx.lineWidth = 1.5; ctx.stroke()
-  ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath()
-  ctx.fillStyle = 'rgba(201,168,76,.07)'; ctx.fill()
-}
-
-// ─── Ticker ───────────────────────────────────────────────────────────────────
-let tickLog = []
-function renderTicker() {
-  const base = [
-    {c:'#22c55e',t:'Sistema online — 7 agentes ativos'},
-    {c:'#c9a84c',t:'CEO validou oportunidade de mercado'},
-    {c:'#10b981',t:'CTO: deploy feature em produção'},
-    {c:'#ec4899',t:'CMO: campanha Q3 ROAS 3.2x'},
-    {c:'#6366f1',t:'CFO: margem 68% confirmada'},
-    {c:'#f59e0b',t:'COO: sprint atualizado'},
-  ]
-  const items = tickLog.length ? [...tickLog, ...base] : base
-  const html = [...items, ...items].map(e =>
-    `<span class="tev"><span class="tdot" style="background:${e.c}"></span>${e.t}</span>`
-  ).join('')
-  const el = document.getElementById('tinn')
-  if (el) el.innerHTML = html
-}
-
-// ─── Clock ────────────────────────────────────────────────────────────────────
-setInterval(() => {
-  const el = document.getElementById('clk')
-  if (el) el.textContent = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-}, 1000)
-
-// ─── Task cycling simulation ──────────────────────────────────────────────────
-function simCycle() {
-  const ids = Object.keys(TASKS)
-  const id = ids[Math.floor(Math.random() * ids.length)]
-  const tasks = TASKS[id]
-  const task = tasks[Math.floor(Math.random() * tasks.length)]
-  setAgentTask(id, task)
-  if (Math.random() < 0.4) {
-    tickLog.unshift({ c: AGENTS.find(a => a.id === id)?.color || '#c9a84c', t: `[${id}] ${task}` })
-    if (tickLog.length > 8) tickLog.pop()
-    renderTicker()
-  }
-  setTimeout(simCycle, 7000 + Math.random() * 10000)
-}
-
-// ─── Apply live data (shared) ─────────────────────────────────────────────────
-function applyLiveData(data) {
-  if (data.missions) renderMissions(data.missions)
-  if (data.usage) {
-    const todayStart = new Date(); todayStart.setHours(0,0,0,0)
-    const costs = data.usage.slice(-14).map(u => Number(u.custo_usd || 0))
-    renderChart(costs)
-    const total = data.usage.reduce((s, u) => s + Number(u.custo_usd || 0), 0)
-    const today = data.usage.filter(u => new Date(u.created_at) >= todayStart).reduce((s,u)=>s+Number(u.custo_usd||0),0)
-    const todayCount = data.usage.filter(u => new Date(u.created_at) >= todayStart).length
-    const el = document.getElementById('total-cost'); if (el) el.textContent = '$' + total.toFixed(4)
-    const mc = document.getElementById('met-custo'); if (mc) mc.textContent = today < 0.01 ? `$${(today*1000).toFixed(1)}m` : `$${today.toFixed(3)}`
-    const mt = document.getElementById('met-tarefas'); if (mt) mt.textContent = String(todayCount)
-  }
-  if (data.agentStatuses) {
-    Object.entries(data.agentStatuses).forEach(([id, info]) => setAgentTask(id, info.task || ''))
-  }
-}
-
-window.addEventListener('message', e => {
-  if (e.data?.type === 'factorhub-live-data') applyLiveData(e.data)
-})
-
-// ─── Self-contained data fetch from Supabase ──────────────────────────────────
-const SUPABASE_URL = 'https://brpbwfforyrjrryfsrzf.supabase.co'
-
-function getSupabaseToken() {
-  // Supabase JS stores session in localStorage under sb-<ref>-auth-token
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i)
-    if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
-      try {
-        const parsed = JSON.parse(localStorage.getItem(key))
-        return parsed?.access_token || parsed?.[0] || null
-      } catch { return null }
-    }
-  }
-  return null
-}
-
-async function fetchLiveData() {
-  const token = getSupabaseToken()
-  if (!token) return  // not logged in — keep simulation
-  try {
-    const res = await fetch('/api/hub/missions-list', { headers: { Authorization: `Bearer ${token}` } })
-    if (res.ok) {
-      const { missions } = await res.json()
-      if (missions) {
-        // enrich with agent counts for progress bars
-        const enriched = missions.map(m => ({ ...m, agents_done: (m.agents_used||[]).length, agents_total: (m.agents_used||[]).length || 1 }))
-        renderMissions(enriched)
-      }
-    }
-  } catch { /* keep simulation */ }
-}
-
-// ─── Init ─────────────────────────────────────────────────────────────────────
-document.getElementById('clk').textContent = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-renderAgentList()
-renderMissions([])
-renderTicker()
-renderChart([0, 0.002, 0.001, 0.005, 0.003, 0.009, 0.006, 0.014, 0.008, 0.018, 0.012, 0.024, 0.016, 0.028])
-
-// Init tasks
-AGENTS.forEach(a => {
-  const tasks = TASKS[a.id]
-  setAgentTask(a.id, tasks[0])
-})
-
-fetchLiveData()
-setInterval(fetchLiveData, 15000)  // refresh every 15s
-setTimeout(simCycle, 5000)
+setInterval(()=>{
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'})
+},1000)
+document.getElementById('clock').textContent = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'})
 </script>
 </body>
 </html>
