@@ -98,10 +98,18 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
       if (!u) { router.push('/auth'); return }
       setUser(u)
 
-      const { data: usrRow } = await supabase.from('usuarios').select('empresa_id').eq('id', u.id).maybeSingle()
-      const empresaId = usrRow?.empresa_id ?? u.id
-      const { data: cerebro } = await supabase.from('hub_cerebro').select('*').eq('empresa_id', empresaId).maybeSingle()
-      if (cerebro) setCerebroPct(calcCerebroCompletion(cerebro as CerebroRow))
+      // Use API route (admin client) to avoid RLS issues on hub_cerebro
+      const { data: sess } = await supabase.auth.getSession()
+      const token = sess.session?.access_token
+      try {
+        const res = await fetch('/api/hub/cerebro', {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        })
+        if (res.ok) {
+          const json = await res.json() as { cerebro?: CerebroRow }
+          if (json.cerebro) setCerebroPct(calcCerebroCompletion(json.cerebro))
+        }
+      } catch { /* ignore */ }
     })
   }, [router])
 

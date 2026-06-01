@@ -318,6 +318,18 @@ function HistoryTable({
                 <td style={{ padding: '10px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{new Date(m.created_at).toLocaleDateString('pt-BR')}</td>
                 <td style={{ padding: '10px', whiteSpace: 'nowrap' }}>
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    {/* Running/stuck — force cancel */}
+                    {m.status === 'running' && !isDeleting && (
+                      <button
+                        onClick={() => void handleReactivate(m.id)}
+                        disabled={isBusy}
+                        title="Cancelar missão travada"
+                        style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 5, background: 'rgba(239,68,68,.12)', color: '#ef4444', border: '1px solid rgba(239,68,68,.25)', cursor: 'pointer', fontFamily: 'inherit' }}
+                      >
+                        {isBusy ? '...' : <><i className="fa-solid fa-stop" style={{ fontSize: 8, marginRight: 4 }} />Parar</>}
+                      </button>
+                    )}
+                    {/* Archived — reactivate to draft */}
                     {isArchived && !isDeleting && (
                       <button
                         onClick={() => void handleReactivate(m.id)}
@@ -327,12 +339,13 @@ function HistoryTable({
                         {isBusy ? '...' : 'Reativar'}
                       </button>
                     )}
+                    {/* Draft — re-run immediately */}
                     {m.status === 'draft' && !isDeleting && (
                       <button
                         onClick={() => onRerun(m.title)}
                         style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 5, background: 'rgba(16,185,129,.15)', color: '#10b981', border: '1px solid rgba(16,185,129,.3)', cursor: 'pointer', fontFamily: 'inherit' }}
                       >
-                        Re-executar
+                        <i className="fa-solid fa-play" style={{ fontSize: 8, marginRight: 4 }} />Re-executar
                       </button>
                     )}
                     {!isDeleting ? (
