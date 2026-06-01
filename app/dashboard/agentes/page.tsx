@@ -519,6 +519,16 @@ export default function AgentesPage() {
 
   useEffect(() => { void loadMissionMap() }, [])
 
+  // abrir agente direto via ?open=ID (vindo dos Setores)
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get('open')
+    if (id && AGENTS_V2[id]) {
+      openAgent(AGENTS_V2[id])
+      window.history.replaceState({}, '', '/dashboard/agentes')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   async function loadMissionMap() {
     const token = await getToken()
     const res = await fetch('/api/hub/missions-list', { headers: token ? { Authorization: `Bearer ${token}` } : {} })

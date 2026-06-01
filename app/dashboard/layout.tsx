@@ -34,6 +34,7 @@ const NAV: { label: string; items: NavItem[] }[] = [
   {
     label: 'Squad',
     items: [
+      { href: '/dashboard/setores', icon: 'fa-sitemap', label: 'Setores' },
       { href: '/dashboard/agentes', icon: 'fa-robot', label: 'Agentes · Squad', badge: '27', badgeColor: '#2e2e2e' },
     ],
   },
@@ -77,6 +78,7 @@ const TITLES: Record<string, string> = {
   '/dashboard/configuracoes': 'Configurações',
   '/dashboard/produtos': 'Portfólio',
   '/dashboard/criar': 'Criar Ferramenta',
+  '/dashboard/setores': 'Setores',
 }
 
 function isActive(pathname: string, item: NavItem) {
