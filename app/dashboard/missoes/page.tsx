@@ -231,6 +231,7 @@ function HistoryTable({
 }) {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
+  const [aberto, setAberto] = useState<string | null>(null)
 
   if (!missions.length) return (
     <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
@@ -252,116 +253,74 @@ function HistoryTable({
   }
 
   return (
-    <div style={{ overflow: 'auto' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-        <thead>
-          <tr style={{ borderBottom: '1px solid var(--border)' }}>
-            {['Missão', 'Nível', 'Status', 'Agentes', 'Tokens', 'Custo', 'Data', ''].map(h => (
-              <th key={h} style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 700, fontSize: 10, color: 'var(--text-muted)', letterSpacing: '.05em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {missions.map((m) => {
-            const stColor = STATUS_COLORS[m.status] ?? '#666'
-            const stLabel = STATUS_LABELS[m.status] ?? m.status
-            const isArchived = m.status === 'archived'
-            const isDeleting = confirmDelete === m.id
-            const isBusy = busy === m.id
-            return (
-              <tr key={m.id} style={{ borderBottom: '1px solid var(--border)', opacity: isArchived ? 0.7 : 1 }}>
-                <td style={{ padding: '10px', maxWidth: 260 }}>
-                  <div style={{ fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.title}</div>
-                </td>
-                <td style={{ padding: '10px' }}>
-                  <span style={{ fontFamily: 'monospace', fontSize: 10, fontWeight: 800, padding: '2px 6px', borderRadius: 4, background: 'var(--accent-dim)', color: 'var(--accent)' }}>{m.level}</span>
-                </td>
-                <td style={{ padding: '10px' }}>
-                  <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4, background: `${stColor}15`, color: stColor }}>{stLabel}</span>
-                </td>
-                <td style={{ padding: '10px', color: 'var(--text-muted)' }}>{m.agents_used?.length ?? '—'}</td>
-                <td style={{ padding: '10px', color: 'var(--text-muted)' }}>{m.total_tokens?.toLocaleString() ?? '—'}</td>
-                <td style={{ padding: '10px', color: 'var(--text-muted)' }}>{m.cost_usd ? `$${Number(m.cost_usd).toFixed(4)}` : '—'}</td>
-                <td style={{ padding: '10px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{new Date(m.created_at).toLocaleDateString('pt-BR')}</td>
-                <td style={{ padding: '10px', whiteSpace: 'nowrap' }}>
-                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                    {/* Running/stuck — force cancel */}
-                    {m.status === 'running' && !isDeleting && (
-                      <button
-                        onClick={() => void handleReactivate(m.id)}
-                        disabled={isBusy}
-                        title="Cancelar missão travada"
-                        style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 5, background: 'rgba(239,68,68,.12)', color: '#ef4444', border: '1px solid rgba(239,68,68,.25)', cursor: 'pointer', fontFamily: 'inherit' }}
-                      >
-                        {isBusy ? '...' : <><i className="fa-solid fa-stop" style={{ fontSize: 8, marginRight: 4 }} />Parar</>}
-                      </button>
-                    )}
-                    {/* Archived — reactivate to draft */}
-                    {isArchived && !isDeleting && (
-                      <button
-                        onClick={() => void handleReactivate(m.id)}
-                        disabled={isBusy}
-                        style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 5, background: 'rgba(139,92,246,.15)', color: '#8b5cf6', border: '1px solid rgba(139,92,246,.3)', cursor: 'pointer', fontFamily: 'inherit' }}
-                      >
-                        {isBusy ? '...' : 'Reativar'}
-                      </button>
-                    )}
-                    {/* Editar / Re-executar — qualquer missão exceto rodando */}
-                    {m.status !== 'running' && !isArchived && !isDeleting && (
-                      <button
-                        onClick={() => onEdit(m)}
-                        title="Editar e reexecutar"
-                        style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 5, background: 'var(--accent-dim)', color: 'var(--accent)', border: '1px solid var(--accent)', cursor: 'pointer', fontFamily: 'inherit' }}
-                      >
-                        <i className="fa-solid fa-pen" style={{ fontSize: 8, marginRight: 4 }} />Editar
-                      </button>
-                    )}
-                    {/* Aprovada — virar projeto manual (caso queira de novo) */}
-                    {m.status === 'approved' && !isDeleting && (
-                      <button
-                        onClick={() => { window.location.href = `/dashboard/projetos?from=missao&nome=${encodeURIComponent(m.title)}` }}
-                        title="Criar projeto desta missão"
-                        style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 5, background: 'rgba(62,207,142,.12)', color: '#3ecf8e', border: '1px solid rgba(62,207,142,.3)', cursor: 'pointer', fontFamily: 'inherit' }}
-                      >
-                        <i className="fa-solid fa-diagram-project" style={{ fontSize: 8, marginRight: 4 }} />Projeto
-                      </button>
-                    )}
-                    {!isDeleting ? (
-                      <button
-                        onClick={() => setConfirmDelete(m.id)}
-                        disabled={isBusy}
-                        style={{ fontSize: 10, padding: '3px 8px', borderRadius: 5, background: 'transparent', color: 'var(--text-dim)', border: '1px solid transparent', cursor: 'pointer', fontFamily: 'inherit' }}
-                        title="Deletar missão"
-                      >
-                        <i className="fa-solid fa-trash" style={{ fontSize: 9 }} />
-                      </button>
-                    ) : (
-                      <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                        <span style={{ fontSize: 10, color: '#ef4444', fontWeight: 600 }}>Confirmar?</span>
-                        <button
-                          onClick={() => void handleDelete(m.id)}
-                          disabled={isBusy}
-                          style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 5, background: '#ef4444', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
-                        >
-                          {isBusy ? '...' : 'Sim'}
-                        </button>
-                        <button
-                          onClick={() => setConfirmDelete(null)}
-                          style={{ fontSize: 10, padding: '2px 7px', borderRadius: 5, background: 'var(--surface-3)', color: 'var(--text-muted)', border: '1px solid var(--border)', cursor: 'pointer', fontFamily: 'inherit' }}
-                        >
-                          Não
-                        </button>
-                      </div>
-                    )}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      {missions.map((m) => {
+        const stColor = STATUS_COLORS[m.status] ?? '#666'
+        const stLabel = STATUS_LABELS[m.status] ?? m.status
+        const isArchived = m.status === 'archived'
+        const isDeleting = confirmDelete === m.id
+        const isBusy = busy === m.id
+        const open = aberto === m.id
+        return (
+          <div key={m.id} style={{ border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden', background: 'var(--surface)', opacity: isArchived ? 0.7 : 1 }}>
+            {/* linha clicável (dropdown) */}
+            <button onClick={() => setAberto(open ? null : m.id)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', background: open ? 'var(--surface-2)' : 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}>
+              <span style={{ fontFamily: 'monospace', fontSize: 10, fontWeight: 800, padding: '2px 6px', borderRadius: 4, background: 'var(--accent-dim)', color: 'var(--accent)', flexShrink: 0 }}>{m.level}</span>
+              <span style={{ flex: 1, minWidth: 0, fontSize: 12, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.title}</span>
+              <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4, background: `${stColor}15`, color: stColor, flexShrink: 0 }}>{stLabel}</span>
+              <span style={{ fontSize: 9, color: 'var(--text-dim)', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{new Date(m.created_at).toLocaleDateString('pt-BR')}</span>
+              <i className={`fa-solid fa-chevron-${open ? 'up' : 'down'}`} style={{ fontSize: 9, color: 'var(--text-dim)', flexShrink: 0 }} />
+            </button>
+
+            {/* dropdown: prompt + ações */}
+            <AnimatePresence>
+              {open && (
+                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ overflow: 'hidden' }}>
+                  <div style={{ padding: '12px 14px', borderTop: '1px solid var(--border)' }}>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 6 }}>Prompt da missão</div>
+                    <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.6, background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px', marginBottom: 10, whiteSpace: 'pre-wrap', maxHeight: 200, overflowY: 'auto' }}>{m.title}</div>
+                    <div style={{ display: 'flex', gap: 12, marginBottom: 12, fontSize: 10, color: 'var(--text-muted)' }}>
+                      <span>{m.agents_used?.length ?? 0} agentes</span>
+                      <span>{(m.total_tokens ?? 0).toLocaleString()} tokens</span>
+                      <span>{m.cost_usd ? `$${Number(m.cost_usd).toFixed(4)}` : '$0'}</span>
+                    </div>
+                    {/* AÇÕES */}
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                      {m.status === 'running' && (
+                        <button onClick={() => void handleReactivate(m.id)} disabled={isBusy} style={btn('#ef4444')}><i className="fa-solid fa-stop" style={{ fontSize: 8, marginRight: 4 }} />Parar</button>
+                      )}
+                      {isArchived && (
+                        <button onClick={() => void handleReactivate(m.id)} disabled={isBusy} style={btn('#8b5cf6')}>Reativar</button>
+                      )}
+                      {m.status !== 'running' && (
+                        <button onClick={() => onEdit(m)} style={btn('var(--accent)')}><i className="fa-solid fa-pen" style={{ fontSize: 8, marginRight: 4 }} />Editar prompt</button>
+                      )}
+                      {(m.status === 'approved' || m.status === 'completed') && (
+                        <button onClick={() => { window.location.href = `/dashboard/projetos?from=missao&nome=${encodeURIComponent(m.title)}` }} style={btn('#3ecf8e')}><i className="fa-solid fa-diagram-project" style={{ fontSize: 8, marginRight: 4 }} />Virar Projeto</button>
+                      )}
+                      {!isDeleting ? (
+                        <button onClick={() => setConfirmDelete(m.id)} style={{ ...btn('#888888'), marginLeft: 'auto' }}><i className="fa-solid fa-trash" style={{ fontSize: 8 }} /></button>
+                      ) : (
+                        <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginLeft: 'auto' }}>
+                          <span style={{ fontSize: 10, color: '#ef4444', fontWeight: 600 }}>Apagar:</span>
+                          <button onClick={() => void handleDelete(m.id)} disabled={isBusy} style={{ fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 5, background: '#ef4444', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Sim</button>
+                          <button onClick={() => setConfirmDelete(null)} style={{ fontSize: 10, padding: '3px 9px', borderRadius: 5, background: 'var(--surface-3)', color: 'var(--text-muted)', border: '1px solid var(--border)', cursor: 'pointer', fontFamily: 'inherit' }}>Não</button>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )
+      })}
     </div>
   )
+}
+
+function btn(color: string): React.CSSProperties {
+  return { fontSize: 10, fontWeight: 700, padding: '5px 10px', borderRadius: 6, background: color === 'var(--accent)' ? 'var(--accent-dim)' : `${color}15`, color, border: `1px solid ${color === 'var(--accent)' ? 'var(--accent)' : color + '40'}`, cursor: 'pointer', fontFamily: 'inherit' }
 }
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
