@@ -28,8 +28,34 @@ export default function CRMPage() {
   const [sel, setSel] = useState<string | null>(null)
   const [form, setForm] = useState({ nome: '', email: '', telefone: '', interesse: '', valor: '' })
   const [saving, setSaving] = useState(false)
+  const [fu, setFu] = useState<Lead | null>(null)
+  const [fuAssunto, setFuAssunto] = useState('')
+  const [fuMsg, setFuMsg] = useState('')
+  const [fuBusy, setFuBusy] = useState('')
 
   useEffect(() => { void carregar() }, [])
+
+  function abrirFollowup(l: Lead) { setFu(l); setFuAssunto(''); setFuMsg(''); setFuBusy('') }
+
+  async function gerarFU() {
+    if (!fu) return
+    setFuBusy('Gerando...')
+    const token = await getToken()
+    const res = await fetch('/api/hub/followup', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify({ acao: 'draft', lead: { nome: fu.nome, interesse: fu.interesse } }) })
+    if (res.ok) { const j = await res.json(); setFuAssunto(j.assunto ?? ''); setFuMsg(j.mensagem ?? '') }
+    setFuBusy('')
+  }
+  async function enviarFU() {
+    if (!fu?.email || !fuAssunto || !fuMsg) return
+    setFuBusy('Enviando...')
+    const token = await getToken()
+    const res = await fetch('/api/hub/followup', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify({ to: fu.email, assunto: fuAssunto, mensagem: fuMsg }) })
+    const j = await res.json().catch(() => ({}))
+    if (res.ok) { setFuBusy('Enviado ✓'); setTimeout(() => setFu(null), 1500) }
+    else setFuBusy('Erro: ' + (j.error || 'falha'))
+  }
 
   async function carregar() {
     setLoading(true)
@@ -154,7 +180,10 @@ export default function CRMPage() {
                                   <button key={c.id} onClick={() => void mover(l.id, c.id)} style={{ fontSize: 8, padding: '2px 6px', borderRadius: 3, background: `${c.color}15`, color: c.color, border: `1px solid ${c.color}30`, cursor: 'pointer', fontFamily: 'inherit' }}>{c.label}</button>
                                 ))}
                               </div>
-                              <button onClick={() => void excluir(l.id)} style={{ fontSize: 9, padding: '3px 8px', borderRadius: 5, background: 'rgba(244,68,68,.08)', color: '#f44', border: '1px solid rgba(244,68,68,.2)', cursor: 'pointer', fontFamily: 'inherit' }}><i className="fa-solid fa-trash" style={{ fontSize: 8 }} /></button>
+                              <div style={{ display: 'flex', gap: 5 }}>
+                                {l.email && <button onClick={() => abrirFollowup(l)} style={{ fontSize: 9, fontWeight: 700, padding: '3px 8px', borderRadius: 5, background: 'var(--accent-dim)', color: 'var(--accent)', border: '1px solid var(--accent)', cursor: 'pointer', fontFamily: 'inherit' }}><i className="fa-solid fa-paper-plane" style={{ fontSize: 8, marginRight: 4 }} />Follow-up</button>}
+                                <button onClick={() => void excluir(l.id)} style={{ fontSize: 9, padding: '3px 8px', borderRadius: 5, background: 'rgba(244,68,68,.08)', color: '#f44', border: '1px solid rgba(244,68,68,.2)', cursor: 'pointer', fontFamily: 'inherit' }}><i className="fa-solid fa-trash" style={{ fontSize: 8 }} /></button>
+                              </div>
                             </motion.div>
                           )}
                         </AnimatePresence>
@@ -168,6 +197,35 @@ export default function CRMPage() {
           })}
         </div>
       )}
+
+      {/* Follow-up modal */}
+      <AnimatePresence>
+        {fu && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={e => { if (e.target === e.currentTarget) setFu(null) }}
+            style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+            <motion.div initial={{ scale: 0.96, y: 12 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.96, y: 12 }}
+              style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 20, width: '100%', maxWidth: 520 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)' }}>Follow-up — {fu.nome}</div>
+                <button onClick={() => setFu(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 18, cursor: 'pointer' }}>×</button>
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 12 }}>Para: {fu.email}</div>
+              <button onClick={() => void gerarFU()} disabled={!!fuBusy} style={{ fontSize: 11, fontWeight: 700, padding: '7px 12px', borderRadius: 7, background: 'var(--accent-dim)', color: 'var(--accent)', border: '1px solid var(--accent)', cursor: 'pointer', fontFamily: 'inherit', marginBottom: 12 }}>
+                <i className="fa-solid fa-wand-magic-sparkles" style={{ fontSize: 10, marginRight: 5 }} />Gerar com IA
+              </button>
+              <input value={fuAssunto} onChange={e => setFuAssunto(e.target.value)} placeholder="Assunto" style={{ ...inp, width: '100%', boxSizing: 'border-box', marginBottom: 10 }} />
+              <textarea value={fuMsg} onChange={e => setFuMsg(e.target.value)} placeholder="Mensagem do email" rows={6} style={{ ...inp, width: '100%', boxSizing: 'border-box', resize: 'vertical', marginBottom: 14, lineHeight: 1.6 }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <button onClick={() => void enviarFU()} disabled={!fuAssunto || !fuMsg || fuBusy === 'Enviando...'} style={{ padding: '9px 18px', borderRadius: 8, background: fuAssunto && fuMsg ? 'var(--accent)' : 'var(--surface-3)', color: fuAssunto && fuMsg ? '#0a0a0a' : 'var(--text-dim)', border: 'none', cursor: fuAssunto && fuMsg ? 'pointer' : 'default', fontSize: 12, fontWeight: 800, fontFamily: 'inherit' }}>
+                  <i className="fa-solid fa-paper-plane" style={{ fontSize: 10, marginRight: 6 }} />Enviar email
+                </button>
+                {fuBusy && <span style={{ fontSize: 11, color: fuBusy.includes('Erro') ? '#f44' : fuBusy.includes('✓') ? '#3ecf8e' : 'var(--text-muted)', fontWeight: 600 }}>{fuBusy}</span>}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
